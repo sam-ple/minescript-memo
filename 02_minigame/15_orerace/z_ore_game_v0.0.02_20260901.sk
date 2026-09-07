@@ -1,0 +1,506 @@
+# ============================================================
+# ORERACE GAME SYSTEM
+# Version : v0.1.01
+#
+# ALL ORE TEST
+#
+# Minecraft Java Edition + Paper + Skript
+#
+# Features:
+#   ・16種類の鉱石採掘検知
+#   ・ポイント加算
+#   ・プレイヤー別採掘数
+#   ・鉱石別採掘数
+#   ・Scoreboard更新
+#   ・Debug Mode
+#
+# Target Ores:
+#
+#   Normal
+#   COAL_ORE              = +1
+#   COPPER_ORE            = +1
+#   IRON_ORE              = +2
+#   GOLD_ORE              = +2
+#   REDSTONE_ORE          = +3
+#   LAPIS_ORE             = +3
+#   EMERALD_ORE           = +4
+#   DIAMOND_ORE           = +5
+#
+#   Deepslate
+#   DEEPSLATE_COAL_ORE       = +1
+#   DEEPSLATE_COPPER_ORE     = +1
+#   DEEPSLATE_IRON_ORE       = +2
+#   DEEPSLATE_GOLD_ORE       = +2
+#   DEEPSLATE_REDSTONE_ORE   = +3
+#   DEEPSLATE_LAPIS_ORE      = +3
+#   DEEPSLATE_EMERALD_ORE    = +4
+#   DEEPSLATE_DIAMOND_ORE    = +5
+#
+# Commands:
+#   /orerace start
+#   /orerace stop
+#   /orerace reset
+#   /orerace status
+#   /orerace debug
+#
+# ============================================================
+
+
+options:
+    prefix: &8[&6OreRace&8]&r
+
+
+# ============================================================
+# COMMAND
+# ============================================================
+
+command /orerace <text>:
+    permission: op
+    trigger:
+
+        # ----------------------------------------------------
+        # START
+        # ----------------------------------------------------
+
+        if arg-1 is "start":
+
+            set {orerace.running} to true
+
+            send "{@prefix} &aOreRace START!" to all players
+
+
+        # ----------------------------------------------------
+        # STOP
+        # ----------------------------------------------------
+
+        else if arg-1 is "stop":
+
+            set {orerace.running} to false
+
+            send "{@prefix} &cOreRace STOPPED." to all players
+
+
+        # ----------------------------------------------------
+        # RESET
+        # ----------------------------------------------------
+
+        else if arg-1 is "reset":
+
+            delete {orerace.points::*}
+            delete {orerace.count::*}
+            delete {orerace.orecount::*}
+
+            set {orerace.running} to false
+
+
+            # Scoreboard削除
+
+            execute console command "scoreboard objectives remove orePoints"
+
+
+            # Scoreboard再作成
+
+            execute console command "scoreboard objectives add orePoints dummy Points"
+
+            execute console command "scoreboard objectives setdisplay sidebar orePoints"
+
+
+            send "{@prefix} &eReset complete." to player
+
+
+        # ----------------------------------------------------
+        # STATUS
+        # ----------------------------------------------------
+
+        else if arg-1 is "status":
+
+            send "&8&m--------------------------------"
+            send "&6ORE RACE STATUS"
+            send "&8&m--------------------------------"
+
+
+            # Game State
+
+            if {orerace.running} is true:
+
+                send "&7State: &aRUNNING"
+
+            else:
+
+                send "&7State: &cSTOPPED"
+
+
+            send "&8&m--------------------------------"
+
+
+            # Player Data
+
+            loop all players:
+
+                set {_uuid} to uuid of loop-player
+
+
+                # Point
+
+                set {_points} to {orerace.points::%{_uuid}%}
+
+                if {_points} is not set:
+
+                    set {_points} to 0
+
+
+                # Ore Count
+
+                set {_count} to {orerace.count::%{_uuid}%}
+
+                if {_count} is not set:
+
+                    set {_count} to 0
+
+
+                send "&f%loop-player% &7: &e%{_points}% pt &7(%{_count}% ores)"
+
+
+            send "&8&m--------------------------------"
+
+
+        # ----------------------------------------------------
+        # DEBUG
+        # ----------------------------------------------------
+
+        else if arg-1 is "debug":
+
+            if {orerace.debug} is true:
+
+                set {orerace.debug} to false
+
+                send "{@prefix} &7DEBUG: &cOFF"
+
+            else:
+
+                set {orerace.debug} to true
+
+                send "{@prefix} &7DEBUG: &aON"
+
+
+        # ----------------------------------------------------
+        # HELP
+        # ----------------------------------------------------
+
+        else:
+
+            send "{@prefix} &cUnknown command."
+
+            send "&7/orerace start"
+            send "&7/orerace stop"
+            send "&7/orerace reset"
+            send "&7/orerace status"
+            send "&7/orerace debug"
+
+
+# ============================================================
+# SCOREBOARD
+# ============================================================
+
+on script load:
+
+    # 古いScoreboardを削除
+
+    execute console command "scoreboard objectives remove orePoints"
+
+
+    # Scoreboard作成
+
+    execute console command "scoreboard objectives add orePoints dummy Points"
+
+
+    # Sidebar表示
+
+    execute console command "scoreboard objectives setdisplay sidebar orePoints"
+
+
+# ============================================================
+# BLOCK BREAK
+# ============================================================
+
+on break:
+
+
+    # --------------------------------------------------------
+    # GAME CHECK
+    # --------------------------------------------------------
+
+    if {orerace.running} is not true:
+
+        stop
+
+
+    # --------------------------------------------------------
+    # PLAYER DATA
+    # --------------------------------------------------------
+
+    set {_player} to player
+
+    set {_uuid} to uuid of {_player}
+
+    set {_block} to event-block
+
+
+    # ========================================================
+    # NORMAL ORES
+    # ========================================================
+
+
+    # --------------------------------------------------------
+    # COAL ORE
+    # --------------------------------------------------------
+
+    if {_block} is coal ore:
+
+        set {_ore} to "COAL_ORE"
+
+        set {_point} to 1
+
+
+    # --------------------------------------------------------
+    # COPPER ORE
+    # --------------------------------------------------------
+
+    else if {_block} is copper ore:
+
+        set {_ore} to "COPPER_ORE"
+
+        set {_point} to 1
+
+
+    # --------------------------------------------------------
+    # IRON ORE
+    # --------------------------------------------------------
+
+    else if {_block} is iron ore:
+
+        set {_ore} to "IRON_ORE"
+
+        set {_point} to 2
+
+
+    # --------------------------------------------------------
+    # GOLD ORE
+    # --------------------------------------------------------
+
+    else if {_block} is gold ore:
+
+        set {_ore} to "GOLD_ORE"
+
+        set {_point} to 2
+
+
+    # --------------------------------------------------------
+    # REDSTONE ORE
+    # --------------------------------------------------------
+
+    else if {_block} is redstone ore:
+
+        set {_ore} to "REDSTONE_ORE"
+
+        set {_point} to 3
+
+
+    # --------------------------------------------------------
+    # LAPIS ORE
+    # --------------------------------------------------------
+
+    else if {_block} is lapis ore:
+
+        set {_ore} to "LAPIS_ORE"
+
+        set {_point} to 3
+
+
+    # --------------------------------------------------------
+    # EMERALD ORE
+    # --------------------------------------------------------
+
+    else if {_block} is emerald ore:
+
+        set {_ore} to "EMERALD_ORE"
+
+        set {_point} to 4
+
+
+    # --------------------------------------------------------
+    # DIAMOND ORE
+    # --------------------------------------------------------
+
+    else if {_block} is diamond ore:
+
+        set {_ore} to "DIAMOND_ORE"
+
+        set {_point} to 5
+
+
+    # ========================================================
+    # DEEPSLATE ORES
+    # ========================================================
+
+
+    # --------------------------------------------------------
+    # DEEPSLATE COAL ORE
+    # --------------------------------------------------------
+
+    else if {_block} is deepslate coal ore:
+
+        set {_ore} to "DEEPSLATE_COAL_ORE"
+
+        set {_point} to 1
+
+
+    # --------------------------------------------------------
+    # DEEPSLATE COPPER ORE
+    # --------------------------------------------------------
+
+    else if {_block} is deepslate copper ore:
+
+        set {_ore} to "DEEPSLATE_COPPER_ORE"
+
+        set {_point} to 1
+
+
+    # --------------------------------------------------------
+    # DEEPSLATE IRON ORE
+    # --------------------------------------------------------
+
+    else if {_block} is deepslate iron ore:
+
+        set {_ore} to "DEEPSLATE_IRON_ORE"
+
+        set {_point} to 2
+
+
+    # --------------------------------------------------------
+    # DEEPSLATE GOLD ORE
+    # --------------------------------------------------------
+
+    else if {_block} is deepslate gold ore:
+
+        set {_ore} to "DEEPSLATE_GOLD_ORE"
+
+        set {_point} to 2
+
+
+    # --------------------------------------------------------
+    # DEEPSLATE REDSTONE ORE
+    # --------------------------------------------------------
+
+    else if {_block} is deepslate redstone ore:
+
+        set {_ore} to "DEEPSLATE_REDSTONE_ORE"
+
+        set {_point} to 3
+
+
+    # --------------------------------------------------------
+    # DEEPSLATE LAPIS ORE
+    # --------------------------------------------------------
+
+    else if {_block} is deepslate lapis ore:
+
+        set {_ore} to "DEEPSLATE_LAPIS_ORE"
+
+        set {_point} to 3
+
+
+    # --------------------------------------------------------
+    # DEEPSLATE EMERALD ORE
+    # --------------------------------------------------------
+
+    else if {_block} is deepslate emerald ore:
+
+        set {_ore} to "DEEPSLATE_EMERALD_ORE"
+
+        set {_point} to 4
+
+
+    # --------------------------------------------------------
+    # DEEPSLATE DIAMOND ORE
+    # --------------------------------------------------------
+
+    else if {_block} is deepslate diamond ore:
+
+        set {_ore} to "DEEPSLATE_DIAMOND_ORE"
+
+        set {_point} to 5
+
+
+    # ========================================================
+    # NOT TARGET ORE
+    # ========================================================
+
+    else:
+
+        stop
+
+
+    # ========================================================
+    # POINT
+    # ========================================================
+
+    add {_point} to {orerace.points::%{_uuid}%}
+
+
+    # ========================================================
+    # TOTAL ORE COUNT
+    # ========================================================
+
+    add 1 to {orerace.count::%{_uuid}%}
+
+
+    # ========================================================
+    # INDIVIDUAL ORE COUNT
+    # ========================================================
+
+    add 1 to {orerace.orecount::%{_uuid}%::%{_ore}%}
+
+
+    # ========================================================
+    # TOTAL POINT
+    # ========================================================
+
+    set {_total} to {orerace.points::%{_uuid}%}
+
+
+    # ========================================================
+    # SCOREBOARD
+    # ========================================================
+
+    execute console command "scoreboard players set %{_player}% orePoints %{_total}%"
+
+
+    # ========================================================
+    # DEBUG
+    # ========================================================
+
+    if {orerace.debug} is true:
+
+        set {_orecount} to {orerace.orecount::%{_uuid}%::%{_ore}%}
+
+        set {_totalcount} to {orerace.count::%{_uuid}%}
+
+
+        send "{@prefix} &8&m--------------------------------" to {_player}
+
+        send "{@prefix} &7[DEBUG] Ore detected!" to {_player}
+
+        send "{@prefix} &7Player: &f%{_player}%" to {_player}
+
+        send "{@prefix} &7Ore: &e%{_ore}%" to {_player}
+
+        send "{@prefix} &7Point: &a+%{_point}%" to {_player}
+
+        send "{@prefix} &7Total Point: &e%{_total}%" to {_player}
+
+        send "{@prefix} &7This Ore Count: &b%{_orecount}%" to {_player}
+
+        send "{@prefix} &7Total Ore Count: &d%{_totalcount}%" to {_player}
+
+        send "{@prefix} &8&m--------------------------------" to {_player}
