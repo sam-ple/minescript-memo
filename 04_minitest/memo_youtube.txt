@@ -1,0 +1,100 @@
+## 鉄千
+
+Minescript × Skript | I Recreated Tetsusen in Minecraft
+
+Minecraft Minigames
+Minescript × Skript
+
+IronRace (Tetsusen)
+
+Original by Dozle Corporation
+
+#1 Build the Arena with Minescript
+Gamers / Katoo
+
+#2 Manage the Game with Skript
+#2 Build the Game System with Skript
+Secret Adventure / Kotto
+
+Minecraft Java Edition 26.2
+
+#minecraft #minigames #minescript #skript
+#dozle #ドズル社 #鉄千 #再現
+#マインクラフト #マイクラ #mod
+
+## 一本道
+
+Minescript × Skript | I Recreated Ipponmichi in Minecraft
+
+Minecraft Minigames
+Minescript × Skript
+
+LineRace (Ipponmichi)
+
+Inspired by WhiteTails
+
+#1 Generate the Race Course with Minescript
+#2 Build the Game System with Skript
+
+Minecraft Java Edition 26.2
+
+#minecraft #minigames #minescript #skript
+#whitetails #ワイテルズ #一本道サバイバル
+#再現 #マインクラフト #マイクラ #mod
+
+## 進捗競争
+
+Minescript × Skript | I Recreated Shinchoku Race in Minecraft
+
+Minecraft Minigames
+Minescript × Skript × SkBee
+
+AdvRace (Shinchoku)
+
+Inspired by Gutitubo
+
+#1 Create a Test Arena with Minescript
+#2 Build the Game System with Skript + SkBee
+
+Minecraft Java Edition 26.2
+
+#minecraft #minigames #minescript #skript #skbee
+#gutitubo #ぐちつぼ #進捗競争
+#再現 #マインクラフト #マイクラ #mod
+
+## モブキャッチ
+
+Skript | I Recreated MobCatcher in Minecraft
+
+Minecraft Utilities
+Skript × Spawn Egg Models
+Skript × Custom Spawn Eggs
+
+MobCatcher
+
+Inspired by Dozle Corporation
+
+Build the Mob Capture System with Skript
+
+#minecraft #skript #utility
+#dozle #ドズル社 #モブキャッチ
+#再現 #マインクラフト #マイクラ #mod
+
+## テンプレート
+
+[Tech Stack] | I Recreated [GAME] in Minecraft
+
+
+Minecraft [Minigames / Utilities]
+
+[Tech Stack]
+
+[Custom Game Name] ([Japanese Name])
+
+Inspired by [Creator]
+
+
+#1 [What Minescript Does]
+#1 Generate / Build / Create [World, Arena, Course] with Minescript
+#2 Build the Game System with Skript
+Build the [System Name] with Skript

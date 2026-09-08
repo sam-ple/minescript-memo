@@ -1,967 +1,920 @@
-# ============================================================
-# MOB CAPTURE SYSTEM
-# Version : v1.0.02
-#
-# Minecraft Java Edition + Paper + Skript
-#
-# ============================================================
-#
-# PURPOSE
-#
-#   MobCatcher（名前付きの棒）を持ってMobを右クリックすると、
-#   そのMobを捕獲してSpawn Eggへ変換する。
-#
-# ============================================================
-#
-# CAPTURE FLOW
-#
-#   MobCatcherでMobを右クリック
-#             ↓
-#   捕獲機能ONか確認
-#             ↓
-#   MobCatcherか確認
-#             ↓
-#   クリックしたEntityを確認
-#             ↓
-#   Living Entityか確認
-#             ↓
-#   Playerではないか確認
-#             ↓
-#   5ブロック以内か確認
-#             ↓
-#   捕獲可能Mobか確認
-#             ↓
-#   Mobの現在位置を保存
-#             ↓
-#   ポータルParticle
-#   煙幕Particle
-#   捕獲音
-#   「ポンッ！」音
-#             ↓
-#   MobをY=-64へ移動
-#             ↓
-#   MobをKill
-#   ※通常Dropは地下で発生
-#             ↓
-#   Mobがいた元の場所に
-#   対応するSpawn EggをDrop
-#             ↓
-#   Spawn Egg出現Particle
-#
-# ============================================================
-#
-# COMMANDS
-#
-#   /capture start
-#       捕獲機能ON
-#
-#   /capture stop
-#       捕獲機能OFF
-#
-#   /capture reset
-#       状態リセット
-#
-#   /capture status
-#       状態確認
-#
-#   /capture give
-#       MobCatcherを取得
-#
-#   /capture
-#       ヘルプ
-#
-# ============================================================
+# ============================================================ 
+# MOB CAPTURE SYSTEM 
+# Version : v1.0.02 
+# 
+# Minecraft Java Edition + Paper + Skript 
+# 
+# ============================================================ 
+# 
+# PURPOSE 
+# 
+#   MobCatcherを持ってMobを右クリックすると、 
+#   そのMobを捕獲してスポーンエッグへ変換する。 
+# 
+# ============================================================ 
+# 
+# CAPTURE FLOW 
+# 
+#   MobCatcherでMobを右クリック 
+#             ↓ 
+#   捕獲可能Mobか確認 
+#             ↓ 
+#   Mobの現在位置を保存 
+#             ↓ 
+#   捕獲演出 
+#   ・ポータルParticle 
+#   ・煙Particle 
+#   ・効果音 
+#             ↓ 
+#   MobをY=-64へ移動 
+#             ↓ 
+#   MobをKill 
+#             ↓ 
+#   対応するSpawn Eggを 
+#   Mobがいた元の場所にDrop 
+# 
+# ============================================================ 
+# 
+# COMMANDS 
+# 
+#   /capture start 
+#       捕獲機能ON 
+# 
+#   /capture stop 
+#       捕獲機能OFF 
+# 
+#   /capture reset 
+#       状態リセット 
+# 
+#   /capture status 
+#       状態確認 
+# 
+#   /capture give 
+#       MobCatcher取得 
+# 
+#   /capture 
+#       ヘルプ 
+# 
+# ============================================================ 
 
 
-# ============================================================
-# OPTIONS
-# ============================================================
+# ============================================================ 
+# OPTIONS 
+# ============================================================ 
 
-options:
+options: 
 
-    # --------------------------------------------------------
-    # 捕獲アイテム
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # 捕獲アイテム 
+    # -------------------------------------------------------- 
 
-    capture-item: stick
-    capture-item-name: &b&lMobCatcher
-
-
-    # --------------------------------------------------------
-    # 捕獲距離
-    # --------------------------------------------------------
-
-    capture-distance: 5
+    capture-item: stick 
+    capture-item-name: &b&lMobCatcher 
 
 
-    # --------------------------------------------------------
-    # 捕獲後の退避Y座標
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # 捕獲距離 
+    # -------------------------------------------------------- 
 
-    # Mobの通常Dropを地下で発生させるための座標。
-    # Spawn EggはMobがいた元の場所にDropする。
-
-    capture-y: -64
+    capture-distance: 5 
 
 
-# ============================================================
-# LOAD
-# ============================================================
+    # -------------------------------------------------------- 
+    # 捕獲後の退避Y座標 
+    # -------------------------------------------------------- 
 
-on load:
-
-    send "[Mob Capture] v1.0.02 Loaded." to console
+    capture-y: -64 
 
 
-# ============================================================
-# COMMAND
-# ============================================================
+# ============================================================ 
+# LOAD 
+# ============================================================ 
 
-command /capture [<text>]:
+on load: 
 
-    permission: op
-
-    trigger:
+    send "[Mob Capture] v1.0.02 Loaded." to console 
 
 
-        # ====================================================
-        # START
-        # ====================================================
+# ============================================================ 
+# COMMAND 
+# ============================================================ 
 
-        if arg-1 is "start":
+command /capture [<text>]: 
 
-            set {capture.enabled} to true
+    permission: op 
 
-            send "&a================================" to player
-            send "&a[Mob Capture] START" to player
-            send "&a捕獲機能を開始しました。" to player
-            send "&7捕獲アイテム：MobCatcher" to player
-            send "&7捕獲距離：{@capture-distance}ブロック" to player
-            send "&a================================" to player
-
-            stop
+    trigger: 
 
 
-        # ====================================================
-        # STOP
-        # ====================================================
+        # ==================================================== 
+        # START 
+        # ==================================================== 
 
-        if arg-1 is "stop":
+        if arg-1 is "start": 
 
-            set {capture.enabled} to false
+            set {capture.enabled} to true 
 
-            send "&c================================" to player
-            send "&c[Mob Capture] STOP" to player
-            send "&c捕獲機能を停止しました。" to player
-            send "&c================================" to player
+            send "&a================================" to player 
+            send "&a[Mob Capture] START" to player 
+            send "&a捕獲機能を開始しました。" to player 
+            send "&7捕獲アイテム：MobCatcher" to player 
+            send "&7捕獲距離：{@capture-distance}ブロック" to player 
+            send "&a================================" to player 
 
-            stop
-
-
-        # ====================================================
-        # RESET
-        # ====================================================
-
-        if arg-1 is "reset":
-
-            delete {capture.enabled}
-
-            send "&e================================" to player
-            send "&e[Mob Capture] RESET" to player
-            send "&e状態をリセットしました。" to player
-            send "&e================================" to player
-
-            stop
+            stop 
 
 
-        # ====================================================
-        # STATUS
-        # ====================================================
+        # ==================================================== 
+        # STOP 
+        # ==================================================== 
 
-        if arg-1 is "status":
+        if arg-1 is "stop": 
 
-            if {capture.enabled} is true:
+            set {capture.enabled} to false 
 
-                send "&a[Mob Capture] ON" to player
+            send "&c================================" to player 
+            send "&c[Mob Capture] STOP" to player 
+            send "&c捕獲機能を停止しました。" to player 
+            send "&c================================" to player 
 
-            else:
-
-                send "&c[Mob Capture] OFF" to player
-
-            stop
+            stop 
 
 
-        # ====================================================
-        # GIVE MOB CATCHER
-        # ====================================================
+        # ==================================================== 
+        # RESET 
+        # ==================================================== 
 
-        if arg-1 is "give":
+        if arg-1 is "reset": 
+
+            delete {capture.enabled} 
+
+            send "&e================================" to player 
+            send "&e[Mob Capture] RESET" to player 
+            send "&e状態をリセットしました。" to player 
+            send "&e================================" to player 
+
+            stop 
+
+
+        # ==================================================== 
+        # STATUS 
+        # ==================================================== 
+
+        if arg-1 is "status": 
+
+            if {capture.enabled} is true: 
+
+                send "&a[Mob Capture] ON" to player 
+
+            else: 
+
+                send "&c[Mob Capture] OFF" to player 
+
+            stop 
+
+
+        # ==================================================== 
+        # GIVE
+        # ==================================================== 
+
+        if arg-1 is "give": 
 
             # ------------------------------------------------
             # MobCatcher作成
             # ------------------------------------------------
 
-            set {_item} to {@capture-item}
+            set {_item} to stick 
 
-            set name of {_item} to "{@capture-item-name}"
+            set name of {_item} to {@capture-item-name} 
 
 
             # ------------------------------------------------
             # Playerへ付与
             # ------------------------------------------------
 
-            give {_item} to player
+            give {_item} to player 
 
 
             # ------------------------------------------------
             # メッセージ
             # ------------------------------------------------
 
-            send "&a================================" to player
-            send "&a[Mob Capture]" to player
-            send "&b&lMobCatcher &aを取得しました。" to player
-            send "&7このアイテムでMobを右クリックしてください。" to player
-            send "&a================================" to player
+            send "&a================================" to player 
+            send "&a[Mob Capture] MobCatcherを取得しました。" to player 
+            send "&7Mobを右クリックして捕獲できます。" to player 
+            send "&a================================" to player 
 
-            stop
+            stop 
 
 
-        # ====================================================
-        # HELP
-        # ====================================================
+        # ==================================================== 
+        # HELP 
+        # ==================================================== 
 
-        send "&e================================" to player
-        send "&eMob Capture System v1.0.02" to player
-        send "" to player
-        send "&e/capture start &7- 捕獲開始" to player
-        send "&e/capture stop &7- 捕獲停止" to player
-        send "&e/capture reset &7- 状態リセット" to player
-        send "&e/capture status &7- 状態確認" to player
-        send "&e/capture give &7- MobCatcher取得" to player
-        send "&e================================" to player
+        send "&e================================" to player 
+        send "&eMob Capture System v1.0.02" to player 
+        send "" to player 
+        send "&e/capture start &7- 捕獲開始" to player 
+        send "&e/capture stop &7- 捕獲停止" to player 
+        send "&e/capture reset &7- 状態リセット" to player 
+        send "&e/capture status &7- 状態確認" to player 
+        send "&e/capture give &7- MobCatcher取得" to player 
+        send "&e================================" to player 
 
 
-# ============================================================
-# RIGHT CLICK ENTITY
-# ============================================================
+# ============================================================ 
+# RIGHT CLICK 
+# ============================================================ 
 
-on right click on entity:
+on right click: 
 
 
-    # --------------------------------------------------------
-    # システムOFF
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # システムOFF 
+    # -------------------------------------------------------- 
 
-    if {capture.enabled} is not true:
+    if {capture.enabled} is not true: 
 
-        stop
+        stop 
 
 
-    # --------------------------------------------------------
-    # 手に持っているアイテム確認
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # 捕獲アイテム確認
+    # -------------------------------------------------------- 
 
-    if player's tool is not {@capture-item}:
+    if player's tool is not {@capture-item}: 
 
-        stop
+        stop 
 
 
-    # --------------------------------------------------------
-    # MobCatcherの名前確認
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # MobCatcher名前確認
+    # -------------------------------------------------------- 
+    #
+    # 普通の棒では動作しない。
+    # MobCatcherという名前の棒のみ使用可能。
+    #
+    # -------------------------------------------------------- 
 
-    if name of player's tool is not "{@capture-item-name}":
+    if name of player's tool is not {@capture-item-name}: 
 
-        stop
+        stop 
 
 
-    # --------------------------------------------------------
-    # クリックしたEntity取得
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # クリックしたEntity 
+    # -------------------------------------------------------- 
 
-    set {_target} to clicked entity
+    set {_target} to clicked entity 
 
 
-    # --------------------------------------------------------
-    # Entityが存在しない
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # Entityが存在しない 
+    # -------------------------------------------------------- 
 
-    if {_target} is not set:
+    if {_target} is not set: 
 
-        stop
+        stop 
 
 
-    # --------------------------------------------------------
-    # Living Entityのみ
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # Living Entityのみ 
+    # -------------------------------------------------------- 
 
-    if {_target} is not a living entity:
+    if {_target} is not a living entity: 
 
-        stop
+        stop 
 
 
-    # --------------------------------------------------------
-    # Player除外
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # Player除外 
+    # -------------------------------------------------------- 
 
-    if {_target} is a player:
+    if {_target} is a player: 
 
-        stop
+        stop 
 
 
-    # --------------------------------------------------------
-    # 距離確認
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # 距離確認 
+    # -------------------------------------------------------- 
 
-    if distance between player and {_target} > {@capture-distance}:
+    if distance between player and {_target} > {@capture-distance}: 
 
-        send "&cMobが遠すぎます。" to player
+        send "&cMobが遠すぎます。" to player 
 
-        stop
+        stop 
 
 
-    # ========================================================
-    # MOB → SPAWN EGG
-    # ========================================================
+    # ======================================================== 
+    # MOB → SPAWN EGG 
+    # ======================================================== 
 
+    if {_target} is an allay: 
 
-    if {_target} is an allay:
+        set {_egg} to allay spawn egg 
+        set {_mob-name} to "Allay" 
 
-        set {_egg} to allay spawn egg
-        set {_mob-name} to "Allay"
 
+    else if {_target} is an armadillo: 
 
-    else if {_target} is an armadillo:
+        set {_egg} to armadillo spawn egg 
+        set {_mob-name} to "Armadillo" 
 
-        set {_egg} to armadillo spawn egg
-        set {_mob-name} to "Armadillo"
 
+    else if {_target} is an axolotl: 
 
-    else if {_target} is an axolotl:
+        set {_egg} to axolotl spawn egg 
+        set {_mob-name} to "Axolotl" 
 
-        set {_egg} to axolotl spawn egg
-        set {_mob-name} to "Axolotl"
 
+    else if {_target} is a bat: 
 
-    else if {_target} is a bat:
+        set {_egg} to bat spawn egg 
+        set {_mob-name} to "Bat" 
 
-        set {_egg} to bat spawn egg
-        set {_mob-name} to "Bat"
 
+    else if {_target} is a bee: 
 
-    else if {_target} is a bee:
+        set {_egg} to bee spawn egg 
+        set {_mob-name} to "Bee" 
 
-        set {_egg} to bee spawn egg
-        set {_mob-name} to "Bee"
 
+    else if {_target} is a blaze: 
 
-    else if {_target} is a blaze:
+        set {_egg} to blaze spawn egg 
+        set {_mob-name} to "Blaze" 
 
-        set {_egg} to blaze spawn egg
-        set {_mob-name} to "Blaze"
 
+    else if {_target} is a bogged: 
 
-    else if {_target} is a bogged:
+        set {_egg} to bogged spawn egg 
+        set {_mob-name} to "Bogged" 
 
-        set {_egg} to bogged spawn egg
-        set {_mob-name} to "Bogged"
 
+    else if {_target} is a breeze: 
 
-    else if {_target} is a breeze:
+        set {_egg} to breeze spawn egg 
+        set {_mob-name} to "Breeze" 
 
-        set {_egg} to breeze spawn egg
-        set {_mob-name} to "Breeze"
 
+    else if {_target} is a camel: 
 
-    else if {_target} is a camel:
+        set {_egg} to camel spawn egg 
+        set {_mob-name} to "Camel" 
 
-        set {_egg} to camel spawn egg
-        set {_mob-name} to "Camel"
 
+    else if {_target} is a cat: 
 
-    else if {_target} is a cat:
+        set {_egg} to cat spawn egg 
+        set {_mob-name} to "Cat" 
 
-        set {_egg} to cat spawn egg
-        set {_mob-name} to "Cat"
 
+    else if {_target} is a cave spider: 
 
-    else if {_target} is a cave spider:
+        set {_egg} to cave spider spawn egg 
+        set {_mob-name} to "Cave Spider" 
 
-        set {_egg} to cave spider spawn egg
-        set {_mob-name} to "Cave Spider"
 
+    else if {_target} is a chicken: 
 
-    else if {_target} is a chicken:
+        set {_egg} to chicken spawn egg 
+        set {_mob-name} to "Chicken" 
 
-        set {_egg} to chicken spawn egg
-        set {_mob-name} to "Chicken"
 
+    else if {_target} is a cod: 
 
-    else if {_target} is a cod:
+        set {_egg} to cod spawn egg 
+        set {_mob-name} to "Cod" 
 
-        set {_egg} to cod spawn egg
-        set {_mob-name} to "Cod"
 
+    else if {_target} is a cow: 
 
-    else if {_target} is a cow:
+        set {_egg} to cow spawn egg 
+        set {_mob-name} to "Cow" 
 
-        set {_egg} to cow spawn egg
-        set {_mob-name} to "Cow"
 
+    else if {_target} is a creaking: 
 
-    else if {_target} is a creaking:
+        set {_egg} to creaking spawn egg 
+        set {_mob-name} to "Creaking" 
 
-        set {_egg} to creaking spawn egg
-        set {_mob-name} to "Creaking"
 
+    else if {_target} is a creeper: 
 
-    else if {_target} is a creeper:
+        set {_egg} to creeper spawn egg 
+        set {_mob-name} to "Creeper" 
 
-        set {_egg} to creeper spawn egg
-        set {_mob-name} to "Creeper"
 
+    else if {_target} is a dolphin: 
 
-    else if {_target} is a dolphin:
+        set {_egg} to dolphin spawn egg 
+        set {_mob-name} to "Dolphin" 
 
-        set {_egg} to dolphin spawn egg
-        set {_mob-name} to "Dolphin"
 
+    else if {_target} is a donkey: 
 
-    else if {_target} is a donkey:
+        set {_egg} to donkey spawn egg 
+        set {_mob-name} to "Donkey" 
 
-        set {_egg} to donkey spawn egg
-        set {_mob-name} to "Donkey"
 
+    else if {_target} is a drowned: 
 
-    else if {_target} is a drowned:
+        set {_egg} to drowned spawn egg 
+        set {_mob-name} to "Drowned" 
 
-        set {_egg} to drowned spawn egg
-        set {_mob-name} to "Drowned"
 
+    else if {_target} is an elder guardian: 
 
-    else if {_target} is an elder guardian:
+        set {_egg} to elder guardian spawn egg 
+        set {_mob-name} to "Elder Guardian" 
 
-        set {_egg} to elder guardian spawn egg
-        set {_mob-name} to "Elder Guardian"
 
+    else if {_target} is an ender dragon: 
 
-    else if {_target} is an ender dragon:
+        set {_egg} to ender dragon spawn egg 
+        set {_mob-name} to "Ender Dragon" 
 
-        set {_egg} to ender dragon spawn egg
-        set {_mob-name} to "Ender Dragon"
 
+    else if {_target} is an enderman: 
 
-    else if {_target} is an enderman:
+        set {_egg} to enderman spawn egg 
+        set {_mob-name} to "Enderman" 
 
-        set {_egg} to enderman spawn egg
-        set {_mob-name} to "Enderman"
 
+    else if {_target} is an endermite: 
 
-    else if {_target} is an endermite:
+        set {_egg} to endermite spawn egg 
+        set {_mob-name} to "Endermite" 
 
-        set {_egg} to endermite spawn egg
-        set {_mob-name} to "Endermite"
 
+    else if {_target} is an evoker: 
 
-    else if {_target} is an evoker:
+        set {_egg} to evoker spawn egg 
+        set {_mob-name} to "Evoker" 
 
-        set {_egg} to evoker spawn egg
-        set {_mob-name} to "Evoker"
 
+    else if {_target} is a fox: 
 
-    else if {_target} is a fox:
+        set {_egg} to fox spawn egg 
+        set {_mob-name} to "Fox" 
 
-        set {_egg} to fox spawn egg
-        set {_mob-name} to "Fox"
 
+    else if {_target} is a frog: 
 
-    else if {_target} is a frog:
+        set {_egg} to frog spawn egg 
+        set {_mob-name} to "Frog" 
 
-        set {_egg} to frog spawn egg
-        set {_mob-name} to "Frog"
 
+    else if {_target} is a ghast: 
 
-    else if {_target} is a ghast:
+        set {_egg} to ghast spawn egg 
+        set {_mob-name} to "Ghast" 
 
-        set {_egg} to ghast spawn egg
-        set {_mob-name} to "Ghast"
 
+    else if {_target} is a glow squid: 
 
-    else if {_target} is a glow squid:
+        set {_egg} to glow squid spawn egg 
+        set {_mob-name} to "Glow Squid" 
 
-        set {_egg} to glow squid spawn egg
-        set {_mob-name} to "Glow Squid"
 
+    else if {_target} is a goat: 
 
-    else if {_target} is a goat:
+        set {_egg} to goat spawn egg 
+        set {_mob-name} to "Goat" 
 
-        set {_egg} to goat spawn egg
-        set {_mob-name} to "Goat"
 
+    else if {_target} is a guardian: 
 
-    else if {_target} is a guardian:
+        set {_egg} to guardian spawn egg 
+        set {_mob-name} to "Guardian" 
 
-        set {_egg} to guardian spawn egg
-        set {_mob-name} to "Guardian"
 
+    else if {_target} is a hoglin: 
 
-    else if {_target} is a hoglin:
+        set {_egg} to hoglin spawn egg 
+        set {_mob-name} to "Hoglin" 
 
-        set {_egg} to hoglin spawn egg
-        set {_mob-name} to "Hoglin"
 
+    else if {_target} is a horse: 
 
-    else if {_target} is a horse:
+        set {_egg} to horse spawn egg 
+        set {_mob-name} to "Horse" 
 
-        set {_egg} to horse spawn egg
-        set {_mob-name} to "Horse"
 
+    else if {_target} is a husk: 
 
-    else if {_target} is a husk:
+        set {_egg} to husk spawn egg 
+        set {_mob-name} to "Husk" 
 
-        set {_egg} to husk spawn egg
-        set {_mob-name} to "Husk"
 
+    else if {_target} is an iron golem: 
 
-    else if {_target} is an iron golem:
+        set {_egg} to iron golem spawn egg 
+        set {_mob-name} to "Iron Golem" 
 
-        set {_egg} to iron golem spawn egg
-        set {_mob-name} to "Iron Golem"
 
+    else if {_target} is a llama: 
 
-    else if {_target} is a llama:
+        set {_egg} to llama spawn egg 
+        set {_mob-name} to "Llama" 
 
-        set {_egg} to llama spawn egg
-        set {_mob-name} to "Llama"
 
+    else if {_target} is a magma cube: 
 
-    else if {_target} is a magma cube:
+        set {_egg} to magma cube spawn egg 
+        set {_mob-name} to "Magma Cube" 
 
-        set {_egg} to magma cube spawn egg
-        set {_mob-name} to "Magma Cube"
 
+    else if {_target} is a mooshroom: 
 
-    else if {_target} is a mooshroom:
+        set {_egg} to mooshroom spawn egg 
+        set {_mob-name} to "Mooshroom" 
 
-        set {_egg} to mooshroom spawn egg
-        set {_mob-name} to "Mooshroom"
 
+    else if {_target} is a mule: 
 
-    else if {_target} is a mule:
+        set {_egg} to mule spawn egg 
+        set {_mob-name} to "Mule" 
 
-        set {_egg} to mule spawn egg
-        set {_mob-name} to "Mule"
 
+    else if {_target} is an ocelot: 
 
-    else if {_target} is an ocelot:
+        set {_egg} to ocelot spawn egg 
+        set {_mob-name} to "Ocelot" 
 
-        set {_egg} to ocelot spawn egg
-        set {_mob-name} to "Ocelot"
 
+    else if {_target} is a panda: 
 
-    else if {_target} is a panda:
+        set {_egg} to panda spawn egg 
+        set {_mob-name} to "Panda" 
 
-        set {_egg} to panda spawn egg
-        set {_mob-name} to "Panda"
 
+    else if {_target} is a parrot: 
 
-    else if {_target} is a parrot:
+        set {_egg} to parrot spawn egg 
+        set {_mob-name} to "Parrot" 
 
-        set {_egg} to parrot spawn egg
-        set {_mob-name} to "Parrot"
 
+    else if {_target} is a phantom: 
 
-    else if {_target} is a phantom:
+        set {_egg} to phantom spawn egg 
+        set {_mob-name} to "Phantom" 
 
-        set {_egg} to phantom spawn egg
-        set {_mob-name} to "Phantom"
 
+    else if {_target} is a pig: 
 
-    else if {_target} is a pig:
+        set {_egg} to pig spawn egg 
+        set {_mob-name} to "Pig" 
 
-        set {_egg} to pig spawn egg
-        set {_mob-name} to "Pig"
 
+    else if {_target} is a piglin: 
 
-    else if {_target} is a piglin:
+        set {_egg} to piglin spawn egg 
+        set {_mob-name} to "Piglin" 
 
-        set {_egg} to piglin spawn egg
-        set {_mob-name} to "Piglin"
 
+    else if {_target} is a piglin brute: 
 
-    else if {_target} is a piglin brute:
+        set {_egg} to piglin brute spawn egg 
+        set {_mob-name} to "Piglin Brute" 
 
-        set {_egg} to piglin brute spawn egg
-        set {_mob-name} to "Piglin Brute"
 
+    else if {_target} is a pillager: 
 
-    else if {_target} is a pillager:
+        set {_egg} to pillager spawn egg 
+        set {_mob-name} to "Pillager" 
 
-        set {_egg} to pillager spawn egg
-        set {_mob-name} to "Pillager"
 
+    else if {_target} is a polar bear: 
 
-    else if {_target} is a polar bear:
+        set {_egg} to polar bear spawn egg 
+        set {_mob-name} to "Polar Bear" 
 
-        set {_egg} to polar bear spawn egg
-        set {_mob-name} to "Polar Bear"
 
+    else if {_target} is a pufferfish: 
 
-    else if {_target} is a pufferfish:
+        set {_egg} to pufferfish spawn egg 
+        set {_mob-name} to "Pufferfish" 
 
-        set {_egg} to pufferfish spawn egg
-        set {_mob-name} to "Pufferfish"
 
+    else if {_target} is a rabbit: 
 
-    else if {_target} is a rabbit:
+        set {_egg} to rabbit spawn egg 
+        set {_mob-name} to "Rabbit" 
 
-        set {_egg} to rabbit spawn egg
-        set {_mob-name} to "Rabbit"
 
+    else if {_target} is a ravager: 
 
-    else if {_target} is a ravager:
+        set {_egg} to ravager spawn egg 
+        set {_mob-name} to "Ravager" 
 
-        set {_egg} to ravager spawn egg
-        set {_mob-name} to "Ravager"
 
+    else if {_target} is a salmon: 
 
-    else if {_target} is a salmon:
+        set {_egg} to salmon spawn egg 
+        set {_mob-name} to "Salmon" 
 
-        set {_egg} to salmon spawn egg
-        set {_mob-name} to "Salmon"
 
+    else if {_target} is a sheep: 
 
-    else if {_target} is a sheep:
+        set {_egg} to sheep spawn egg 
+        set {_mob-name} to "Sheep" 
 
-        set {_egg} to sheep spawn egg
-        set {_mob-name} to "Sheep"
 
+    else if {_target} is a shulker: 
 
-    else if {_target} is a shulker:
+        set {_egg} to shulker spawn egg 
+        set {_mob-name} to "Shulker" 
 
-        set {_egg} to shulker spawn egg
-        set {_mob-name} to "Shulker"
 
+    else if {_target} is a silverfish: 
 
-    else if {_target} is a silverfish:
+        set {_egg} to silverfish spawn egg 
+        set {_mob-name} to "Silverfish" 
 
-        set {_egg} to silverfish spawn egg
-        set {_mob-name} to "Silverfish"
 
+    else if {_target} is a skeleton: 
 
-    else if {_target} is a skeleton:
+        set {_egg} to skeleton spawn egg 
+        set {_mob-name} to "Skeleton" 
 
-        set {_egg} to skeleton spawn egg
-        set {_mob-name} to "Skeleton"
 
+    else if {_target} is a skeleton horse: 
 
-    else if {_target} is a skeleton horse:
+        set {_egg} to skeleton horse spawn egg 
+        set {_mob-name} to "Skeleton Horse" 
 
-        set {_egg} to skeleton horse spawn egg
-        set {_mob-name} to "Skeleton Horse"
 
+    else if {_target} is a slime: 
 
-    else if {_target} is a slime:
+        set {_egg} to slime spawn egg 
+        set {_mob-name} to "Slime" 
 
-        set {_egg} to slime spawn egg
-        set {_mob-name} to "Slime"
 
+    else if {_target} is a sniffer: 
 
-    else if {_target} is a sniffer:
+        set {_egg} to sniffer spawn egg 
+        set {_mob-name} to "Sniffer" 
 
-        set {_egg} to sniffer spawn egg
-        set {_mob-name} to "Sniffer"
 
+    else if {_target} is a snow golem: 
 
-    else if {_target} is a snow golem:
+        set {_egg} to snow golem spawn egg 
+        set {_mob-name} to "Snow Golem" 
 
-        set {_egg} to snow golem spawn egg
-        set {_mob-name} to "Snow Golem"
 
+    else if {_target} is a spider: 
 
-    else if {_target} is a spider:
+        set {_egg} to spider spawn egg 
+        set {_mob-name} to "Spider" 
 
-        set {_egg} to spider spawn egg
-        set {_mob-name} to "Spider"
 
+    else if {_target} is a squid: 
 
-    else if {_target} is a squid:
+        set {_egg} to squid spawn egg 
+        set {_mob-name} to "Squid" 
 
-        set {_egg} to squid spawn egg
-        set {_mob-name} to "Squid"
 
+    else if {_target} is a stray: 
 
-    else if {_target} is a stray:
+        set {_egg} to stray spawn egg 
+        set {_mob-name} to "Stray" 
 
-        set {_egg} to stray spawn egg
-        set {_mob-name} to "Stray"
 
+    else if {_target} is a strider: 
 
-    else if {_target} is a strider:
+        set {_egg} to strider spawn egg 
+        set {_mob-name} to "Strider" 
 
-        set {_egg} to strider spawn egg
-        set {_mob-name} to "Strider"
 
+    else if {_target} is a tadpole: 
 
-    else if {_target} is a tadpole:
+        set {_egg} to tadpole spawn egg 
+        set {_mob-name} to "Tadpole" 
 
-        set {_egg} to tadpole spawn egg
-        set {_mob-name} to "Tadpole"
 
+    else if {_target} is a trader llama: 
 
-    else if {_target} is a trader llama:
+        set {_egg} to trader llama spawn egg 
+        set {_mob-name} to "Trader Llama" 
 
-        set {_egg} to trader llama spawn egg
-        set {_mob-name} to "Trader Llama"
 
+    else if {_target} is a tropical fish: 
 
-    else if {_target} is a tropical fish:
+        set {_egg} to tropical fish spawn egg 
+        set {_mob-name} to "Tropical Fish" 
 
-        set {_egg} to tropical fish spawn egg
-        set {_mob-name} to "Tropical Fish"
 
+    else if {_target} is a turtle: 
 
-    else if {_target} is a turtle:
+        set {_egg} to turtle spawn egg 
+        set {_mob-name} to "Turtle" 
 
-        set {_egg} to turtle spawn egg
-        set {_mob-name} to "Turtle"
 
+    else if {_target} is a vex: 
 
-    else if {_target} is a vex:
+        set {_egg} to vex spawn egg 
+        set {_mob-name} to "Vex" 
 
-        set {_egg} to vex spawn egg
-        set {_mob-name} to "Vex"
 
+    else if {_target} is a vindicator: 
 
-    else if {_target} is a vindicator:
+        set {_egg} to vindicator spawn egg 
+        set {_mob-name} to "Vindicator" 
 
-        set {_egg} to vindicator spawn egg
-        set {_mob-name} to "Vindicator"
 
+    else if {_target} is a villager: 
 
-    else if {_target} is a villager:
+        set {_egg} to villager spawn egg 
+        set {_mob-name} to "Villager" 
 
-        set {_egg} to villager spawn egg
-        set {_mob-name} to "Villager"
 
+    else if {_target} is a wandering trader: 
 
-    else if {_target} is a wandering trader:
+        set {_egg} to wandering trader spawn egg 
+        set {_mob-name} to "Wandering Trader" 
 
-        set {_egg} to wandering trader spawn egg
-        set {_mob-name} to "Wandering Trader"
 
+    else if {_target} is a warden: 
 
-    else if {_target} is a warden:
+        set {_egg} to warden spawn egg 
+        set {_mob-name} to "Warden" 
 
-        set {_egg} to warden spawn egg
-        set {_mob-name} to "Warden"
 
+    else if {_target} is a witch: 
 
-    else if {_target} is a witch:
+        set {_egg} to witch spawn egg 
+        set {_mob-name} to "Witch" 
 
-        set {_egg} to witch spawn egg
-        set {_mob-name} to "Witch"
 
+    else if {_target} is a wither: 
 
-    else if {_target} is a wither:
+        set {_egg} to wither spawn egg 
+        set {_mob-name} to "Wither" 
 
-        set {_egg} to wither spawn egg
-        set {_mob-name} to "Wither"
 
+    else if {_target} is a wither skeleton: 
 
-    else if {_target} is a wither skeleton:
+        set {_egg} to wither skeleton spawn egg 
+        set {_mob-name} to "Wither Skeleton" 
 
-        set {_egg} to wither skeleton spawn egg
-        set {_mob-name} to "Wither Skeleton"
 
+    else if {_target} is a wolf: 
 
-    else if {_target} is a wolf:
+        set {_egg} to wolf spawn egg 
+        set {_mob-name} to "Wolf" 
 
-        set {_egg} to wolf spawn egg
-        set {_mob-name} to "Wolf"
 
+    else if {_target} is a zoglin: 
 
-    else if {_target} is a zoglin:
+        set {_egg} to zoglin spawn egg 
+        set {_mob-name} to "Zoglin" 
 
-        set {_egg} to zoglin spawn egg
-        set {_mob-name} to "Zoglin"
 
+    else if {_target} is a zombie: 
 
-    else if {_target} is a zombie:
+        set {_egg} to zombie spawn egg 
+        set {_mob-name} to "Zombie" 
 
-        set {_egg} to zombie spawn egg
-        set {_mob-name} to "Zombie"
 
+    else if {_target} is a zombie horse: 
 
-    else if {_target} is a zombie horse:
+        set {_egg} to zombie horse spawn egg 
+        set {_mob-name} to "Zombie Horse" 
 
-        set {_egg} to zombie horse spawn egg
-        set {_mob-name} to "Zombie Horse"
 
+    else if {_target} is a zombified piglin: 
 
-    else if {_target} is a zombified piglin:
+        set {_egg} to zombified piglin spawn egg 
+        set {_mob-name} to "Zombified Piglin" 
 
-        set {_egg} to zombified piglin spawn egg
-        set {_mob-name} to "Zombified Piglin"
 
+    else if {_target} is a zombie villager: 
 
-    else if {_target} is a zombie villager:
+        set {_egg} to zombie villager spawn egg 
+        set {_mob-name} to "Zombie Villager" 
 
-        set {_egg} to zombie villager spawn egg
-        set {_mob-name} to "Zombie Villager"
 
+    # ======================================================== 
+    # 未対応 
+    # ======================================================== 
 
-    # ========================================================
-    # 未対応Mob
-    # ========================================================
+    else: 
 
-    else:
+        send "&cこのMobは捕獲対象外です。" to player 
 
-        send "&cこのMobは捕獲対象外です。" to player
+        stop 
 
-        stop
 
-
-    # ========================================================
+    # ======================================================== 
     # CAPTURE LOCATION SAVE
-    # ========================================================
+    # ======================================================== 
     #
     # Mobを地下へ移動する前に、
-    # 元の位置を保存する。
+    # 現在位置を保存する。
     #
     # Spawn Eggはこの場所にDropする。
     #
-    # ========================================================
+    # ======================================================== 
 
-    set {_capture-location} to location of {_target}
-
-
-    # ========================================================
-    # CAPTURE EFFECT
-    # ========================================================
+    set {_capture-location} to location of {_target} 
 
 
-    # --------------------------------------------------------
-    # Portal Particle
-    # --------------------------------------------------------
-
-    execute console command "particle minecraft:portal %x-coordinate of {_capture-location}% %y-coordinate of {_capture-location}% %z-coordinate of {_capture-location}% 0.5 0.8 0.5 0.2 50"
+    # ======================================================== 
+    # CAPTURE EFFECT 
+    # ======================================================== 
 
 
-    # --------------------------------------------------------
-    # Smoke Particle
-    # --------------------------------------------------------
-    #
-    # Mobが煙に包まれて消える演出。
-    #
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # ポータルパーティクル
+    # -------------------------------------------------------- 
 
-    execute console command "particle minecraft:smoke %x-coordinate of {_capture-location}% %y-coordinate of {_capture-location}% %z-coordinate of {_capture-location}% 0.5 0.8 0.5 0.08 40"
+    execute console command "particle minecraft:portal %x-coordinate of {_target}% %y-coordinate of {_target}% %z-coordinate of {_target}% 0.5 0.8 0.5 0.2 50" 
 
 
-    # --------------------------------------------------------
-    # Enderman Teleport Sound
-    # --------------------------------------------------------
-    #
-    # Mobが吸い込まれるような音。
-    #
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # 煙幕パーティクル
+    # -------------------------------------------------------- 
 
-    play sound "entity.enderman.teleport" with volume 1 and pitch 1.2 to player
+    execute console command "particle minecraft:smoke %x-coordinate of {_target}% %y-coordinate of {_target}% %z-coordinate of {_target}% 0.5 0.8 0.5 0.08 40" 
 
 
-    # --------------------------------------------------------
-    # POP Sound
-    # --------------------------------------------------------
-    #
-    # Spawn Egg化する「ポンッ！」という演出。
-    #
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # 捕獲音
+    # -------------------------------------------------------- 
 
-    play sound "entity.slime.squish" with volume 0.8 and pitch 1.8 to player
+    play sound "entity.enderman.teleport" with volume 1 and pitch 1.2 to player 
 
 
-    # --------------------------------------------------------
-    # Capture Message
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # ポンッ！音
+    # -------------------------------------------------------- 
 
-    send "&a[Mob Capture] &f%{_mob-name}% &aを捕獲しました！" to player
-
-
-    # ========================================================
-    # REMOVE MOB
-    # ========================================================
-    #
-    # Mobは直接現在地でKillしない。
-    #
-    # Y=-64へ移動してからKillすることで、
-    # 通常のMob Dropをプレイヤー周辺に
-    # 散らばらないようにする。
-    #
-    # ========================================================
+    play sound "entity.slime.squish" with volume 0.8 and pitch 1.8 to player 
 
 
-    # --------------------------------------------------------
-    # Kill用Location作成
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # 捕獲メッセージ
+    # -------------------------------------------------------- 
 
-    set {_kill-location} to {_capture-location}
+    send "&a[Mob Capture] &f%{_mob-name}% &aを捕獲しました！" to player 
 
 
-    # --------------------------------------------------------
+    # ======================================================== 
+    # REMOVE MOB 
+    # ======================================================== 
+
+
+    # -------------------------------------------------------- 
+    # 現在位置をコピー
+    # -------------------------------------------------------- 
+
+    set {_kill-location} to {_capture-location} 
+
+
+    # -------------------------------------------------------- 
     # Y座標だけ変更
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
 
-    set y-coordinate of {_kill-location} to {@capture-y}
+    set y-coordinate of {_kill-location} to {@capture-y} 
 
 
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
     # Y=-64へ移動
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
 
-    teleport {_target} to {_kill-location}
+    teleport {_target} to {_kill-location} 
 
 
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
     # Kill
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
 
-    kill {_target}
-
-
-    # ========================================================
-    # SPAWN EGG DROP
-    # ========================================================
-    #
-    # Playerへ直接Giveしない。
-    #
-    # Mobがいた元の場所にSpawn EggをDropする。
-    #
-    # これにより、
-    #
-    #   Mob → 煙幕 → 消滅 → Spawn Egg出現
-    #
-    # という演出になる。
-    #
-    # ========================================================
+    kill {_target} 
 
 
-    # --------------------------------------------------------
-    # Spawn Egg Drop
-    # --------------------------------------------------------
-
-    drop 1 of {_egg} at {_capture-location}
+    # ======================================================== 
+    # SPAWN EGG DROP 
+    # ======================================================== 
 
 
-    # --------------------------------------------------------
-    # Spawn Egg Appearance Particle
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # Mobがいた場所にSpawn EggをDrop
+    # -------------------------------------------------------- 
 
-    execute console command "particle minecraft:cloud %x-coordinate of {_capture-location}% %y-coordinate of {_capture-location}% %z-coordinate of {_capture-location}% 0.3 0.3 0.3 0.05 20"
+    drop 1 of {_egg} at {_capture-location} 
 
 
-    # --------------------------------------------------------
-    # Completion Message
-    # --------------------------------------------------------
+    # -------------------------------------------------------- 
+    # Spawn Egg出現Particle
+    # -------------------------------------------------------- 
+
+    execute console command "particle minecraft:cloud %x-coordinate of {_capture-location}% %y-coordinate of {_capture-location}% %z-coordinate of {_capture-location}% 0.3 0.3 0.3 0.05 20" 
+
+
+    # -------------------------------------------------------- 
+    # 完了
+    # -------------------------------------------------------- 
 
     send "&e→ %{_mob-name}% Spawn Egg ×1" to player
