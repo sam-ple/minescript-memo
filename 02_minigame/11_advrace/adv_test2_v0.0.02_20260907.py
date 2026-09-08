@@ -63,7 +63,8 @@ m.echo(f"BASE POSITION: {x} {y} {z}")
 
 m.echo("INITIAL SETTINGS")
 
-m.execute("gamerule spawnMonsters false")
+# m.execute("gamerule spawnMonsters false")
+m.execute("gamerule spawn_mobs false")
 time.sleep(DELAY)
 
 m.execute("difficulty easy")
