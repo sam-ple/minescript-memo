@@ -1,4 +1,3 @@
-```python
 import minescript as m
 import math
 import time
@@ -1061,4 +1060,3 @@ for slot, item_data in enumerate(LEAD_ITEMS):
 m.echo("================================")
 m.echo("MINECRAFT 26.2 TEST AREA COMPLETE")
 m.echo("================================")
-```
