@@ -1,0 +1,1670 @@
+# ============================================================
+# BINGO GAME SYSTEM
+#
+# Minecraft Java Edition
+# Paper + Skript
+#
+# Version : v0.2.00
+#
+# ============================================================
+#
+# MINECRAFT VERSION
+#
+#   Minecraft Java Edition 26.2
+#   Paper 26.2
+#   Skript 2.16.1
+#
+# ============================================================
+#
+# SYSTEM DESIGN
+#
+#   MineScript
+#       ・会場整地
+#       ・5部隊分の盤面
+#       ・3x3 額縁
+#       ・入力用額縁
+#       ・登録ボタン
+#
+#   Skript
+#       ・/bingo set
+#       ・プレイヤー登録
+#       ・プレイヤーヘッド設置
+#       ・/bingo set2
+#       ・盤面アイテム配置
+#       ・/bingo start
+#       ・アイテム判定
+#       ・マス達成
+#       ・ブロック変更
+#       ・額縁変更
+#       ・BINGO判定
+#       ・BINGO演出
+#       ・STOP / RESET
+#
+# ============================================================
+#
+# GAME FLOW
+#
+#   /bingo set
+#       ↓
+#   登録受付開始
+#       ↓
+#   ボタンを右クリック
+#       ↓
+#   TEAM登録
+#       ↓
+#   プレイヤーヘッド設置
+#       ↓
+#   /bingo set2
+#       ↓
+#   9種類のアイテムを盤面へ配置
+#       ↓
+#   /bingo start
+#       ↓
+#   3 - 2 - 1 - START
+#       ↓
+#   入力額縁にアイテムを入れる
+#       ↓
+#   同じアイテムなら成功
+#       ↓
+#   アイテム消費
+#   後ろのブロック → GOLD
+#   額縁 → GLOW ITEM FRAME
+#       ↓
+#   BINGO CHECK
+#       ↓
+#   BINGO演出
+#
+# ============================================================
+#
+# TEAM
+#
+#   TEAM 1 : X -20
+#   TEAM 2 : X -10
+#   TEAM 3 : X   0
+#   TEAM 4 : X +10
+#   TEAM 5 : X +20
+#
+# ============================================================
+#
+# BOARD
+#
+#   1 2 3
+#   4 5 6
+#   7 8 9
+#
+# ============================================================
+
+
+# ============================================================
+# OPTIONS
+# ============================================================
+
+options:
+
+    prefix: &6&l[BINGO]&r
+
+
+# ============================================================
+# ON LOAD
+# ============================================================
+
+on load:
+
+    # ========================================================
+    # BINGO ITEMS
+    # ========================================================
+
+    set {bingo.items::1} to apple
+    set {bingo.items::2} to bread
+    set {bingo.items::3} to carrot
+
+    set {bingo.items::4} to potato
+    set {bingo.items::5} to golden apple
+    set {bingo.items::6} to cooked beef
+
+    set {bingo.items::7} to cooked porkchop
+    set {bingo.items::8} to melon slice
+    set {bingo.items::9} to cookie
+
+
+    # ========================================================
+    # DEFAULT STATE
+    # ========================================================
+
+    if {bingo.running} is not set:
+        set {bingo.running} to false
+
+    if {bingo.registration} is not set:
+        set {bingo.registration} to false
+
+    if {bingo.items_set} is not set:
+        set {bingo.items_set} to false
+
+
+    send "{@prefix} &aBINGO GAME SYSTEM v0.2.00 LOADED." to console
+
+
+# ============================================================
+# TEAM OFFSET
+# ============================================================
+
+function bingo_team_offset(team: number) :: number:
+
+    if {_team} = 1:
+        return -20
+
+    if {_team} = 2:
+        return -10
+
+    if {_team} = 3:
+        return 0
+
+    if {_team} = 4:
+        return 10
+
+    if {_team} = 5:
+        return 20
+
+    return 0
+
+
+# ============================================================
+# TEAM BASE X
+# ============================================================
+
+function bingo_team_x(team: number) :: number:
+
+    set {_originX} to x-coordinate of {bingo.origin}
+
+    set {_offset} to bingo_team_offset({_team})
+
+    return {_originX} + {_offset}
+
+
+# ============================================================
+# BOARD BASE Y
+# ============================================================
+
+function bingo_board_y() :: number:
+
+    return y-coordinate of {bingo.origin}
+
+
+# ============================================================
+# BOARD BASE Z
+# ============================================================
+
+function bingo_board_z() :: number:
+
+    set {_originZ} to z-coordinate of {bingo.origin}
+
+    return {_originZ} - 7
+
+
+# ============================================================
+# WORLD
+# ============================================================
+
+function bingo_world() :: world:
+
+    return world of {bingo.origin}
+
+
+# ============================================================
+# BOARD CELL LOCATION
+#
+#   1 2 3
+#   4 5 6
+#   7 8 9
+#
+# ============================================================
+
+function bingo_cell_location(team: number, index: number) :: location:
+
+    set {_baseX} to bingo_team_x({_team})
+    set {_baseY} to bingo_board_y()
+    set {_baseZ} to bingo_board_z()
+
+    set {_i} to {_index} - 1
+
+    # modの代わり
+    set {_column} to {_i} - (floor({_i} / 3) * 3)
+
+    set {_row} to floor({_i} / 3)
+
+    set {_x} to {_baseX} + 1 + {_column}
+    set {_y} to {_baseY} + 3 - {_row}
+    set {_z} to {_baseZ} + 1
+
+    return location({_x}, {_y}, {_z}, bingo_world())
+
+
+# ============================================================
+# BACK BLOCK LOCATION
+#
+# 額縁の後ろのブロック
+#
+# ============================================================
+
+function bingo_back_location(team: number, index: number) :: location:
+
+    set {_loc} to bingo_cell_location({_team}, {_index})
+
+    set {_x} to x-coordinate of {_loc}
+    set {_y} to y-coordinate of {_loc}
+    set {_z} to z-coordinate of {_loc} - 1
+
+    return location({_x}, {_y}, {_z}, bingo_world())
+
+
+# ============================================================
+# INPUT FRAME LOCATION
+# ============================================================
+
+function bingo_input_location(team: number) :: location:
+
+    set {_baseX} to bingo_team_x({_team})
+    set {_baseY} to bingo_board_y()
+    set {_baseZ} to bingo_board_z()
+
+    return location({_baseX}, {_baseY} + 1, {_baseZ} + 1, bingo_world())
+
+
+# ============================================================
+# REGISTER BUTTON LOCATION
+# ============================================================
+
+function bingo_button_location(team: number) :: location:
+
+    set {_baseX} to bingo_team_x({_team})
+    set {_baseY} to bingo_board_y()
+    set {_baseZ} to bingo_board_z()
+
+    return location({_baseX}, {_baseY} + 2, {_baseZ}, bingo_world())
+
+
+# ============================================================
+# SMALL PLAYER HEAD LOCATION
+# ============================================================
+
+function bingo_small_head_location(team: number) :: location:
+
+    set {_baseX} to bingo_team_x({_team})
+    set {_baseY} to bingo_board_y()
+    set {_baseZ} to bingo_board_z()
+
+    return location({_baseX} + 2, {_baseY} + 1, {_baseZ} + 3, bingo_world())
+
+
+# ============================================================
+# BIG PLAYER HEAD LOCATION
+# ============================================================
+
+function bingo_big_head_location(team: number) :: location:
+
+    set {_baseX} to bingo_team_x({_team})
+    set {_baseY} to bingo_board_y()
+    set {_baseZ} to bingo_board_z()
+
+    return location({_baseX} + 2, {_baseY} + 8, {_baseZ}, bingo_world())
+
+
+# ============================================================
+# GET PLAYER TEAM
+# ============================================================
+
+function bingo_get_player_team(p: player) :: number:
+
+    loop 5 times:
+
+        if {bingo.player::%loop-number%} is name of {_p}:
+
+            return loop-number
+
+    return 0
+
+
+# ============================================================
+# REGISTER PLAYER
+# ============================================================
+
+function bingo_register_player(p: player, team: number):
+
+
+    # ========================================================
+    # GAME RUNNING
+    # ========================================================
+
+    if {bingo.running} is true:
+
+        send "{@prefix} &cゲーム開始後は登録できません。" to {_p}
+
+        stop
+
+
+    # ========================================================
+    # REGISTRATION MODE
+    # ========================================================
+
+    if {bingo.registration} is not true:
+
+        send "{@prefix} &c現在は登録受付中ではありません。" to {_p}
+
+        stop
+
+
+    # ========================================================
+    # TEAM OCCUPIED
+    # ========================================================
+
+    if {bingo.player::%{_team}%} is set:
+
+        if {bingo.player::%{_team}%} is name of {_p}:
+
+            send "{@prefix} &e既にTEAM %{_team}% に登録されています。" to {_p}
+
+            stop
+
+        send "{@prefix} &cTEAM %{_team}% は既に使用されています。" to {_p}
+
+        send "&7Player : %{bingo.player::%{_team}%}%" to {_p}
+
+        stop
+
+
+    # ========================================================
+    # OLD TEAM
+    # ========================================================
+
+    set {_oldTeam} to bingo_get_player_team({_p})
+
+    if {_oldTeam} is not 0:
+
+        bingo_remove_player({_oldTeam})
+
+
+    # ========================================================
+    # REGISTER
+    # ========================================================
+
+    set {bingo.player::%{_team}%} to name of {_p}
+
+    set {bingo.team::%uuid of {_p}%} to {_team}
+
+
+    # ========================================================
+    # CREATE PLAYER HEAD
+    # ========================================================
+
+    bingo_create_player_head({_team}, {_p})
+
+
+    # ========================================================
+    # MESSAGE
+    # ========================================================
+
+    broadcast ""
+
+    broadcast "{@prefix} &a%name of {_p}% &rが TEAM %{_team}% に登録しました！"
+
+    broadcast ""
+
+    send "&a━━━━━━━━━━━━━━━━━━━━" to {_p}
+    send "&eTEAM %{_team}% に登録しました。" to {_p}
+    send "&a━━━━━━━━━━━━━━━━━━━━" to {_p}
+
+
+# ============================================================
+# REMOVE PLAYER
+# ============================================================
+
+function bingo_remove_player(team: number):
+
+    if {bingo.player::%{_team}%} is not set:
+
+        stop
+
+
+    # ========================================================
+    # REMOVE SMALL HEAD
+    # ========================================================
+
+    set {_headLoc} to bingo_small_head_location({_team})
+
+    set block at {_headLoc} to air
+
+
+    # ========================================================
+    # REMOVE BIG HEAD
+    # ========================================================
+
+    execute console command "kill @e[tag=bingo_big_head_%{_team}%]"
+
+
+    # ========================================================
+    # REMOVE UUID DATA
+    # ========================================================
+
+    set {_name} to {bingo.player::%{_team}%}
+
+    loop all players:
+
+        if name of loop-player is {_name}:
+
+            delete {bingo.team::%uuid of loop-player%}
+
+
+    # ========================================================
+    # REMOVE PLAYER DATA
+    # ========================================================
+
+    delete {bingo.player::%{_team}%}
+
+
+# ============================================================
+# CREATE PLAYER HEAD
+# ============================================================
+
+function bingo_create_player_head(team: number, p: player):
+
+
+    # ========================================================
+    # REMOVE OLD BIG HEAD
+    # ========================================================
+
+    execute console command "kill @e[tag=bingo_big_head_%{_team}%]"
+
+
+    # ========================================================
+    # SMALL PLAYER HEAD
+    # ========================================================
+
+    set {_smallLoc} to bingo_small_head_location({_team})
+
+    set {_sx} to floor(x-coordinate of {_smallLoc})
+    set {_sy} to floor(y-coordinate of {_smallLoc})
+    set {_sz} to floor(z-coordinate of {_smallLoc})
+
+
+    execute console command "setblock %{_sx}% %{_sy}% %{_sz}% minecraft:player_head[rotation=8]{profile:""%name of {_p}%""}"
+
+
+    # ========================================================
+    # BIG PLAYER HEAD
+    # ========================================================
+
+    set {_bigLoc} to bingo_big_head_location({_team})
+
+    set {_bx} to floor(x-coordinate of {_bigLoc})
+    set {_by} to floor(y-coordinate of {_bigLoc})
+    set {_bz} to floor(z-coordinate of {_bigLoc})
+
+
+    execute console command "summon minecraft:item_display %{_bx}% %{_by}% %{_bz}% {Tags:[""bingo_big_head_%{_team}%""] ,item:{id:""minecraft:player_head"",count:1,components:{""minecraft:profile"":{name:""%name of {_p}%""}}},billboard:""fixed""}"
+
+
+    # ========================================================
+    # BIG HEAD SCALE
+    # ========================================================
+
+    execute console command "execute as @e[tag=bingo_big_head_%{_team}%] run data modify entity @s transformation.scale set value [4f,4f,4f]"
+
+
+    # ========================================================
+    # BIG HEAD ROTATION
+    # ========================================================
+
+    execute console command "execute as @e[tag=bingo_big_head_%{_team}%] run data merge entity @s {Rotation:[180f,0f]}"
+
+
+# ============================================================
+# RESET BOARD
+# ============================================================
+
+function bingo_reset_board():
+
+    loop 5 times:
+
+        set {_team} to loop-number
+
+
+        loop 9 times:
+
+            set {_index} to loop-number-2
+
+            # -----------------------------------------------
+            # RESET BACK BLOCK
+            # -----------------------------------------------
+
+            set {_backLoc} to bingo_back_location({_team}, {_index})
+
+            set block at {_backLoc} to white stained glass
+
+
+            # -----------------------------------------------
+            # RESET DONE STATE
+            # -----------------------------------------------
+
+            delete {bingo.done::%{_team}%::%{_index}%}
+
+
+        # ====================================================
+        # RESET BINGO
+        # ====================================================
+
+        delete {bingo.bingo::%{_team}%}
+
+
+# ============================================================
+# CLEAR BOARD ITEMS
+# ============================================================
+
+function bingo_clear_board_items():
+
+    loop 5 times:
+
+        set {_team} to loop-number
+
+
+        loop 9 times:
+
+            set {_index} to loop-number-2
+
+            set {_cellLoc} to bingo_cell_location({_team}, {_index})
+
+            set {_x} to floor(x-coordinate of {_cellLoc})
+            set {_y} to floor(y-coordinate of {_cellLoc})
+            set {_z} to floor(z-coordinate of {_cellLoc})
+
+
+            execute console command "data remove entity @e[type=minecraft:item_frame,x=%{_x}%,y=%{_y}%,z=%{_z}%,distance=..1,limit=1,sort=nearest] Item"
+
+
+# ============================================================
+# SET BINGO ITEMS
+# ============================================================
+
+function bingo_set_items():
+
+    loop 5 times:
+
+        set {_team} to loop-number
+
+
+        # ====================================================
+        # REGISTERED TEAM ONLY
+        # ====================================================
+
+        if {bingo.player::%{_team}%} is set:
+
+
+            loop 9 times:
+
+                set {_index} to loop-number-2
+
+                set {_item} to {bingo.items::%{_index}%}
+
+
+                # =================================================
+                # CELL
+                # =================================================
+
+                set {_cellLoc} to bingo_cell_location({_team}, {_index})
+
+                set {_x} to floor(x-coordinate of {_cellLoc})
+                set {_y} to floor(y-coordinate of {_cellLoc})
+                set {_z} to floor(z-coordinate of {_cellLoc})
+
+
+                # =================================================
+                # ITEM NAME
+                # =================================================
+
+                set {_itemName} to "%type of {_item}%"
+
+                replace all " " with "_" in {_itemName}
+
+
+                # =================================================
+                # PUT ITEM INTO FRAME
+                # =================================================
+
+                execute console command "data modify entity @e[type=minecraft:item_frame,x=%{_x}%,y=%{_y}%,z=%{_z}%,distance=..1,limit=1,sort=nearest] Item set value {id:""minecraft:%{_itemName}%"",count:1}"
+
+
+# ============================================================
+# RESET INPUT FRAME
+# ============================================================
+
+function bingo_reset_input_frames():
+
+    loop 5 times:
+
+        set {_team} to loop-number
+
+        set {_inputLoc} to bingo_input_location({_team})
+
+        set {_x} to floor(x-coordinate of {_inputLoc})
+        set {_y} to floor(y-coordinate of {_inputLoc})
+        set {_z} to floor(z-coordinate of {_inputLoc})
+
+
+        execute console command "data remove entity @e[type=minecraft:item_frame,x=%{_x}%,y=%{_y}%,z=%{_z}%,distance=..1,limit=1,sort=nearest] Item"
+
+
+# ============================================================
+# COMPLETE CELL
+# ============================================================
+
+function bingo_complete_cell(team: number, index: number):
+
+
+    # ========================================================
+    # ALREADY DONE
+    # ========================================================
+
+    if {bingo.done::%{_team}%::%{_index}%} is true:
+
+        stop
+
+
+    # ========================================================
+    # DONE
+    # ========================================================
+
+    set {bingo.done::%{_team}%::%{_index}%} to true
+
+
+    # ========================================================
+    # BACK BLOCK -> GOLD
+    # ========================================================
+
+    set {_backLoc} to bingo_back_location({_team}, {_index})
+
+    set block at {_backLoc} to gold block
+
+
+    # ========================================================
+    # BOARD FRAME -> GLOW ITEM FRAME
+    #
+    # 一度通常額縁を削除し、
+    # 光る額縁を同じ場所に生成する。
+    # ========================================================
+
+    set {_frameLoc} to bingo_cell_location({_team}, {_index})
+
+    set {_fx} to floor(x-coordinate of {_frameLoc})
+    set {_fy} to floor(y-coordinate of {_frameLoc})
+    set {_fz} to floor(z-coordinate of {_frameLoc})
+
+
+    execute console command "kill @e[type=minecraft:item_frame,x=%{_fx}%,y=%{_fy}%,z=%{_fz}%,distance=..1,limit=1,sort=nearest]"
+
+
+    execute console command "summon minecraft:glow_item_frame %{_fx}% %{_fy}% %{_fz}% {Facing:3b,Fixed:1b,Invulnerable:1b}"
+
+
+    # ========================================================
+    # EFFECT
+    # ========================================================
+
+    execute console command "playsound minecraft:entity.player.levelup master @a"
+
+    execute console command "particle minecraft:happy_villager %{_fx}% %{_fy}% %{_fz}% 0.5 0.5 0.5 0.1 20 force @a"
+
+
+    broadcast "{@prefix} &eTEAM %{_team}% &rがマス %{_index}% を達成！"
+
+
+    # ========================================================
+    # BINGO CHECK
+    # ========================================================
+
+    bingo_check_lines({_team})
+
+
+# ============================================================
+# BINGO CHECK
+# ============================================================
+
+function bingo_check_lines(team: number):
+
+
+    # ========================================================
+    # ALREADY BINGO
+    # ========================================================
+
+    if {bingo.bingo::%{_team}%} is true:
+
+        stop
+
+
+    # ========================================================
+    # ROW 1
+    # ========================================================
+
+    if {bingo.done::%{_team}%::1} is true:
+
+        if {bingo.done::%{_team}%::2} is true:
+
+            if {bingo.done::%{_team}%::3} is true:
+
+                bingo_win({_team})
+
+                stop
+
+
+    # ========================================================
+    # ROW 2
+    # ========================================================
+
+    if {bingo.done::%{_team}%::4} is true:
+
+        if {bingo.done::%{_team}%::5} is true:
+
+            if {bingo.done::%{_team}%::6} is true:
+
+                bingo_win({_team})
+
+                stop
+
+
+    # ========================================================
+    # ROW 3
+    # ========================================================
+
+    if {bingo.done::%{_team}%::7} is true:
+
+        if {bingo.done::%{_team}%::8} is true:
+
+            if {bingo.done::%{_team}%::9} is true:
+
+                bingo_win({_team})
+
+                stop
+
+
+    # ========================================================
+    # COLUMN 1
+    # ========================================================
+
+    if {bingo.done::%{_team}%::1} is true:
+
+        if {bingo.done::%{_team}%::4} is true:
+
+            if {bingo.done::%{_team}%::7} is true:
+
+                bingo_win({_team})
+
+                stop
+
+
+    # ========================================================
+    # COLUMN 2
+    # ========================================================
+
+    if {bingo.done::%{_team}%::2} is true:
+
+        if {bingo.done::%{_team}%::5} is true:
+
+            if {bingo.done::%{_team}%::8} is true:
+
+                bingo_win({_team})
+
+                stop
+
+
+    # ========================================================
+    # COLUMN 3
+    # ========================================================
+
+    if {bingo.done::%{_team}%::3} is true:
+
+        if {bingo.done::%{_team}%::6} is true:
+
+            if {bingo.done::%{_team}%::9} is true:
+
+                bingo_win({_team})
+
+                stop
+
+
+    # ========================================================
+    # DIAGONAL 1
+    # ========================================================
+
+    if {bingo.done::%{_team}%::1} is true:
+
+        if {bingo.done::%{_team}%::5} is true:
+
+            if {bingo.done::%{_team}%::9} is true:
+
+                bingo_win({_team})
+
+                stop
+
+
+    # ========================================================
+    # DIAGONAL 2
+    # ========================================================
+
+    if {bingo.done::%{_team}%::3} is true:
+
+        if {bingo.done::%{_team}%::5} is true:
+
+            if {bingo.done::%{_team}%::7} is true:
+
+                bingo_win({_team})
+
+                stop
+
+
+# ============================================================
+# BINGO WIN
+# ============================================================
+
+function bingo_win(team: number):
+
+
+    # ========================================================
+    # STATE
+    # ========================================================
+
+    set {bingo.bingo::%{_team}%} to true
+
+    set {_playerName} to {bingo.player::%{_team}%}
+
+
+    # ========================================================
+    # TITLE
+    # ========================================================
+
+    execute console command "title @a title {""text"":""%{_playerName}%"",""color"":""gold"",""bold"":true}"
+
+    execute console command "title @a subtitle {""text"":""BINGO!!!!!!"",""color"":""green"",""bold"":true}"
+
+
+    # ========================================================
+    # SOUND
+    # ========================================================
+
+    execute console command "playsound minecraft:ui.toast.challenge_complete master @a"
+
+
+    # ========================================================
+    # PARTICLES
+    # ========================================================
+
+    set {_headLoc} to bingo_big_head_location({_team})
+
+    set {_hx} to floor(x-coordinate of {_headLoc})
+    set {_hy} to floor(y-coordinate of {_headLoc})
+    set {_hz} to floor(z-coordinate of {_headLoc})
+
+
+    execute console command "particle minecraft:firework %{_hx}% %{_hy}% %{_hz}% 1 1 1 0.2 50 force @a"
+
+
+    # ========================================================
+    # FIREWORK
+    # ========================================================
+
+    execute console command "summon minecraft:firework_rocket %{_hx}% %{_hy}% %{_hz}% {LifeTime:20}"
+
+
+    # ========================================================
+    # MESSAGE
+    # ========================================================
+
+    broadcast ""
+
+    broadcast "&6&l===================================="
+
+    broadcast "&e&l%{_playerName}%"
+
+    broadcast "&a&lBINGO!!!!!!"
+
+    broadcast "&6&l===================================="
+
+    broadcast ""
+
+
+    # ========================================================
+    # STOP GAME
+    # ========================================================
+
+    set {bingo.running} to false
+
+
+# ============================================================
+# CHECK INPUT ITEM
+# ============================================================
+
+function bingo_check_input(team: number, itemInput: item):
+
+
+    # ========================================================
+    # EMPTY
+    # ========================================================
+
+    if {_itemInput} is air:
+
+        stop
+
+
+    # ========================================================
+    # SEARCH ITEM
+    # ========================================================
+
+    loop 9 times:
+
+        set {_index} to loop-number
+
+
+        # ====================================================
+        # SKIP ALREADY COMPLETED
+        # ====================================================
+
+        if {bingo.done::%{_team}%::%{_index}%} is not true:
+
+            # =================================================
+            # ITEM MATCH
+            # =================================================
+
+            if type of {_itemInput} is type of {bingo.items::%{_index}%}:
+
+                bingo_complete_cell({_team}, {_index})
+
+                stop
+
+# ============================================================
+# REGISTER BUTTON
+# ============================================================
+
+on right click:
+
+
+    # ========================================================
+    # ORIGIN CHECK
+    # ========================================================
+
+    if {bingo.origin} is not set:
+
+        stop
+
+
+    # ========================================================
+    # REGISTRATION MODE
+    # ========================================================
+
+    if {bingo.registration} is not true:
+
+        stop
+
+
+    # ========================================================
+    # BLOCK CHECK
+    # ========================================================
+
+    if event-block is not set:
+
+        stop
+
+
+    if event-block is not stone button:
+
+        stop
+
+
+    # ========================================================
+    # CLICKED LOCATION
+    # ========================================================
+
+    set {_clickedLoc} to location of event-block
+
+
+    # ========================================================
+    # TEAM SEARCH
+    # ========================================================
+
+    loop 5 times:
+
+        set {_team} to loop-number
+
+        set {_buttonLoc} to bingo_button_location({_team})
+
+
+        # ----------------------------------------------------
+        # LOCATION MATCH
+        #
+        # 少し余裕を持たせる
+        # ----------------------------------------------------
+
+        if distance between {_clickedLoc} and {_buttonLoc} <= 0.1:
+
+            cancel event
+
+            bingo_register_player(player, {_team})
+
+            stop
+
+
+# ============================================================
+# INPUT FRAME CLICK
+# ============================================================
+
+on right click on item frame:
+
+
+    # ========================================================
+    # GAME CHECK
+    # ========================================================
+
+    if {bingo.running} is not true:
+
+        stop
+
+
+    # ========================================================
+    # EVENT ENTITY
+    # ========================================================
+
+    set {_frame} to event-entity
+
+
+    # ========================================================
+    # LOCATION
+    # ========================================================
+
+    set {_frameLoc} to location of {_frame}
+
+
+    # ========================================================
+    # TEAM SEARCH
+    # ========================================================
+
+    loop 5 times:
+
+        set {_team} to loop-number
+
+        set {_inputLoc} to bingo_input_location({_team})
+
+
+        if distance between {_frameLoc} and {_inputLoc} <= 1:
+
+
+            # =================================================
+            # REGISTERED TEAM
+            # =================================================
+
+            if {bingo.player::%{_team}%} is not set:
+
+                stop
+
+
+            # =================================================
+            # DELAY
+            #
+            # アイテムが額縁へ入るのを待つ
+            # =================================================
+
+            wait 2 ticks
+
+
+            # =================================================
+            # GET ITEM
+            # =================================================
+
+            set {_inputItem} to item of {_frame}
+
+
+            if {_inputItem} is air:
+
+                stop
+
+
+            # =================================================
+            # CHECK
+            # =================================================
+
+            bingo_check_input({_team}, {_inputItem})
+
+
+            # =================================================
+            # CLEAR INPUT FRAME
+            # =================================================
+
+            set item of {_frame} to air
+
+
+            stop
+
+
+# ============================================================
+# BINGO START
+# ============================================================
+
+function bingo_start_game(p: player):
+
+
+    # ========================================================
+    # ORIGIN
+    # ========================================================
+
+    if {bingo.origin} is not set:
+
+        send "{@prefix} &c先に /bingo set を実行してください。" to {_p}
+
+        stop
+
+
+    # ========================================================
+    # RUNNING
+    # ========================================================
+
+    if {bingo.running} is true:
+
+        send "{@prefix} &c既にゲーム中です。" to {_p}
+
+        stop
+
+
+    # ========================================================
+    # ITEMS
+    # ========================================================
+
+    if {bingo.items_set} is not true:
+
+        send "{@prefix} &c先に /bingo set2 を実行してください。" to {_p}
+
+        stop
+
+
+    # ========================================================
+    # PLAYER COUNT
+    # ========================================================
+
+    set {_count} to 0
+
+    loop 5 times:
+
+        if {bingo.player::%loop-number%} is set:
+
+            add 1 to {_count}
+
+
+    if {_count} is 0:
+
+        send "{@prefix} &cプレイヤーが登録されていません。" to {_p}
+
+        stop
+
+
+    # ========================================================
+    # RESET STATE
+    # ========================================================
+
+    bingo_reset_board()
+
+    bingo_clear_board_items()
+
+    bingo_reset_input_frames()
+
+
+    # ========================================================
+    # SET ITEMS AGAIN
+    # ========================================================
+
+    bingo_set_items()
+
+
+    # ========================================================
+    # CLOSE REGISTRATION
+    # ========================================================
+
+    set {bingo.registration} to false
+
+
+    # ========================================================
+    # COUNTDOWN
+    # ========================================================
+
+    broadcast ""
+
+    broadcast "{@prefix} &eBINGO GAME START!"
+
+    broadcast ""
+
+
+    loop 3 times:
+
+        set {_number} to 4 - loop-number
+
+        execute console command "title @a title {""text"":""%{_number}%"",""color"":""yellow"",""bold"":true}"
+
+        execute console command "playsound minecraft:block.note_block.pling master @a"
+
+        wait 1 second
+
+
+    # ========================================================
+    # START
+    # ========================================================
+
+    execute console command "title @a title {""text"":""START!"",""color"":""green"",""bold"":true}"
+
+    execute console command "playsound minecraft:block.note_block.pling master @a"
+
+
+    set {bingo.running} to true
+
+
+    broadcast "{@prefix} &aBINGO START!"
+
+
+# ============================================================
+# BINGO STOP
+# ============================================================
+
+function bingo_stop_game():
+
+    set {bingo.running} to false
+
+    set {bingo.registration} to false
+
+    broadcast "{@prefix} &cBINGO STOP"
+
+
+# ============================================================
+# BINGO RESET ALL
+# ============================================================
+
+function bingo_reset_all():
+
+
+    # ========================================================
+    # STOP
+    # ========================================================
+
+    set {bingo.running} to false
+
+    set {bingo.registration} to false
+
+    set {bingo.items_set} to false
+
+
+    # ========================================================
+    # BOARD
+    # ========================================================
+
+    if {bingo.origin} is set:
+
+        bingo_reset_board()
+
+        bingo_clear_board_items()
+
+        bingo_reset_input_frames()
+
+
+    # ========================================================
+    # REMOVE PLAYERS
+    # ========================================================
+
+    if {bingo.origin} is set:
+
+        loop 5 times:
+
+            bingo_remove_player(loop-number)
+
+
+    # ========================================================
+    # VARIABLES
+    # ========================================================
+
+    delete {bingo.player::*}
+
+    delete {bingo.team::*}
+
+    delete {bingo.done::*}
+
+    delete {bingo.bingo::*}
+
+
+    # ========================================================
+    # KEEP ORIGIN
+    #
+    # RESETしても会場座標は残す。
+    #
+    # 次回は /bingo set で再登録可能。
+    # ========================================================
+
+
+# ============================================================
+# COMMAND
+# ============================================================
+
+command /bingo [<text>]:
+
+    permission: op
+
+    trigger:
+
+
+        # ====================================================
+        # SET
+        #
+        # 会場登録 + プレイヤー登録受付開始
+        # ====================================================
+
+        if arg-1 is "set":
+
+
+            # ------------------------------------------------
+            # PLAYER POSITION
+            # ------------------------------------------------
+
+            set {_x} to floor(x-coordinate of player)
+            set {_y} to floor(y-coordinate of player)
+            set {_z} to floor(z-coordinate of player)
+
+
+            set {bingo.origin} to location({_x}, {_y}, {_z}, world of player)
+
+
+            # ------------------------------------------------
+            # STATE
+            # ------------------------------------------------
+
+            set {bingo.running} to false
+
+            set {bingo.registration} to true
+
+            set {bingo.items_set} to false
+
+
+            # ------------------------------------------------
+            # MESSAGE
+            # ------------------------------------------------
+
+            send ""
+
+            send "{@prefix} &aBINGO会場を登録しました。"
+
+            send "&7X: %{_x}%"
+            send "&7Y: %{_y}%"
+            send "&7Z: %{_z}%"
+
+            send ""
+
+            send "{@prefix} &eプレイヤー登録受付中！"
+
+            send "&7各TEAMのボタンを右クリックしてください。"
+
+            send ""
+
+            stop
+
+
+        # ====================================================
+        # SET2
+        #
+        # 登録済みステージにアイテムを配置
+        # ====================================================
+
+        if arg-1 is "set2":
+
+
+            # ------------------------------------------------
+            # ORIGIN
+            # ------------------------------------------------
+
+            if {bingo.origin} is not set:
+
+                send "{@prefix} &c先に /bingo set を実行してください。"
+
+                stop
+
+
+            # ------------------------------------------------
+            # GAME CHECK
+            # ------------------------------------------------
+
+            if {bingo.running} is true:
+
+                send "{@prefix} &cゲーム中はset2できません。"
+
+                stop
+
+
+            # ------------------------------------------------
+            # PLAYER CHECK
+            # ------------------------------------------------
+
+            set {_count} to 0
+
+            loop 5 times:
+
+                if {bingo.player::%loop-number%} is set:
+
+                    add 1 to {_count}
+
+
+            if {_count} is 0:
+
+                send "{@prefix} &cプレイヤーを登録してください。"
+
+                stop
+
+
+            # ------------------------------------------------
+            # RESET
+            # ------------------------------------------------
+
+            bingo_reset_board()
+
+            bingo_clear_board_items()
+
+            bingo_reset_input_frames()
+
+
+            # ------------------------------------------------
+            # SET ITEMS
+            # ------------------------------------------------
+
+            bingo_set_items()
+
+
+            set {bingo.items_set} to true
+
+
+            # ------------------------------------------------
+            # CLOSE REGISTRATION
+            # ------------------------------------------------
+
+            set {bingo.registration} to false
+
+
+            send ""
+
+            send "{@prefix} &aBINGOアイテムをセットしました。"
+
+            send "&7登録済みTEAM : %{_count}%"
+
+            send ""
+
+            stop
+
+
+        # ====================================================
+        # START
+        # ====================================================
+
+        if arg-1 is "start":
+
+            bingo_start_game(player)
+
+            stop
+
+
+        # ====================================================
+        # STOP
+        # ====================================================
+
+        if arg-1 is "stop":
+
+            bingo_stop_game()
+
+            stop
+
+
+        # ====================================================
+        # RESET
+        # ====================================================
+
+        if arg-1 is "reset":
+
+            bingo_reset_all()
+
+            send "{@prefix} &eBINGO完全リセットしました。"
+
+            stop
+
+
+        # ====================================================
+        # STATUS
+        # ====================================================
+
+        if arg-1 is "status":
+
+
+            send ""
+
+            send "&6&l========== BINGO STATUS =========="
+
+
+            loop 5 times:
+
+                if {bingo.player::%loop-number%} is set:
+
+                    send "&aTEAM %loop-number% &7: &f%{bingo.player::%loop-number%}%"
+
+                else:
+
+                    send "&7TEAM %loop-number% &7: &cEMPTY"
+
+
+            send ""
+
+
+            if {bingo.registration} is true:
+
+                send "&eREGISTRATION : OPEN"
+
+            else:
+
+                send "&7REGISTRATION : CLOSED"
+
+
+            if {bingo.items_set} is true:
+
+                send "&aITEMS : SET"
+
+            else:
+
+                send "&7ITEMS : NOT SET"
+
+
+            if {bingo.running} is true:
+
+                send "&aGAME : RUNNING"
+
+            else:
+
+                send "&cGAME : STOPPED"
+
+
+            send "&6&l=================================="
+
+
+            stop
+
+
+        # ====================================================
+        # TEST
+        #
+        # 9種類のアイテムを10個ずつ配布
+        # ====================================================
+
+        if arg-1 is "test":
+
+
+            loop 9 times:
+
+                give player 10 of {bingo.items::%loop-number%}
+
+
+            send "{@prefix} &aテストアイテムを配布しました。"
+
+            stop
+
+
+        # ====================================================
+        # CLEAR
+        #
+        # プレイヤー登録だけ削除
+        # ====================================================
+
+        if arg-1 is "clear":
+
+
+            if {bingo.running} is true:
+
+                send "{@prefix} &cゲーム中はclearできません。"
+
+                stop
+
+
+            loop 5 times:
+
+                bingo_remove_player(loop-number)
+
+
+            delete {bingo.player::*}
+
+            delete {bingo.team::*}
+
+            set {bingo.registration} to false
+
+            set {bingo.items_set} to false
+
+
+            send "{@prefix} &eプレイヤー登録を解除しました。"
+
+            stop
+
+
+        # ====================================================
+        # HELP
+        # ====================================================
+
+        send ""
+
+        send "&6&l========== BINGO COMMAND =========="
+
+        send "&e/bingo set"
+
+        send "&e/bingo set2"
+
+        send "&e/bingo start"
+
+        send "&e/bingo stop"
+
+        send "&e/bingo reset"
+
+        send "&e/bingo clear"
+
+        send "&e/bingo status"
+
+        send "&e/bingo test"
+
+        send "&6&l===================================="
