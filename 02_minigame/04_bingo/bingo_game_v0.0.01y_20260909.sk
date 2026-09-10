@@ -4,7 +4,7 @@
 # Minecraft Java Edition
 # Paper + Skript
 #
-# Version : v0.1.00
+# Version : v0.1.01
 #
 # ============================================================
 #
@@ -37,6 +37,16 @@
 #       ・START / STOP / RESET
 #
 # ============================================================
+#
+# v0.1.01 CHANGES
+#
+#   ・Skript 2.16.1 compatibility
+#   ・mod expression removed
+#   ・multi-line location return removed
+#   ・nested loop-number fixed
+#   ・next loop removed
+#
+# ============================================================
 
 
 # ============================================================
@@ -55,21 +65,24 @@ options:
 # ------------------------------------------------------------
 # TEAM
 # ------------------------------------------------------------
-
+#
 # TEAM 1 : X -20
 # TEAM 2 : X -10
 # TEAM 3 : X   0
 # TEAM 4 : X +10
 # TEAM 5 : X +20
-
-
+#
 # ------------------------------------------------------------
+
+
+# ============================================================
 # BOARD
-# ------------------------------------------------------------
+# ============================================================
 
 # MineScript側と一致させる
-
+#
 # 会場中央から盤面までのZオフセット
+#
 # base_z = origin_z - 7
 
 
@@ -122,19 +135,29 @@ on load:
 function bingo_team_offset(team: number) :: number:
 
     if {_team} = 1:
+
         return -20
 
+
     if {_team} = 2:
+
         return -10
 
+
     if {_team} = 3:
+
         return 0
 
+
     if {_team} = 4:
+
         return 10
 
+
     if {_team} = 5:
+
         return 20
+
 
     return 0
 
@@ -201,14 +224,28 @@ function bingo_cell_location(team: number, index: number) :: location:
     set {_baseZ} to bingo_board_z()
 
 
+    # --------------------------------------------------------
+    # INDEX
+    # --------------------------------------------------------
+
     set {_i} to {_index} - 1
 
 
     # --------------------------------------------------------
     # COLUMN
+    #
+    # mod 3 の代替
+    #
+    # 0 -> 0
+    # 1 -> 1
+    # 2 -> 2
+    # 3 -> 0
+    # 4 -> 1
+    # ...
+    #
     # --------------------------------------------------------
 
-    set {_column} to {_i} mod 3
+    set {_column} to {_i} - (floor({_i} / 3) * 3)
 
 
     # --------------------------------------------------------
@@ -236,6 +273,7 @@ function bingo_cell_location(team: number, index: number) :: location:
 # BACK BLOCK LOCATION
 #
 # 額縁の1ブロック後ろ
+#
 # ============================================================
 
 function bingo_back_location(team: number, index: number) :: location:
@@ -265,19 +303,18 @@ function bingo_input_location(team: number) :: location:
     set {_baseZ} to bingo_board_z()
 
 
+    # --------------------------------------------------------
     # MineScript
     #
     # summon item_frame
+    #
     # base_x
     # y + 1
     # base_z + 1
     #
-    return location(
-        {_baseX},
-        {_baseY} + 1,
-        {_baseZ} + 1,
-        bingo_world()
-    )
+    # --------------------------------------------------------
+
+    return location({_baseX}, {_baseY} + 1, {_baseZ} + 1, bingo_world())
 
 
 # ============================================================
@@ -293,19 +330,18 @@ function bingo_button_location(team: number) :: location:
     set {_baseZ} to bingo_board_z()
 
 
+    # --------------------------------------------------------
     # MineScript
     #
     # setblock
+    #
     # base_x
     # y + 2
     # base_z
     #
-    return location(
-        {_baseX},
-        {_baseY} + 2,
-        {_baseZ},
-        bingo_world()
-    )
+    # --------------------------------------------------------
+
+    return location({_baseX}, {_baseY} + 2, {_baseZ}, bingo_world())
 
 
 # ============================================================
@@ -321,12 +357,7 @@ function bingo_small_head_location(team: number) :: location:
     set {_baseZ} to bingo_board_z()
 
 
-    return location(
-        {_baseX} + 2,
-        {_baseY} + 1,
-        {_baseZ} + 3,
-        bingo_world()
-    )
+    return location({_baseX} + 2, {_baseY} + 1, {_baseZ} + 3, bingo_world())
 
 
 # ============================================================
@@ -342,12 +373,7 @@ function bingo_big_head_location(team: number) :: location:
     set {_baseZ} to bingo_board_z()
 
 
-    return location(
-        {_baseX} + 2,
-        {_baseY} + 8,
-        {_baseZ},
-        bingo_world()
-    )
+    return location({_baseX} + 2, {_baseY} + 8, {_baseZ}, bingo_world())
 
 
 # ============================================================
@@ -391,7 +417,10 @@ function bingo_register_player(p: player, team: number):
     if {bingo.player::%{_team}%} is set:
 
 
+        # ----------------------------------------------------
         # 自分自身なら何もしない
+        # ----------------------------------------------------
+
         if {bingo.player::%{_team}%} is name of {_p}:
 
             send "{@prefix} &e既に TEAM %{_team}% に登録されています。" to {_p}
@@ -399,7 +428,10 @@ function bingo_register_player(p: player, team: number):
             stop
 
 
+        # ----------------------------------------------------
         # 他人がいる
+        # ----------------------------------------------------
+
         send "{@prefix} &cTEAM %{_team}% は既に使用されています。" to {_p}
 
         send "&7Player : %{bingo.player::%{_team}%}%" to {_p}
@@ -460,6 +492,10 @@ function bingo_register_player(p: player, team: number):
 function bingo_remove_player(team: number):
 
 
+    # ========================================================
+    # CHECK
+    # ========================================================
+
     if {bingo.player::%{_team}%} is not set:
 
         stop
@@ -495,7 +531,10 @@ function bingo_remove_player(team: number):
     delete {bingo.player::%{_team}%}
 
 
-    # UUID側のTEAM情報も削除
+    # ========================================================
+    # UUID TEAM DATA REMOVE
+    # ========================================================
+
     loop all players:
 
         if name of loop-player is {_name}:
@@ -580,7 +619,7 @@ function bingo_reset_board():
 
         loop 9 times:
 
-            set {_index} to loop-number
+            set {_index} to loop-number-2
 
 
             # ------------------------------------------------
@@ -619,7 +658,10 @@ function bingo_clear_board_items():
 
         loop 9 times:
 
-            set {_cellLoc} to bingo_cell_location({_team}, loop-number)
+            set {_index} to loop-number-2
+
+
+            set {_cellLoc} to bingo_cell_location({_team}, {_index})
 
             set {_x} to floor(x-coordinate of {_cellLoc})
 
@@ -645,47 +687,54 @@ function bingo_set_items():
         # ====================================================
         # PLAYER CHECK
         #
-        # 登録者がいないTEAMは盤面を使用しない
+        # 登録者がいるTEAMだけ盤面を使用
         # ====================================================
 
-        if {bingo.player::%{_team}%} is not set:
-
-            next loop
-
-
-        # ====================================================
-        # 3x3 ITEMS
-        # ====================================================
-
-        loop 9 times:
-
-            set {_index} to loop-number
-
-            set {_item} to {bingo.items::%{_index}%}
-
-
-            set {_cellLoc} to bingo_cell_location({_team}, {_index})
-
-            set {_x} to floor(x-coordinate of {_cellLoc})
-
-            set {_y} to floor(y-coordinate of {_cellLoc})
-
-            set {_z} to floor(z-coordinate of {_cellLoc})
+        if {bingo.player::%{_team}%} is set:
 
 
             # =================================================
-            # ITEM ID
-            #
-            # Skript item type
-            # -> minecraft namespace形式に変換
+            # 3x3 ITEMS
             # =================================================
 
-            set {_itemName} to "%type of {_item}%"
+            loop 9 times:
 
-            replace all " " with "_" in {_itemName}
+                set {_index} to loop-number-2
+
+                set {_item} to {bingo.items::%{_index}%}
 
 
-            execute console command "data modify entity @e[type=minecraft:item_frame,x=%{_x}%,y=%{_y}%,z=%{_z}%,distance=..1,limit=1,sort=nearest] Item set value {id:""minecraft:%{_itemName}%"",count:1}"
+                # =============================================
+                # CELL LOCATION
+                # =============================================
+
+                set {_cellLoc} to bingo_cell_location({_team}, {_index})
+
+                set {_x} to floor(x-coordinate of {_cellLoc})
+
+                set {_y} to floor(y-coordinate of {_cellLoc})
+
+                set {_z} to floor(z-coordinate of {_cellLoc})
+
+
+                # =============================================
+                # ITEM ID
+                #
+                # Skript item type
+                # ->
+                # minecraft namespace形式
+                # =============================================
+
+                set {_itemName} to "%type of {_item}%"
+
+                replace all " " with "_" in {_itemName}
+
+
+                # =============================================
+                # SET FRAME ITEM
+                # =============================================
+
+                execute console command "data modify entity @e[type=minecraft:item_frame,x=%{_x}%,y=%{_y}%,z=%{_z}%,distance=..1,limit=1,sort=nearest] Item set value {id:""minecraft:%{_itemName}%"",count:1}"
 
 
 # ============================================================
@@ -976,7 +1025,6 @@ function bingo_check_input(team: number, itemInput: item):
 
     loop 9 times:
 
-
         set {_index} to loop-number
 
 
@@ -1036,15 +1084,12 @@ on right click:
 
     loop 5 times:
 
-
         set {_team} to loop-number
-
 
         set {_buttonLoc} to bingo_button_location({_team})
 
 
         if {_clickedLoc} is {_buttonLoc}:
-
 
             bingo_register_player(player, {_team})
 
@@ -1080,9 +1125,7 @@ on right click on item frame:
 
     loop 5 times:
 
-
         set {_team} to loop-number
-
 
         set {_inputLoc} to bingo_input_location({_team})
 
@@ -1110,9 +1153,6 @@ on right click on item frame:
 
             # =================================================
             # GET FRAME ITEM
-            #
-            # 注意：
-            # Skript環境によって構文差が出る可能性あり
             # =================================================
 
             set {_inputItem} to item of event-entity
@@ -1225,7 +1265,6 @@ function bingo_start_game(p: player):
 
     loop 3 times:
 
-
         set {_number} to 4 - loop-number
 
 
@@ -1283,11 +1322,13 @@ function bingo_reset_all():
     # BOARD RESET
     # ========================================================
 
-    bingo_reset_board()
+    if {bingo.origin} is set:
 
-    bingo_clear_board_items()
+        bingo_reset_board()
 
-    bingo_reset_input_frames()
+        bingo_clear_board_items()
+
+        bingo_reset_input_frames()
 
 
     # ========================================================
@@ -1391,6 +1432,7 @@ command /bingo [<text>]:
 
         if arg-1 is "status":
 
+
             send ""
 
             send "&6&l========== BINGO STATUS =========="
@@ -1398,11 +1440,9 @@ command /bingo [<text>]:
 
             loop 5 times:
 
-
                 if {bingo.player::%loop-number%} is set:
 
                     send "&aTEAM %loop-number% &7: &f%{bingo.player::%loop-number%}%"
-
 
                 else:
 
@@ -1448,10 +1488,11 @@ command /bingo [<text>]:
         # ====================================================
         # CLEAR
         #
-        # プレイヤー登録だけ削除したい場合
+        # プレイヤー登録だけ削除
         # ====================================================
 
         if arg-1 is "clear":
+
 
             loop 5 times:
 
