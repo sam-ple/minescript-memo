@@ -1,0 +1,2188 @@
+# ============================================================
+# ADVANCEMENT RACE GAME SYSTEM
+#
+# Version : v0.1.01
+# Date    : 2026-09-10
+#
+# Minecraft Java Edition
+# Paper + Skript 2.16.1 + SkBee
+#
+# ============================================================
+#
+# GAME OVERVIEW
+#
+#   対象Advancementを達成すると +1 Point。
+#
+#   制限時間内に最も多くの進捗を達成した
+#   プレイヤーが勝者。
+#
+#
+# TARGET ADVANCEMENT
+#
+#   minecraft:story/
+#   minecraft:nether/
+#   minecraft:end/
+#   minecraft:adventure/
+#   minecraft:husbandry/
+#
+#
+# COMMAND
+#
+#   /adv
+#
+#
+# MAIN GUI
+#
+#   SET
+#   START
+#   STOP
+#   RESET
+#   TIME
+#   STATUS
+#
+#
+# TIME
+#
+#   5 MINUTES
+#   15 MINUTES
+#   30 MINUTES
+#   60 MINUTES
+#
+#
+# GAME FLOW
+#
+#   SET
+#      ↓
+#   START
+#      ↓
+#   ALL ONLINE PLAYERS → START POSITION
+#      ↓
+#   3
+#   2
+#   1
+#   START!
+#      ↓
+#   GAME RUNNING
+#      ↓
+#   TIMER
+#      ↓
+#   0:00
+#      ↓
+#   5
+#   4
+#   3
+#   2
+#   1
+#      ↓
+#   GAME SET
+#      ↓
+#   RANKING
+#      ↓
+#   ALL PARTICIPANTS → START POSITION
+#
+#
+# ============================================================
+# SAFETY / STABILITY
+#
+# ・GUI uses the same syntax as LineRace.
+# ・BossBar uses keyed BossBar API.
+# ・No JSON BossBar commands.
+# ・No "mod" operator.
+# ・Player head uses "skull of {_p}".
+# ・Participant UUID is stored at START.
+# ・Result GUI stores UUID per slot.
+# ・Ranking uses stored participant data.
+# ・Game ID prevents old delayed countdowns from
+#   interfering with a new game.
+# ・STOP / RESET invalidate delayed processing.
+# ・Registration / participant data is separated.
+#
+# ============================================================
+
+
+options:
+    prefix: &8[&bADV&8]&r
+
+
+# ============================================================
+# LOAD
+# ============================================================
+
+on load:
+
+    # --------------------------------------------------------
+    # Runtime state
+    #
+    # IMPORTANT:
+    # Persistent settings such as selected time and
+    # start location are not deleted.
+    # --------------------------------------------------------
+
+    set {adv.running} to false
+    set {adv.countdown} to false
+    set {adv.finish} to false
+
+    set {adv.time} to 0
+    set {adv.duration} to 300
+
+
+    # --------------------------------------------------------
+    # Game ID
+    #
+    # Used to invalidate delayed processes.
+    # --------------------------------------------------------
+
+    if {adv.game.id} is not set:
+
+        set {adv.game.id} to 0
+
+
+    # --------------------------------------------------------
+    # Runtime data
+    # --------------------------------------------------------
+
+    delete {adv.points::*}
+    delete {adv.last::*}
+    delete {adv.category::*}
+
+
+    # --------------------------------------------------------
+    # Result data
+    #
+    # Result data is cleared when a new game starts.
+    # --------------------------------------------------------
+
+    delete {adv.result.points::*}
+    delete {adv.result.last::*}
+    delete {adv.result.category::*}
+    delete {adv.result.name::*}
+
+
+    # --------------------------------------------------------
+    # Participant data
+    # --------------------------------------------------------
+
+    delete {adv.players::*}
+    delete {adv.player.name::*}
+
+
+    # --------------------------------------------------------
+    # GUI data
+    # --------------------------------------------------------
+
+    delete {adv.gui.player::*}
+
+
+    # --------------------------------------------------------
+    # Scoreboard
+    #
+    # Create if it does not exist.
+    # --------------------------------------------------------
+
+    execute console command "scoreboard objectives add advPoints dummy Points"
+
+
+    # --------------------------------------------------------
+    # Clear sidebar
+    # --------------------------------------------------------
+
+    execute console command "scoreboard objectives setdisplay sidebar"
+
+
+    # --------------------------------------------------------
+    # BossBar
+    # --------------------------------------------------------
+
+    set {_bar} to boss bar with key "adv:timer"
+
+    if {_bar} is set:
+
+        remove all players from {_bar}
+
+        delete {_bar}
+
+
+    log "[ADV] Advancement Race System v0.1.01 loaded."
+
+
+# ============================================================
+# MAIN COMMAND
+#
+# /adv
+# ============================================================
+
+command /adv:
+
+    permission: op
+
+    trigger:
+
+
+        # ====================================================
+        # STATUS TEXT
+        # ====================================================
+
+        if {adv.running} is true:
+
+            if {adv.countdown} is true:
+
+                set {_status} to "&6COUNTDOWN"
+
+            else:
+
+                set {_status} to "&aRUNNING"
+
+
+        else if {adv.finish} is true:
+
+            set {_status} to "&cFINISHING"
+
+
+        else:
+
+            set {_status} to "&7READY"
+
+
+        # ====================================================
+        # SELECTED TIME
+        # ====================================================
+
+        set {_minutes} to floor({adv.duration} / 60)
+
+        set {_timeText} to "%{_minutes}% MIN"
+
+
+        # ====================================================
+        # MAIN GUI
+        #
+        # 6 rows
+        #
+        # Slot:
+        #
+        # 4  = TITLE
+        #
+        # 10 = SET
+        # 12 = START
+        # 14 = STOP
+        # 16 = RESET
+        #
+        # 28 = 5 MIN
+        # 29 = 15 MIN
+        # 30 = 30 MIN
+        # 31 = 60 MIN
+        #
+        # 33 = SELECTED TIME
+        #
+        # 35 = STATUS
+        #
+        # 45-53 = PLAYER HEADS
+        #
+        # ====================================================
+
+        set {_gui} to chest inventory with 6 rows named "&8ADVANCEMENT RACE"
+
+
+        # ====================================================
+        # TITLE
+        # ====================================================
+
+        set slot 4 of {_gui} to nether star named "&b&lADVANCEMENT RACE"
+
+        set slot 3 of {_gui} to black stained glass pane named " "
+        set slot 5 of {_gui} to black stained glass pane named " "
+
+
+        # ====================================================
+        # SET
+        # ====================================================
+
+        set slot 10 of {_gui} to compass named "&e&lSET START POSITION"
+
+        set lore of slot 10 of {_gui} to "&7Set the current location" and "&7as the game start position."
+
+
+        # ====================================================
+        # START
+        # ====================================================
+
+        set slot 12 of {_gui} to lime concrete named "&a&lSTART GAME"
+
+        set lore of slot 12 of {_gui} to "&7Start Advancement Race." and "&7All online players participate."
+
+
+        # ====================================================
+        # STOP
+        # ====================================================
+
+        set slot 14 of {_gui} to red concrete named "&c&lSTOP GAME"
+
+        set lore of slot 14 of {_gui} to "&7Force stop the current game."
+
+
+        # ====================================================
+        # RESET
+        # ====================================================
+
+        set slot 16 of {_gui} to barrier named "&4&lRESET"
+
+        set lore of slot 16 of {_gui} to "&7Reset all game data." and "&cThis cannot be undone."
+
+
+        # ====================================================
+        # TIME
+        # ====================================================
+
+        set slot 28 of {_gui} to clock named "&a&l5 MINUTES"
+
+        set lore of slot 28 of {_gui} to "&7300 seconds"
+
+
+        set slot 29 of {_gui} to clock named "&e&l15 MINUTES"
+
+        set lore of slot 29 of {_gui} to "&7900 seconds"
+
+
+        set slot 30 of {_gui} to clock named "&6&l30 MINUTES"
+
+        set lore of slot 30 of {_gui} to "&71800 seconds"
+
+
+        set slot 31 of {_gui} to clock named "&c&l60 MINUTES"
+
+        set lore of slot 31 of {_gui} to "&73600 seconds"
+
+
+        # ====================================================
+        # SELECTED TIME
+        # ====================================================
+
+        set slot 33 of {_gui} to clock named "&b&lSELECTED TIME"
+
+        set lore of slot 33 of {_gui} to "&7Current: &f%{_timeText}%"
+
+
+        # ====================================================
+        # STATUS
+        # ====================================================
+
+        set {_playerCount} to 0
+
+        loop all players:
+
+            if {adv.player.registered::%loop-player%} is true:
+
+                add 1 to {_playerCount}
+
+
+        set slot 35 of {_gui} to paper named "&f&lSTATUS"
+
+        set lore of slot 35 of {_gui} to "&7Registered players: &f%{_playerCount}%" and "&7Status: %{_status}%" and "&7Time: &f%{_timeText}%" and "" and "&eClick to view players."
+
+
+        # ====================================================
+        # PLAYER HEAD AREA
+        #
+        # Show currently online registered players.
+        #
+        # UUID is saved directly to the GUI slot.
+        # ====================================================
+
+        set {_slot} to 45
+
+        loop all players:
+
+            if {_slot} > 53:
+
+                stop loop
+
+
+            set {_p} to loop-player
+
+
+            if {adv.player.registered::%{_p}%} is not true:
+
+                continue
+
+
+            # ------------------------------------------------
+            # Player head
+            # ------------------------------------------------
+
+            set slot {_slot} of {_gui} to skull of {_p}
+
+            set name of slot {_slot} of {_gui} to "&b%{_p}%"
+
+            set lore of slot {_slot} of {_gui} to "&7Click to show result."
+
+
+            # ------------------------------------------------
+            # Save UUID to GUI slot
+            # ------------------------------------------------
+
+            set {adv.gui.player::%player%::%{_slot}%} to uuid of {_p}
+
+
+            add 1 to {_slot}
+
+
+        # ====================================================
+        # OPEN
+        # ====================================================
+
+        open {_gui} to player
+
+
+# ============================================================
+# MAIN GUI CLICK
+# ============================================================
+
+on inventory click:
+
+    if name of event-inventory is not "&8ADVANCEMENT RACE":
+
+        stop
+
+
+    cancel event
+
+
+    # ========================================================
+    # SET
+    # ========================================================
+
+    if clicked slot is 10:
+
+        close player's inventory
+
+
+        if {adv.running} is true:
+
+            send "{@prefix} &cGame is already running." to player
+
+            stop
+
+
+        if {adv.finish} is true:
+
+            send "{@prefix} &cGame is finishing." to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # Save start location
+        # ----------------------------------------------------
+
+        set {adv.start.location} to location of player
+
+
+        send "" to player
+
+        send "{@prefix} &aSTART POSITION SET" to player
+
+        send "{@prefix} &7X: &f%x-coordinate of player%" to player
+
+        send "{@prefix} &7Y: &f%y-coordinate of player%" to player
+
+        send "{@prefix} &7Z: &f%z-coordinate of player%" to player
+
+        send "{@prefix} &7World: &f%world of player%" to player
+
+        stop
+
+
+    # ========================================================
+    # START
+    # ========================================================
+
+    if clicked slot is 12:
+
+        close player's inventory
+
+
+        # ----------------------------------------------------
+        # Already running
+        # ----------------------------------------------------
+
+        if {adv.running} is true:
+
+            send "{@prefix} &cAdvancement Race is already running." to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # Finishing
+        # ----------------------------------------------------
+
+        if {adv.finish} is true:
+
+            send "{@prefix} &cGame is finishing. Please wait for GAME SET." to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # Start position check
+        # ----------------------------------------------------
+
+        if {adv.start.location} is not set:
+
+            send "{@prefix} &cSTART POSITION is not set." to player
+
+            send "{@prefix} &7Use SET first." to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # Count online players
+        # ----------------------------------------------------
+
+        set {_count} to number of all players
+
+
+        if {_count} is 0:
+
+            send "{@prefix} &cNo players are online." to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # New Game ID
+        # ----------------------------------------------------
+
+        add 1 to {adv.game.id}
+
+        set {_gameID} to {adv.game.id}
+
+
+        # ----------------------------------------------------
+        # Game state
+        # ----------------------------------------------------
+
+        set {adv.running} to true
+
+        set {adv.countdown} to true
+
+        set {adv.finish} to false
+
+
+        # ----------------------------------------------------
+        # Time
+        # ----------------------------------------------------
+
+        set {adv.time} to 0
+
+
+        # ----------------------------------------------------
+        # Delete previous game data
+        # ----------------------------------------------------
+
+        delete {adv.players::*}
+
+        delete {adv.player.name::*}
+
+        delete {adv.points::*}
+
+        delete {adv.last::*}
+
+        delete {adv.category::*}
+
+        delete {adv.result.points::*}
+
+        delete {adv.result.last::*}
+
+        delete {adv.result.category::*}
+
+        delete {adv.result.name::*}
+
+
+        # ----------------------------------------------------
+        # Scoreboard
+        # ----------------------------------------------------
+
+        execute console command "scoreboard objectives add advPoints dummy Points"
+
+        execute console command "scoreboard objectives setdisplay sidebar advPoints"
+
+
+        # ----------------------------------------------------
+        # Register participants
+        #
+        # All online players at START become participants.
+        # ----------------------------------------------------
+
+        loop all players:
+
+            set {_p} to loop-player
+
+            set {_uuid} to uuid of {_p}
+
+            add {_uuid} to {adv.players::*}
+
+            set {adv.player.name::%{_uuid}%} to "%{_p}%"
+
+            set {adv.points::%{_uuid}%} to 0
+
+            delete {adv.last::%{_uuid}%}
+
+            delete {adv.category::%{_uuid}%}
+
+            set {adv.player.registered::%{_p}%} to true
+
+
+            # ------------------------------------------------
+            # Scoreboard
+            # ------------------------------------------------
+
+            execute console command "scoreboard players set %{_p}% advPoints 0"
+
+
+            # ------------------------------------------------
+            # Teleport
+            # ------------------------------------------------
+
+            teleport {_p} to {adv.start.location}
+
+
+        # ====================================================
+        # BOSSBAR
+        # ====================================================
+
+        set {_minutes} to floor({adv.duration} / 60)
+
+
+        set {_bar} to boss bar with key "adv:timer"
+
+
+        if {_bar} is set:
+
+            remove all players from {_bar}
+
+            set title of {_bar} to "ADVANCEMENT RACE %{_minutes}%:00"
+
+            set progress of {_bar} to 100%
+
+            set style of {_bar} to solid
+
+
+        else:
+
+            set {_bar} to a new keyed blue bossbar with key "adv:timer" with title "ADVANCEMENT RACE %{_minutes}%:00"
+
+            set progress of {_bar} to 100%
+
+            set style of {_bar} to solid
+
+
+        # ----------------------------------------------------
+        # Add participants to BossBar
+        # ----------------------------------------------------
+
+        loop all players:
+
+            set {_p} to loop-player
+
+            set {_uuid} to uuid of {_p}
+
+            if {_uuid} is in {adv.players::*}:
+
+                add {_p} to viewers of {_bar}
+
+
+        # ====================================================
+        # COUNTDOWN
+        # ====================================================
+
+        send "" to all players
+
+        send "&b&lADVANCEMENT RACE" to all players
+
+        send "&7Get ready!" to all players
+
+
+        send title "&6&l3" with subtitle "&fGET READY" to all players
+
+        wait 1 second
+
+
+        # ----------------------------------------------------
+        # Game ID check
+        # ----------------------------------------------------
+
+        if {adv.game.id} is not {_gameID}:
+
+            stop
+
+
+        if {adv.running} is not true:
+
+            stop
+
+
+        send title "&e&l2" with subtitle "&fGET READY" to all players
+
+        wait 1 second
+
+
+        if {adv.game.id} is not {_gameID}:
+
+            stop
+
+
+        if {adv.running} is not true:
+
+            stop
+
+
+        send title "&a&l1" with subtitle "&fGET READY" to all players
+
+        wait 1 second
+
+
+        if {adv.game.id} is not {_gameID}:
+
+            stop
+
+
+        if {adv.running} is not true:
+
+            stop
+
+
+        # ====================================================
+        # FINAL TELEPORT
+        #
+        # Make sure participants are at start position
+        # immediately before START.
+        # ====================================================
+
+        loop all players:
+
+            set {_p} to loop-player
+
+            set {_uuid} to uuid of {_p}
+
+            if {_uuid} is in {adv.players::*}:
+
+                teleport {_p} to {adv.start.location}
+
+
+        # ====================================================
+        # START
+        # ====================================================
+
+        send title "&b&lSTART!" with subtitle "&fADVANCEMENT RACE" to all players
+
+        send "" to all players
+
+        send "&b&l==============================" to all players
+
+        send "&b&l     ADVANCEMENT RACE START!" to all players
+
+        send "&fComplete advancements to earn points!" to all players
+
+        send "&b&l==============================" to all players
+
+        send "" to all players
+
+
+        set {adv.countdown} to false
+
+
+        stop
+
+
+    # ========================================================
+    # STOP
+    # ========================================================
+
+    if clicked slot is 14:
+
+        close player's inventory
+
+
+        if {adv.running} is not true:
+
+            send "{@prefix} &cGame is not running." to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # Invalidate delayed processes
+        # ----------------------------------------------------
+
+        add 1 to {adv.game.id}
+
+
+        # ----------------------------------------------------
+        # Stop state
+        # ----------------------------------------------------
+
+        set {adv.running} to false
+
+        set {adv.countdown} to false
+
+        set {adv.finish} to false
+
+        set {adv.time} to 0
+
+
+        # ----------------------------------------------------
+        # BossBar
+        # ----------------------------------------------------
+
+        set {_bar} to boss bar with key "adv:timer"
+
+        if {_bar} is set:
+
+            remove all players from {_bar}
+
+            delete {_bar}
+
+
+        # ----------------------------------------------------
+        # Scoreboard
+        # ----------------------------------------------------
+
+        execute console command "scoreboard objectives setdisplay sidebar"
+
+
+        loop all players:
+
+            execute console command "scoreboard players reset %loop-player% advPoints"
+
+
+        # ----------------------------------------------------
+        # Return participants to start
+        # ----------------------------------------------------
+
+        loop all players:
+
+            set {_p} to loop-player
+
+            set {_uuid} to uuid of {_p}
+
+            if {_uuid} is in {adv.players::*}:
+
+                if {adv.start.location} is set:
+
+                    teleport {_p} to {adv.start.location}
+
+
+        # ----------------------------------------------------
+        # Message
+        # ----------------------------------------------------
+
+        send "" to all players
+
+        send "&c&l==============================" to all players
+
+        send "&c&l     ADVANCEMENT RACE STOPPED" to all players
+
+        send "&fThe game has been stopped." to all players
+
+        send "&c&l==============================" to all players
+
+        send "" to all players
+
+
+        stop
+
+
+    # ========================================================
+    # RESET
+    # ========================================================
+
+    if clicked slot is 16:
+
+        close player's inventory
+
+
+        # ----------------------------------------------------
+        # Invalidate delayed processes
+        # ----------------------------------------------------
+
+        add 1 to {adv.game.id}
+
+
+        # ----------------------------------------------------
+        # Stop game
+        # ----------------------------------------------------
+
+        set {adv.running} to false
+
+        set {adv.countdown} to false
+
+        set {adv.finish} to false
+
+        set {adv.time} to 0
+
+
+        # ----------------------------------------------------
+        # Reset time
+        # ----------------------------------------------------
+
+        set {adv.duration} to 300
+
+
+        # ----------------------------------------------------
+        # BossBar
+        # ----------------------------------------------------
+
+        set {_bar} to boss bar with key "adv:timer"
+
+        if {_bar} is set:
+
+            remove all players from {_bar}
+
+            delete {_bar}
+
+
+        # ----------------------------------------------------
+        # Scoreboard
+        # ----------------------------------------------------
+
+        execute console command "scoreboard objectives setdisplay sidebar"
+
+
+        loop all players:
+
+            execute console command "scoreboard players reset %loop-player% advPoints"
+
+
+        # ----------------------------------------------------
+        # Delete all data
+        # ----------------------------------------------------
+
+        delete {adv.start.location}
+
+        delete {adv.players::*}
+
+        delete {adv.player.name::*}
+
+        delete {adv.points::*}
+
+        delete {adv.last::*}
+
+        delete {adv.category::*}
+
+        delete {adv.result.points::*}
+
+        delete {adv.result.last::*}
+
+        delete {adv.result.category::*}
+
+        delete {adv.result.name::*}
+
+        delete {adv.gui.player::*}
+
+
+        # ----------------------------------------------------
+        # Reset registration flags
+        # ----------------------------------------------------
+
+        loop all players:
+
+            delete {adv.player.registered::%loop-player%}
+
+
+        # ----------------------------------------------------
+        # Message
+        # ----------------------------------------------------
+
+        send "" to all players
+
+        send "&c&l==============================" to all players
+
+        send "&c&l      ADVANCEMENT RACE RESET" to all players
+
+        send "&fAll game data has been deleted." to all players
+
+        send "&fGame time reset to &e5 minutes&f." to all players
+
+        send "&c&l==============================" to all players
+
+        send "" to all players
+
+
+        stop
+
+
+    # ========================================================
+    # TIME 5 MINUTES
+    # ========================================================
+
+    if clicked slot is 28:
+
+        if {adv.running} is true:
+
+            send "{@prefix} &cTime cannot be changed during a game." to player
+
+            stop
+
+
+        set {adv.duration} to 300
+
+        send "{@prefix} &aTIME: 5 MINUTES" to player
+
+        stop
+
+
+    # ========================================================
+    # TIME 15 MINUTES
+    # ========================================================
+
+    if clicked slot is 29:
+
+        if {adv.running} is true:
+
+            send "{@prefix} &cTime cannot be changed during a game." to player
+
+            stop
+
+
+        set {adv.duration} to 900
+
+        send "{@prefix} &eTIME: 15 MINUTES" to player
+
+        stop
+
+
+    # ========================================================
+    # TIME 30 MINUTES
+    # ========================================================
+
+    if clicked slot is 30:
+
+        if {adv.running} is true:
+
+            send "{@prefix} &cTime cannot be changed during a game." to player
+
+            stop
+
+
+        set {adv.duration} to 1800
+
+        send "{@prefix} &6TIME: 30 MINUTES" to player
+
+        stop
+
+
+    # ========================================================
+    # TIME 60 MINUTES
+    # ========================================================
+
+    if clicked slot is 31:
+
+        if {adv.running} is true:
+
+            send "{@prefix} &cTime cannot be changed during a game." to player
+
+            stop
+
+
+        set {adv.duration} to 3600
+
+        send "{@prefix} &cTIME: 60 MINUTES" to player
+
+        stop
+
+
+    # ========================================================
+    # STATUS
+    #
+    # Clicking STATUS opens the player result list.
+    # ========================================================
+
+    if clicked slot is 35:
+
+        close player's inventory
+
+
+        set {_gui} to chest inventory with 6 rows named "&f&lADVANCEMENT PLAYERS"
+
+
+        # ----------------------------------------------------
+        # Header
+        # ----------------------------------------------------
+
+        set slot 4 of {_gui} to paper named "&b&lADVANCEMENT RACE STATUS"
+
+
+        # ----------------------------------------------------
+        # Current state
+        # ----------------------------------------------------
+
+        if {adv.running} is true:
+
+            if {adv.countdown} is true:
+
+                set {_status} to "&6COUNTDOWN"
+
+            else:
+
+                set {_status} to "&aRUNNING"
+
+        else if {adv.finish} is true:
+
+            set {_status} to "&cFINISHING"
+
+        else:
+
+            set {_status} to "&7READY"
+
+
+        set {_minutes} to floor({adv.duration} / 60)
+
+
+        set lore of slot 4 of {_gui} to "&7Status: %{_status}%" and "&7Time: &f%{_minutes}% MIN"
+
+
+        # ----------------------------------------------------
+        # Player heads
+        #
+        # Show current online players.
+        # Their UUID is stored in the GUI.
+        # ----------------------------------------------------
+
+        set {_slot} to 18
+
+        loop all players:
+
+            if {_slot} > 26:
+
+                stop loop
+
+
+            set {_p} to loop-player
+
+
+            # ------------------------------------------------
+            # Only registered players
+            # ------------------------------------------------
+
+            if {adv.player.registered::%{_p}%} is not true:
+
+                continue
+
+
+            # ------------------------------------------------
+            # Head
+            # ------------------------------------------------
+
+            set slot {_slot} of {_gui} to skull of {_p}
+
+            set name of slot {_slot} of {_gui} to "&b%{_p}%"
+
+
+            # ------------------------------------------------
+            # Current points
+            # ------------------------------------------------
+
+            set {_uuid} to uuid of {_p}
+
+            set {_points} to {adv.points::%{_uuid}%}
+
+            if {_points} is not set:
+
+                set {_points} to 0
+
+
+            set lore of slot {_slot} of {_gui} to "&7Points: &e%{_points}%" and "&7Click to show detailed result."
+
+
+            # ------------------------------------------------
+            # Save UUID
+            # ------------------------------------------------
+
+            set {adv.gui.player::%player%::%{_slot}%} to {_uuid}
+
+
+            add 1 to {_slot}
+
+
+        # ----------------------------------------------------
+        # BACK
+        # ----------------------------------------------------
+
+        set slot 49 of {_gui} to arrow named "&7&lBACK"
+
+        set lore of slot 49 of {_gui} to "&7Return to main menu."
+
+
+        open {_gui} to player
+
+        stop
+
+
+    # ========================================================
+    # PLAYER RESULT
+    #
+    # Slots 45-53
+    # ========================================================
+
+    if clicked slot >= 45:
+
+        if clicked slot <= 53:
+
+            set {_uuid} to {adv.gui.player::%player%::%clicked slot%}
+
+
+            if {_uuid} is not set:
+
+                stop
+
+
+            set {_targetName} to {adv.player.name::%{_uuid}%}
+
+
+            if {_targetName} is not set:
+
+                set {_targetName} to "UNKNOWN"
+
+
+            # ------------------------------------------------
+            # Result points
+            # ------------------------------------------------
+
+            set {_points} to {adv.result.points::%{_uuid}%}
+
+            if {_points} is not set:
+
+                set {_points} to {adv.points::%{_uuid}%}
+
+
+            if {_points} is not set:
+
+                set {_points} to 0
+
+
+            # ------------------------------------------------
+            # Last advancement
+            # ------------------------------------------------
+
+            set {_last} to {adv.result.last::%{_uuid}%}
+
+            if {_last} is not set:
+
+                set {_last} to {adv.last::%{_uuid}%}
+
+
+            if {_last} is not set:
+
+                set {_last} to "NONE"
+
+
+            # ------------------------------------------------
+            # Category
+            # ------------------------------------------------
+
+            set {_category} to {adv.result.category::%{_uuid}%}
+
+            if {_category} is not set:
+
+                set {_category} to {adv.category::%{_uuid}%}
+
+
+            if {_category} is not set:
+
+                set {_category} to "NONE"
+
+
+            # ------------------------------------------------
+            # Result
+            # ------------------------------------------------
+
+            send "&8&m--------------------------------" to player
+
+            send "&b&lPLAYER RESULT" to player
+
+            send "&8&m--------------------------------" to player
+
+            send "&7Player : &f%{_targetName}%" to player
+
+            send "&7Points : &e%{_points}%" to player
+
+            send "&7Last Advancement:" to player
+
+            send "&f%{_last}%" to player
+
+            send "&7Category : &b%{_category}%" to player
+
+            send "&8&m--------------------------------" to player
+
+
+            stop
+
+
+    # ========================================================
+    # BACK FROM STATUS GUI
+    #
+    # Note:
+    # STATUS GUI has a different inventory name, so this
+    # section does not normally run here.
+    # ========================================================
+
+
+# ============================================================
+# STATUS GUI CLICK
+# ============================================================
+
+on inventory click:
+
+    if name of event-inventory is not "&f&lADVANCEMENT PLAYERS":
+
+        stop
+
+
+    cancel event
+
+
+    # ========================================================
+    # BACK
+    # ========================================================
+
+    if clicked slot is 49:
+
+        close player's inventory
+
+        execute player command "/adv"
+
+        stop
+
+
+    # ========================================================
+    # PLAYER RESULT
+    #
+    # Slots 18-26
+    # ========================================================
+
+    if clicked slot >= 18:
+
+        if clicked slot <= 26:
+
+            set {_uuid} to {adv.gui.player::%player%::%clicked slot%}
+
+
+            if {_uuid} is not set:
+
+                stop
+
+
+            set {_targetName} to {adv.player.name::%{_uuid}%}
+
+
+            if {_targetName} is not set:
+
+                set {_targetName} to "UNKNOWN"
+
+
+            # ------------------------------------------------
+            # Points
+            # ------------------------------------------------
+
+            set {_points} to {adv.result.points::%{_uuid}%}
+
+            if {_points} is not set:
+
+                set {_points} to {adv.points::%{_uuid}%}
+
+
+            if {_points} is not set:
+
+                set {_points} to 0
+
+
+            # ------------------------------------------------
+            # Last advancement
+            # ------------------------------------------------
+
+            set {_last} to {adv.result.last::%{_uuid}%}
+
+
+            if {_last} is not set:
+
+                set {_last} to {adv.last::%{_uuid}%}
+
+
+            if {_last} is not set:
+
+                set {_last} to "NONE"
+
+
+            # ------------------------------------------------
+            # Category
+            # ------------------------------------------------
+
+            set {_category} to {adv.result.category::%{_uuid}%}
+
+
+            if {_category} is not set:
+
+                set {_category} to {adv.category::%{_uuid}%}
+
+
+            if {_category} is not set:
+
+                set {_category} to "NONE"
+
+
+            # ------------------------------------------------
+            # Message
+            # ------------------------------------------------
+
+            send "&8&m--------------------------------" to player
+
+            send "&b&lPLAYER RESULT" to player
+
+            send "&8&m--------------------------------" to player
+
+            send "&7Player : &f%{_targetName}%" to player
+
+            send "&7Points : &e%{_points}%" to player
+
+            send "&7Last Advancement:" to player
+
+            send "&f%{_last}%" to player
+
+            send "&7Category : &b%{_category}%" to player
+
+            send "&8&m--------------------------------" to player
+
+
+            stop
+
+
+# ============================================================
+# TIMER
+#
+# Uses the same calculation style as LineRace.
+#
+# duration:
+#
+#   300  = 5 min
+#   900  = 15 min
+#   1800 = 30 min
+#   3600 = 60 min
+#
+# ============================================================
+
+every 1 second:
+
+    if {adv.running} is not true:
+
+        stop
+
+
+    if {adv.countdown} is true:
+
+        stop
+
+
+    # ========================================================
+    # TIME
+    # ========================================================
+
+    add 1 to {adv.time}
+
+
+    # ========================================================
+    # REMAINING
+    # ========================================================
+
+    set {_remaining} to {adv.duration} - {adv.time}
+
+
+    if {_remaining} < 0:
+
+        set {_remaining} to 0
+
+
+    # ========================================================
+    # TIME TEXT
+    #
+    # Same calculation method as LineRace.
+    # ========================================================
+
+    set {_minutes} to floor({_remaining} / 60)
+
+    set {_seconds} to {_remaining} - ({_minutes} * 60)
+
+
+    if {_seconds} < 10:
+
+        set {_secondText} to "0%{_seconds}%"
+
+    else:
+
+        set {_secondText} to "%{_seconds}%"
+
+
+    set {_timeText} to "%{_minutes}%:%{_secondText}%"
+
+
+    # ========================================================
+    # BOSSBAR
+    # ========================================================
+
+    set {_bar} to boss bar with key "adv:timer"
+
+
+    if {_bar} is set:
+
+        set title of {_bar} to "ADVANCEMENT RACE %{_timeText}%"
+
+        set progress of {_bar} to ({_remaining} / {adv.duration}) * 100%
+
+
+    # ========================================================
+    # GAME END CHECK
+    # ========================================================
+
+    if {adv.time} < {adv.duration}:
+
+        stop
+
+
+    # ========================================================
+    # FINISH STATE
+    # ========================================================
+
+    if {adv.finish} is true:
+
+        stop
+
+
+    set {adv.finish} to true
+
+    set {adv.running} to false
+
+    set {adv.countdown} to false
+
+
+    # --------------------------------------------------------
+    # Save Game ID
+    # --------------------------------------------------------
+
+    set {_finishGameID} to {adv.game.id}
+
+
+    # ========================================================
+    # BOSSBAR 0:00
+    # ========================================================
+
+    set {_bar} to boss bar with key "adv:timer"
+
+
+    if {_bar} is set:
+
+        set title of {_bar} to "ADVANCEMENT RACE 0:00"
+
+        set progress of {_bar} to 0%
+
+
+    # ========================================================
+    # SAVE RESULTS
+    #
+    # Save all registered participants.
+    # ========================================================
+
+    loop {adv.players::*}:
+
+        set {_uuid} to loop-value
+
+
+        set {adv.result.points::%{_uuid}%} to {adv.points::%{_uuid}%}
+
+        set {adv.result.last::%{_uuid}%} to {adv.last::%{_uuid}%}
+
+        set {adv.result.category::%{_uuid}%} to {adv.category::%{_uuid}%}
+
+        set {adv.result.name::%{_uuid}%} to {adv.player.name::%{_uuid}%}
+
+
+    # ========================================================
+    # FINISH MESSAGE
+    # ========================================================
+
+    send "" to all players
+
+    send "&c&l==============================" to all players
+
+    send "&c&l    ADVANCEMENT RACE FINISH!" to all players
+
+    send "&fTime is up!" to all players
+
+    send "&c&l==============================" to all players
+
+    send "" to all players
+
+
+    # ========================================================
+    # FINAL RESULT LIST
+    # ========================================================
+
+    loop {adv.players::*}:
+
+        set {_uuid} to loop-value
+
+        set {_name} to {adv.result.name::%{_uuid}%}
+
+        set {_points} to {adv.result.points::%{_uuid}%}
+
+
+        if {_points} is not set:
+
+            set {_points} to 0
+
+
+        send "&b%{_name}% &7→ &e%{_points}% Points" to all players
+
+
+    # ========================================================
+    # TELEPORT TO START
+    # ========================================================
+
+    loop all players:
+
+        set {_p} to loop-player
+
+        set {_uuid} to uuid of {_p}
+
+        if {_uuid} is in {adv.players::*}:
+
+            if {adv.start.location} is set:
+
+                teleport {_p} to {adv.start.location}
+
+
+    # ========================================================
+    # FINISH COUNTDOWN
+    #
+    # 0:00
+    #   ↓
+    # 5
+    #   ↓
+    # 4
+    #   ↓
+    # 3
+    #   ↓
+    # 2
+    #   ↓
+    # 1
+    #   ↓
+    # GAME SET
+    # ========================================================
+
+    send title "&c&l5" with subtitle "&fGAME END" to all players
+
+    wait 1 second
+
+
+    if {adv.game.id} is not {_finishGameID}:
+
+        stop
+
+
+    if {adv.finish} is not true:
+
+        stop
+
+
+    send title "&c&l4" with subtitle "&fGAME END" to all players
+
+    wait 1 second
+
+
+    if {adv.game.id} is not {_finishGameID}:
+
+        stop
+
+
+    if {adv.finish} is not true:
+
+        stop
+
+
+    send title "&6&l3" with subtitle "&fGAME END" to all players
+
+    wait 1 second
+
+
+    if {adv.game.id} is not {_finishGameID}:
+
+        stop
+
+
+    if {adv.finish} is not true:
+
+        stop
+
+
+    send title "&e&l2" with subtitle "&fGAME END" to all players
+
+    wait 1 second
+
+
+    if {adv.game.id} is not {_finishGameID}:
+
+        stop
+
+
+    if {adv.finish} is not true:
+
+        stop
+
+
+    send title "&a&l1" with subtitle "&fGAME END" to all players
+
+    wait 1 second
+
+
+    if {adv.game.id} is not {_finishGameID}:
+
+        stop
+
+
+    if {adv.finish} is not true:
+
+        stop
+
+
+    # ========================================================
+    # GAME SET
+    # ========================================================
+
+    send title "&b&lGAME SET!" with subtitle "&fADVANCEMENT RACE FINISHED" to all players
+
+
+    send "" to all players
+
+    send "&b&l==============================" to all players
+
+    send "&b&l        ADVANCEMENT RACE" to all players
+
+    send "&f          GAME SET!" to all players
+
+    send "&b&l==============================" to all players
+
+    send "" to all players
+
+
+    # ========================================================
+    # RANKING
+    #
+    # Find highest score one by one.
+    #
+    # Uses UUID list rather than online players.
+    # Therefore a player who quit after START can still
+    # appear in the ranking.
+    # ========================================================
+
+    delete {adv.ranked::*}
+
+
+    set {_rank} to 1
+
+
+    loop 3 times:
+
+        set {_bestUUID} to ""
+        set {_bestPoints} to -1
+
+
+        loop {adv.players::*}:
+
+            set {_uuid} to loop-value-2
+
+
+            if {adv.ranked::%{_uuid}%} is true:
+
+                continue
+
+
+            set {_points} to {adv.result.points::%{_uuid}%}
+
+
+            if {_points} is not set:
+
+                set {_points} to 0
+
+
+            if {_points} > {_bestPoints}:
+
+                set {_bestPoints} to {_points}
+
+                set {_bestUUID} to {_uuid}
+
+
+        # ----------------------------------------------------
+        # No player
+        # ----------------------------------------------------
+
+        if {_bestUUID} is "":
+
+            stop loop
+
+
+        # ----------------------------------------------------
+        # Mark ranked
+        # ----------------------------------------------------
+
+        set {adv.ranked::%{_bestUUID}%} to true
+
+
+        # ----------------------------------------------------
+        # Name
+        # ----------------------------------------------------
+
+        set {_bestName} to {adv.result.name::%{_bestUUID}%}
+
+
+        if {_bestName} is not set:
+
+            set {_bestName} to "UNKNOWN"
+
+
+        # ----------------------------------------------------
+        # Ranking display
+        # ----------------------------------------------------
+
+        if {_rank} is 1:
+
+            broadcast "&6&l1st &f%{_bestName}% &7- &e%{_bestPoints}% Points"
+
+
+        else if {_rank} is 2:
+
+            broadcast "&7&l2nd &f%{_bestName}% &7- &e%{_bestPoints}% Points"
+
+
+        else if {_rank} is 3:
+
+            broadcast "&c&l3rd &f%{_bestName}% &7- &e%{_bestPoints}% Points"
+
+
+        add 1 to {_rank}
+
+
+    broadcast "&8&m================================"
+
+
+    # ========================================================
+    # REMOVE BOSSBAR
+    # ========================================================
+
+    set {_bar} to boss bar with key "adv:timer"
+
+
+    if {_bar} is set:
+
+        remove all players from {_bar}
+
+        delete {_bar}
+
+
+    # ========================================================
+    # SCOREBOARD
+    # ========================================================
+
+    execute console command "scoreboard objectives setdisplay sidebar"
+
+
+    loop all players:
+
+        execute console command "scoreboard players reset %loop-player% advPoints"
+
+
+    # ========================================================
+    # CLEANUP
+    #
+    # Result data remains.
+    # Participant data remains.
+    #
+    # This allows STATUS / result inspection after GAME SET.
+    # ========================================================
+
+    delete {adv.ranked::*}
+
+
+    set {adv.finish} to false
+
+    set {adv.time} to 0
+
+
+# ============================================================
+# ADVANCEMENT EVENT
+#
+# SkBee / Skript advancement event
+#
+# Only the following categories count:
+#
+#   story
+#   nether
+#   end
+#   adventure
+#   husbandry
+#
+# ============================================================
+
+on player advancement done:
+
+
+    # ========================================================
+    # GAME CHECK
+    # ========================================================
+
+    if {adv.running} is not true:
+
+        stop
+
+
+    # ========================================================
+    # PLAYER
+    # ========================================================
+
+    set {_p} to event-player
+
+    set {_uuid} to uuid of {_p}
+
+
+    # ========================================================
+    # PARTICIPANT CHECK
+    #
+    # Only players who were online when START was pressed
+    # receive points.
+    # ========================================================
+
+    if {_uuid} is not in {adv.players::*}:
+
+        stop
+
+
+    # ========================================================
+    # ADVANCEMENT
+    # ========================================================
+
+    set {_advancement} to "%event-advancement%"
+
+
+    # ========================================================
+    # CATEGORY
+    # ========================================================
+
+    set {_valid} to false
+
+    set {_category} to "UNKNOWN"
+
+
+    # --------------------------------------------------------
+    # STORY
+    # --------------------------------------------------------
+
+    if {_advancement} starts with "minecraft:story/":
+
+        set {_valid} to true
+
+        set {_category} to "story"
+
+
+    # --------------------------------------------------------
+    # NETHER
+    # --------------------------------------------------------
+
+    else if {_advancement} starts with "minecraft:nether/":
+
+        set {_valid} to true
+
+        set {_category} to "nether"
+
+
+    # --------------------------------------------------------
+    # END
+    # --------------------------------------------------------
+
+    else if {_advancement} starts with "minecraft:end/":
+
+        set {_valid} to true
+
+        set {_category} to "end"
+
+
+    # --------------------------------------------------------
+    # ADVENTURE
+    # --------------------------------------------------------
+
+    else if {_advancement} starts with "minecraft:adventure/":
+
+        set {_valid} to true
+
+        set {_category} to "adventure"
+
+
+    # --------------------------------------------------------
+    # HUSBANDRY
+    # --------------------------------------------------------
+
+    else if {_advancement} starts with "minecraft:husbandry/":
+
+        set {_valid} to true
+
+        set {_category} to "husbandry"
+
+
+    # ========================================================
+    # INVALID
+    # ========================================================
+
+    if {_valid} is not true:
+
+        stop
+
+
+    # ========================================================
+    # POINT
+    # ========================================================
+
+    add 1 to {adv.points::%{_uuid}%}
+
+
+    set {_points} to {adv.points::%{_uuid}%}
+
+
+    # ========================================================
+    # SAVE LAST ADVANCEMENT
+    # ========================================================
+
+    set {adv.last::%{_uuid}%} to {_advancement}
+
+    set {adv.category::%{_uuid}%} to {_category}
+
+
+    # ========================================================
+    # SCOREBOARD
+    # ========================================================
+
+    execute console command "scoreboard players set %{_p}% advPoints %{_points}%"
+
+
+    # ========================================================
+    # PLAYER MESSAGE
+    # ========================================================
+
+    send "" to {_p}
+
+    send "{@prefix} &a&lADVANCEMENT!" to {_p}
+
+    send "{@prefix} &7%{_advancement}%" to {_p}
+
+    send "{@prefix} &7Category: &b%{_category}%" to {_p}
+
+    send "{@prefix} &7Point: &a+1 &7Total: &e%{_points}%" to {_p}
+
+
+# ============================================================
+# PLAYER JOIN
+#
+# If a participant rejoins during a game:
+#
+# ・Restore participant status
+# ・Restore BossBar
+# ・Restore scoreboard
+# ============================================================
+
+on join:
+
+    if {adv.running} is not true:
+
+        stop
+
+
+    set {_uuid} to uuid of player
+
+
+    if {_uuid} is not in {adv.players::*}:
+
+        stop
+
+
+    # --------------------------------------------------------
+    # Participant flag
+    # --------------------------------------------------------
+
+    set {adv.player.registered::%player%} to true
+
+
+    # --------------------------------------------------------
+    # Wait for player to fully join
+    # --------------------------------------------------------
+
+    wait 2 ticks
+
+
+    if {adv.running} is not true:
+
+        stop
+
+
+    # --------------------------------------------------------
+    # Return to start
+    # --------------------------------------------------------
+
+    if {adv.start.location} is set:
+
+        teleport player to {adv.start.location}
+
+
+    # --------------------------------------------------------
+    # Scoreboard
+    # --------------------------------------------------------
+
+    set {_points} to {adv.points::%{_uuid}%}
+
+
+    if {_points} is not set:
+
+        set {_points} to 0
+
+
+    execute console command "scoreboard players set %player% advPoints %{_points}%"
+
+
+    # --------------------------------------------------------
+    # BossBar
+    # --------------------------------------------------------
+
+    set {_bar} to boss bar with key "adv:timer"
+
+
+    if {_bar} is set:
+
+        add player to viewers of {_bar}
+
+
+# ============================================================
+# PLAYER QUIT
+# ============================================================
+
+on quit:
+
+    set {_uuid} to uuid of player
+
+
+    if {_uuid} is not in {adv.players::*}:
+
+        stop
+
+
+    # --------------------------------------------------------
+    # Keep all point data.
+    #
+    # The player can rejoin and continue.
+    # --------------------------------------------------------
+
+    stop
