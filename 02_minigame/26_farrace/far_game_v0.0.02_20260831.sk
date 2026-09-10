@@ -1,0 +1,959 @@
+# ============================================================
+# FARRACE
+# Distance Race Game
+# Version : v0.2.00
+#
+# ============================================================
+#
+# GAME
+#
+#   スタート地点からプレイヤーがどれだけ遠くまで
+#   移動したかを競うゲーム。
+#
+#   Y座標は無視する。
+#
+#   Distance =
+#
+#   sqrt((X - StartX)^2 + (Z - StartZ)^2)
+#
+#
+# COMMAND
+#
+#   /far set
+#   /far time 5
+#   /far time 15
+#   /far time 30
+#   /far time 60
+#   /far start
+#   /far stop
+#   /far status
+#   /far debug
+#   /far reset
+#
+#
+# GAME FLOW
+#
+#   SET
+#    ↓
+#   TIME SET
+#    ↓
+#   START
+#    ↓
+#   3
+#   2
+#   1
+#   START!
+#    ↓
+#   Distance measurement
+#    ↓
+#   TIME UP
+#    ↓
+#   RESULT
+#
+# ============================================================
+
+
+options:
+    prefix: &8[&bFarRace&8]&r
+
+
+# ============================================================
+# COMMAND
+# ============================================================
+
+command /far [<text>] [<number>]:
+    permission: op
+    trigger:
+
+
+        # ====================================================
+        # SET
+        #
+        # 現在位置をスタート地点として保存
+        # ====================================================
+
+        if arg-1 is "set":
+
+            if {far.running} is true:
+
+                send "{@prefix} &cGame is running." to player
+
+                stop
+
+
+            set {far.start.x} to x-coordinate of player
+            set {far.start.z} to z-coordinate of player
+
+            set {far.start.world} to world of player
+
+            send "{@prefix} &aStart position set!" to player
+
+            send "{@prefix} &7Start X: &f%{far.start.x}%" to player
+            send "{@prefix} &7Start Z: &f%{far.start.z}%" to player
+            send "{@prefix} &7World: &f%{far.start.world}%" to player
+
+            stop
+
+
+        # ====================================================
+        # TIME
+        #
+        # /far time 5
+        # /far time 15
+        # /far time 30
+        # /far time 60
+        # ====================================================
+
+        if arg-1 is "time":
+
+            if {far.running} is true:
+
+                send "{@prefix} &cGame is running." to player
+
+                stop
+
+
+            if arg-2 is not set:
+
+                send "{@prefix} &e/far time <5|15|30|60>" to player
+
+                stop
+
+
+            if arg-2 is 5:
+
+                set {far.duration} to 300
+                set {far.duration.text} to "5:00"
+
+                send "{@prefix} &aTime set to &e5 minutes&a." to player
+
+                stop
+
+
+            if arg-2 is 15:
+
+                set {far.duration} to 900
+                set {far.duration.text} to "15:00"
+
+                send "{@prefix} &aTime set to &e15 minutes&a." to player
+
+                stop
+
+
+            if arg-2 is 30:
+
+                set {far.duration} to 1800
+                set {far.duration.text} to "30:00"
+
+                send "{@prefix} &aTime set to &e30 minutes&a." to player
+
+                stop
+
+
+            if arg-2 is 60:
+
+                set {far.duration} to 3600
+                set {far.duration.text} to "60:00"
+
+                send "{@prefix} &aTime set to &e60 minutes&a." to player
+
+                stop
+
+
+            send "{@prefix} &cInvalid time." to player
+            send "{@prefix} &7Use: &f/far time 5|15|30|60" to player
+
+            stop
+
+
+        # ====================================================
+        # START
+        # ====================================================
+
+        if arg-1 is "start":
+
+            # -----------------------------------------------
+            # Start position check
+            # -----------------------------------------------
+
+            if {far.start.x} is not set:
+
+                send "{@prefix} &cStart position is not set." to player
+
+                stop
+
+
+            # -----------------------------------------------
+            # Already running
+            # -----------------------------------------------
+
+            if {far.running} is true:
+
+                send "{@prefix} &cFarRace is already running." to player
+
+                stop
+
+
+            # -----------------------------------------------
+            # Default time
+            # -----------------------------------------------
+
+            if {far.duration} is not set:
+
+                set {far.duration} to 300
+                set {far.duration.text} to "5:00"
+
+
+            # -----------------------------------------------
+            # New Game ID
+            #
+            # 過去のゲームの処理が新しいゲームに
+            # 影響しないようにする。
+            # -----------------------------------------------
+
+            if {far.game.id} is not set:
+
+                set {far.game.id} to 0
+
+            add 1 to {far.game.id}
+
+            set {_gameid} to {far.game.id}
+
+
+            # -----------------------------------------------
+            # State
+            # -----------------------------------------------
+
+            set {far.running} to false
+            set {far.countdown} to true
+            set {far.finished} to false
+
+            set {far.elapsed} to 0
+            set {far.remaining} to {far.duration}
+
+
+            # -----------------------------------------------
+            # Scoreboard
+            # -----------------------------------------------
+
+            execute console command "scoreboard objectives remove farDistance"
+
+            execute console command "scoreboard objectives add farDistance dummy Distance"
+
+            execute console command "scoreboard objectives setdisplay sidebar farDistance"
+
+
+            # -----------------------------------------------
+            # Player initialization
+            #
+            # START時点でオンラインのプレイヤーを
+            # 参加者として登録する。
+            # -----------------------------------------------
+
+            delete {far.players::*}
+            delete {far.distance::*}
+            delete {far.best::*}
+            delete {far.player.name::*}
+
+
+            loop all players:
+
+                set {_uuid} to uuid of loop-player
+
+                add {_uuid} to {far.players::*}
+
+                set {far.distance::%{_uuid}%} to 0
+                set {far.best::%{_uuid}%} to 0
+                set {far.player.name::%{_uuid}%} to name of loop-player
+
+                execute console command "scoreboard players set %loop-player% farDistance 0"
+
+
+            # -----------------------------------------------
+            # Announcement
+            # -----------------------------------------------
+
+            send "" to all players
+            send "&8&m--------------------------------" to all players
+            send "&b&lFarRace" to all players
+            send "" to all players
+            send "&7Time: &e%{far.duration.text}%" to all players
+            send "&7Players: &e%size of {far.players::*}%" to all players
+            send "" to all players
+            send "&eGame starting..." to all players
+            send "&8&m--------------------------------" to all players
+
+
+            # -----------------------------------------------
+            # Countdown
+            # -----------------------------------------------
+
+            wait 1 second
+
+
+            if {far.game.id} is not {_gameid}:
+
+                stop
+
+
+            if {far.countdown} is not true:
+
+                stop
+
+
+            send "&e&l3" to all players
+
+
+            wait 1 second
+
+
+            if {far.game.id} is not {_gameid}:
+
+                stop
+
+
+            if {far.countdown} is not true:
+
+                stop
+
+
+            send "&6&l2" to all players
+
+
+            wait 1 second
+
+
+            if {far.game.id} is not {_gameid}:
+
+                stop
+
+
+            if {far.countdown} is not true:
+
+                stop
+
+
+            send "&c&l1" to all players
+
+
+            wait 1 second
+
+
+            if {far.game.id} is not {_gameid}:
+
+                stop
+
+
+            if {far.countdown} is not true:
+
+                stop
+
+
+            # -----------------------------------------------
+            # START
+            # -----------------------------------------------
+
+            set {far.countdown} to false
+            set {far.running} to true
+
+            send "" to all players
+            send "&a&lFARRACE START!" to all players
+            send "&7Time limit: &e%{far.duration.text}%" to all players
+            send "" to all players
+
+
+            stop
+
+
+        # ====================================================
+        # STOP
+        # ====================================================
+
+        if arg-1 is "stop":
+
+            if {far.running} is not true:
+
+                send "{@prefix} &cFarRace is not running." to player
+
+                stop
+
+
+            set {far.running} to false
+            set {far.countdown} to false
+            set {far.finished} to true
+
+
+            # -----------------------------------------------
+            # Scoreboard
+            # -----------------------------------------------
+
+            execute console command "scoreboard objectives remove farDistance"
+
+
+            send "" to all players
+            send "&8&m--------------------------------" to all players
+            send "&c&lFarRace STOPPED" to all players
+            send "&8&m--------------------------------" to all players
+            send "" to all players
+
+
+            stop
+
+
+        # ====================================================
+        # STATUS
+        # ====================================================
+
+        if arg-1 is "status":
+
+            send "" to player
+            send "&8&m--------------------------------" to player
+            send "&b&lFarRace STATUS" to player
+            send "" to player
+
+
+            if {far.running} is true:
+
+                send "&7Status: &aRUNNING" to player
+
+            else if {far.countdown} is true:
+
+                send "&7Status: &eCOUNTDOWN" to player
+
+            else:
+
+                send "&7Status: &cSTOPPED" to player
+
+
+            if {far.duration.text} is set:
+
+                send "&7Time: &e%{far.duration.text}%" to player
+
+            else:
+
+                send "&7Time: &e5:00 &7(default)" to player
+
+
+            if {far.start.x} is set:
+
+                send "&7Start X: &f%{far.start.x}%" to player
+                send "&7Start Z: &f%{far.start.z}%" to player
+
+            else:
+
+                send "&7Start: &cNOT SET"
+
+
+            if {far.running} is true:
+
+                send "&7Elapsed: &f%{far.elapsed}% sec" to player
+                send "&7Remaining: &f%{far.remaining}% sec" to player
+
+
+            send "&7Players: &f%size of {far.players::*}%" to player
+
+            send "&8&m--------------------------------" to player
+
+            stop
+
+
+        # ====================================================
+        # DEBUG
+        # ====================================================
+
+        if arg-1 is "debug":
+
+            if {far.debug} is true:
+
+                set {far.debug} to false
+
+                send "{@prefix} &7DEBUG: &cOFF" to player
+
+            else:
+
+                set {far.debug} to true
+
+                send "{@prefix} &7DEBUG: &aON" to player
+
+            stop
+
+
+        # ====================================================
+        # RESET
+        # ====================================================
+
+        if arg-1 is "reset":
+
+            # -----------------------------------------------
+            # Invalidate old game
+            # -----------------------------------------------
+
+            if {far.game.id} is not set:
+
+                set {far.game.id} to 0
+
+            add 1 to {far.game.id}
+
+
+            set {far.running} to false
+            set {far.countdown} to false
+            set {far.finished} to false
+            set {far.debug} to false
+
+
+            # -----------------------------------------------
+            # Delete game data
+            # -----------------------------------------------
+
+            delete {far.start.x}
+            delete {far.start.z}
+            delete {far.start.world}
+
+            delete {far.duration}
+            delete {far.duration.text}
+
+            delete {far.elapsed}
+            delete {far.remaining}
+
+            delete {far.players::*}
+            delete {far.distance::*}
+            delete {far.best::*}
+            delete {far.player.name::*}
+
+
+            # -----------------------------------------------
+            # Scoreboard
+            # -----------------------------------------------
+
+            execute console command "scoreboard objectives remove farDistance"
+
+
+            send "{@prefix} &eFarRace RESET." to player
+
+            stop
+
+
+        # ====================================================
+        # RESULT
+        # ====================================================
+
+        if arg-1 is "result":
+
+            if {far.players::*} is not set:
+
+                send "{@prefix} &cNo game result." to player
+
+                stop
+
+
+            send "" to player
+            send "&8&m--------------------------------" to player
+            send "&b&lFarRace RESULT" to player
+            send "" to player
+
+
+            loop {far.players::*}:
+
+                set {_uuid} to loop-value
+
+                set {_name} to {far.player.name::%{_uuid}%}
+                set {_score} to {far.best::%{_uuid}%}
+
+                if {_score} is not set:
+
+                    set {_score} to 0
+
+                send "&7%{_name}% &f- &e%{_score}%m" to player
+
+
+            send "" to player
+            send "&8&m--------------------------------" to player
+
+            stop
+
+
+        # ====================================================
+        # HELP
+        # ====================================================
+
+        send "" to player
+        send "&8&m--------------------------------" to player
+
+        send "&b&lFarRace" to player
+
+        send "" to player
+
+        send "&f/far set &7- Set start position"
+        send "&f/far time 5 &7- 5 minutes"
+        send "&f/far time 15 &7- 15 minutes"
+        send "&f/far time 30 &7- 30 minutes"
+        send "&f/far time 60 &7- 60 minutes"
+        send "&f/far start &7- Start game"
+        send "&f/far stop &7- Stop game"
+        send "&f/far status &7- Show status"
+        send "&f/far result &7- Show result"
+        send "&f/far debug &7- Toggle debug"
+        send "&f/far reset &7- Reset"
+
+        send "&8&m--------------------------------" to player
+
+
+# ============================================================
+# GAME TIMER
+#
+# 1秒ごと
+# ============================================================
+
+every 1 second:
+
+    if {far.running} is not true:
+
+        stop
+
+
+    if {far.start.x} is not set:
+
+        stop
+
+
+    # --------------------------------------------------------
+    # Elapsed
+    # --------------------------------------------------------
+
+    add 1 to {far.elapsed}
+
+
+    # --------------------------------------------------------
+    # Remaining
+    # --------------------------------------------------------
+
+    set {far.remaining} to {far.duration} - {far.elapsed}
+
+
+    # --------------------------------------------------------
+    # Time Up
+    # --------------------------------------------------------
+
+    if {far.remaining} <= 0:
+
+        set {far.running} to false
+        set {far.finished} to true
+
+
+        # -----------------------------------------------
+        # Final distance calculation
+        # -----------------------------------------------
+
+        loop all players:
+
+            set {_uuid} to uuid of loop-player
+
+            # -------------------------------------------
+            # Check participant
+            # -------------------------------------------
+
+            set {_participant} to false
+
+            loop {far.players::*}:
+
+                if loop-value-2 is {_uuid}:
+
+                    set {_participant} to true
+
+                    stop loop
+
+
+            if {_participant} is not true:
+
+                stop
+
+
+            # -------------------------------------------
+            # Current position
+            # -------------------------------------------
+
+            set {_x} to x-coordinate of loop-player
+            set {_z} to z-coordinate of loop-player
+
+
+            # -------------------------------------------
+            # Difference
+            # -------------------------------------------
+
+            set {_dx} to {_x} - {far.start.x}
+            set {_dz} to {_z} - {far.start.z}
+
+
+            # -------------------------------------------
+            # Distance
+            # -------------------------------------------
+
+            set {_distance} to sqrt(({_dx} * {_dx}) + ({_dz} * {_dz}))
+
+            set {_score} to floor({_distance})
+
+
+            # -------------------------------------------
+            # Save
+            # -------------------------------------------
+
+            set {far.distance::%{_uuid}%} to {_score}
+            set {far.best::%{_uuid}%} to {_score}
+
+
+            # -------------------------------------------
+            # Scoreboard
+            # -------------------------------------------
+
+            execute console command "scoreboard players set %loop-player% farDistance %{_score}%"
+
+
+        # -----------------------------------------------
+        # Time Up
+        # -----------------------------------------------
+
+        send "" to all players
+        send "&8&m--------------------------------" to all players
+        send "&c&lTIME UP!" to all players
+        send "" to all players
+        send "&b&lFarRace RESULT" to all players
+        send "" to all players
+
+
+        # -----------------------------------------------
+        # Result
+        #
+        # 参加者を順番に表示。
+        # v0.3以降でランキング化予定。
+        # -----------------------------------------------
+
+        loop {far.players::*}:
+
+            set {_uuid} to loop-value
+
+            set {_name} to {far.player.name::%{_uuid}%}
+            set {_score} to {far.best::%{_uuid}%}
+
+            if {_score} is not set:
+
+                set {_score} to 0
+
+            send "&7%{_name}% &f- &e%{_score}%m" to all players
+
+
+        send "" to all players
+        send "&8&m--------------------------------" to all players
+
+
+        # -----------------------------------------------
+        # Scoreboard remove
+        # -----------------------------------------------
+
+        wait 5 seconds
+
+        execute console command "scoreboard objectives remove farDistance"
+
+        stop
+
+
+    # ====================================================
+    # DISTANCE CALCULATION
+    #
+    # 今まで動いていたFarRace v0.1.00の
+    # 計算方法をそのまま使用。
+    # ====================================================
+
+    loop all players:
+
+        set {_uuid} to uuid of loop-player
+
+
+        # ------------------------------------------------
+        # Participant check
+        # ------------------------------------------------
+
+        set {_participant} to false
+
+
+        loop {far.players::*}:
+
+            if loop-value-2 is {_uuid}:
+
+                set {_participant} to true
+
+                stop loop
+
+
+        if {_participant} is not true:
+
+            stop
+
+
+        # ------------------------------------------------
+        # Current position
+        # ------------------------------------------------
+
+        set {_x} to x-coordinate of loop-player
+        set {_z} to z-coordinate of loop-player
+
+
+        # ------------------------------------------------
+        # Difference
+        # ------------------------------------------------
+
+        set {_dx} to {_x} - {far.start.x}
+        set {_dz} to {_z} - {far.start.z}
+
+
+        # ------------------------------------------------
+        # Distance
+        #
+        # Yは使用しない。
+        # ------------------------------------------------
+
+        set {_distance} to sqrt(({_dx} * {_dx}) + ({_dz} * {_dz}))
+
+
+        # ------------------------------------------------
+        # Integer
+        # ------------------------------------------------
+
+        set {_score} to floor({_distance})
+
+
+        # ------------------------------------------------
+        # Save
+        # ------------------------------------------------
+
+        set {far.distance::%{_uuid}%} to {_score}
+
+
+        # ------------------------------------------------
+        # Best
+        #
+        # 現在値が最高記録なら更新。
+        # ------------------------------------------------
+
+        if {far.best::%{_uuid}%} is not set:
+
+            set {far.best::%{_uuid}%} to {_score}
+
+        else:
+
+            if {_score} > {far.best::%{_uuid}%}:
+
+                set {far.best::%{_uuid}%} to {_score}
+
+
+        # ------------------------------------------------
+        # Scoreboard
+        # ------------------------------------------------
+
+        execute console command "scoreboard players set %loop-player% farDistance %{_score}%"
+
+
+# ============================================================
+# DEBUG
+#
+# 5秒ごと
+#
+# ============================================================
+
+every 5 seconds:
+
+    if {far.debug} is not true:
+
+        stop
+
+
+    if {far.running} is not true:
+
+        stop
+
+
+    if {far.start.x} is not set:
+
+        stop
+
+
+    send "&8&m--------------------------------" to all players
+
+    send "&b[FarRace DEBUG]" to all players
+
+    send "&7Start X: &f%{far.start.x}%" to all players
+
+    send "&7Start Z: &f%{far.start.z}%" to all players
+
+    send "&7Elapsed: &f%{far.elapsed}% sec" to all players
+
+    send "&7Remaining: &f%{far.remaining}% sec" to all players
+
+    send "" to all players
+
+
+    loop all players:
+
+        set {_uuid} to uuid of loop-player
+
+
+        # ------------------------------------------------
+        # Participant check
+        # ------------------------------------------------
+
+        set {_participant} to false
+
+
+        loop {far.players::*}:
+
+            if loop-value-2 is {_uuid}:
+
+                set {_participant} to true
+
+                stop loop
+
+
+        if {_participant} is not true:
+
+            stop
+
+
+        # ------------------------------------------------
+        # Position
+        # ------------------------------------------------
+
+        set {_x} to x-coordinate of loop-player
+        set {_y} to y-coordinate of loop-player
+        set {_z} to z-coordinate of loop-player
+
+
+        # ------------------------------------------------
+        # Difference
+        # ------------------------------------------------
+
+        set {_dx} to {_x} - {far.start.x}
+        set {_dz} to {_z} - {far.start.z}
+
+
+        # ------------------------------------------------
+        # Distance
+        # ------------------------------------------------
+
+        set {_distance} to sqrt(({_dx} * {_dx}) + ({_dz} * {_dz}))
+
+        set {_score} to floor({_distance})
+
+
+        send "&fPlayer: &e%loop-player%" to all players
+
+        send "&7Current: X=&f%{_x}% &7Y=&f%{_y}% &7Z=&f%{_z}%" to all players
+
+        send "&7DX: &f%{_dx}% &7DZ=&f%{_dz}%" to all players
+
+        send "&7Distance: &a%{_distance}%" to all players
+
+        send "&7Score: &e%{_score}%" to all players
+
+        send "" to all players
+
+
+    send "&8&m--------------------------------" to all players
