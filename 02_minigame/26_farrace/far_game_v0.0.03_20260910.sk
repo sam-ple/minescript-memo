@@ -1,0 +1,1630 @@
+# ============================================================
+# FARRACE
+# Distance Race Game
+# Version : v0.3.00
+#
+# ============================================================
+#
+# GAME
+#
+#   スタート地点からプレイヤーがどれだけ遠くまで
+#   移動したかを競うゲーム。
+#
+#   Y座標は無視。
+#
+#   Distance =
+#
+#   sqrt((X - StartX)^2 + (Z - StartZ)^2)
+#
+#
+# COMMAND
+#
+#   /far
+#
+#   /far set
+#   /far time 5
+#   /far time 15
+#   /far time 30
+#   /far time 60
+#   /far start
+#   /far stop
+#   /far status
+#   /far result
+#   /far debug
+#   /far reset
+#
+#
+# GUI
+#
+#   /far
+#
+#   SET
+#   START
+#   STOP
+#   RESET
+#   RESULT
+#
+#   TIME
+#   5 / 15 / 30 / 60
+#
+#
+# GAME FLOW
+#
+#   /far
+#      ↓
+#   SET
+#      ↓
+#   TIME
+#      ↓
+#   START
+#      ↓
+#   3
+#   2
+#   1
+#   START!
+#      ↓
+#   BossBar 05:00
+#      ↓
+#   Distance measurement
+#      ↓
+#   TIME UP!
+#      ↓
+#   RESULT
+#      ↓
+#   1st / 2nd / 3rd
+#
+# ============================================================
+
+
+options:
+    prefix: &8[&bFarRace&8]&r
+    gui-name: &8FarRace
+    bossbar-key: far:timer
+
+
+# ============================================================
+# OPEN GUI
+#
+# /far
+# ============================================================
+
+command /far [<text>] [<number>]:
+    permission: op
+    trigger:
+
+
+        # ====================================================
+        # NO ARGUMENT
+        #
+        # GUIを開く
+        # ====================================================
+
+        if arg-1 is not set:
+
+            set {_gui} to chest inventory with 6 rows named "{@gui-name}"
+
+
+            # ------------------------------------------------
+            # Background
+            # ------------------------------------------------
+
+            loop 54 times:
+
+                set slot (loop-number - 1) of {_gui} to gray stained glass pane named " "
+
+
+            # ------------------------------------------------
+            # SET
+            # ------------------------------------------------
+
+            set slot 10 of {_gui} to compass named "&a&lSET"
+
+            set lore of slot 10 of {_gui} to "&7現在位置をスタート地点に設定します。"
+
+
+            # ------------------------------------------------
+            # START
+            # ------------------------------------------------
+
+            set slot 12 of {_gui} to lime concrete named "&a&lSTART"
+
+            set lore of slot 12 of {_gui} to "&7FarRaceを開始します。"
+
+
+            # ------------------------------------------------
+            # STOP
+            # ------------------------------------------------
+
+            set slot 14 of {_gui} to red concrete named "&c&lSTOP"
+
+            set lore of slot 14 of {_gui} to "&7現在のゲームを停止します。"
+
+
+            # ------------------------------------------------
+            # RESET
+            # ------------------------------------------------
+
+            set slot 16 of {_gui} to barrier named "&c&lRESET"
+
+            set lore of slot 16 of {_gui} to "&7FarRaceの設定をリセットします。"
+
+
+            # ------------------------------------------------
+            # TIME TITLE
+            # ------------------------------------------------
+
+            set slot 22 of {_gui} to clock named "&e&lTIME"
+
+
+            # ------------------------------------------------
+            # 5 MIN
+            # ------------------------------------------------
+
+            set slot 28 of {_gui} to clock named "&e5 MIN"
+
+            if {far.duration} is 300:
+
+                set slot 28 of {_gui} to clock named "&a&l5 MIN"
+
+                set lore of slot 28 of {_gui} to "&a選択中"
+
+
+            # ------------------------------------------------
+            # 15 MIN
+            # ------------------------------------------------
+
+            set slot 29 of {_gui} to clock named "&e15 MIN"
+
+            if {far.duration} is 900:
+
+                set slot 29 of {_gui} to clock named "&a&l15 MIN"
+
+                set lore of slot 29 of {_gui} to "&a選択中"
+
+
+            # ------------------------------------------------
+            # 30 MIN
+            # ------------------------------------------------
+
+            set slot 30 of {_gui} to clock named "&e30 MIN"
+
+            if {far.duration} is 1800:
+
+                set slot 30 of {_gui} to clock named "&a&l30 MIN"
+
+                set lore of slot 30 of {_gui} to "&a選択中"
+
+
+            # ------------------------------------------------
+            # 60 MIN
+            # ------------------------------------------------
+
+            set slot 31 of {_gui} to clock named "&e60 MIN"
+
+            if {far.duration} is 3600:
+
+                set slot 31 of {_gui} to clock named "&a&l60 MIN"
+
+                set lore of slot 31 of {_gui} to "&a選択中"
+
+
+            # ------------------------------------------------
+            # STATUS
+            # ------------------------------------------------
+
+            if {far.running} is true:
+
+                set slot 35 of {_gui} to lime dye named "&a&lRUNNING"
+
+                set lore of slot 35 of {_gui} to "&7FarRace is running."
+
+            else if {far.countdown} is true:
+
+                set slot 35 of {_gui} to yellow dye named "&e&lCOUNTDOWN"
+
+                set lore of slot 35 of {_gui} to "&7Game starting..."
+
+            else:
+
+                set slot 35 of {_gui} to gray dye named "&7&lSTOPPED"
+
+                set lore of slot 35 of {_gui} to "&7FarRace is stopped."
+
+
+            # ------------------------------------------------
+            # RESULT
+            # ------------------------------------------------
+
+            set slot 44 of {_gui} to gold ingot named "&6&lRESULT"
+
+            set lore of slot 44 of {_gui} to "&7最新の結果を表示します。"
+
+
+            # ------------------------------------------------
+            # START POSITION
+            # ------------------------------------------------
+
+            if {far.start.x} is set:
+
+                set slot 49 of {_gui} to emerald named "&aStart Position"
+
+                set lore of slot 49 of {_gui} to "&7X: &f%{far.start.x}%" and "&7Z: &f%{far.start.z}%"
+
+            else:
+
+                set slot 49 of {_gui} to redstone named "&cStart Position"
+
+                set lore of slot 49 of {_gui} to "&c未設定"
+
+
+            # ------------------------------------------------
+            # OPEN
+            # ------------------------------------------------
+
+            open {_gui} to player
+
+            stop
+
+
+        # ====================================================
+        # SET
+        # ====================================================
+
+        if arg-1 is "set":
+
+            if {far.running} is true:
+
+                send "{@prefix} &cGame is running." to player
+
+                stop
+
+
+            if {far.countdown} is true:
+
+                send "{@prefix} &cGame is starting." to player
+
+                stop
+
+
+            set {far.start.x} to x-coordinate of player
+            set {far.start.z} to z-coordinate of player
+            set {far.start.world} to world of player
+
+
+            send "{@prefix} &aStart position set!" to player
+
+            send "{@prefix} &7Start X: &f%{far.start.x}%" to player
+            send "{@prefix} &7Start Z: &f%{far.start.z}%" to player
+            send "{@prefix} &7World: &f%{far.start.world}%" to player
+
+            stop
+
+
+        # ====================================================
+        # TIME
+        # ====================================================
+
+        if arg-1 is "time":
+
+            if {far.running} is true:
+
+                send "{@prefix} &cGame is running." to player
+
+                stop
+
+
+            if arg-2 is not set:
+
+                send "{@prefix} &e/far time <5|15|30|60>" to player
+
+                stop
+
+
+            if arg-2 is 5:
+
+                set {far.duration} to 300
+                set {far.duration.text} to "5:00"
+
+                send "{@prefix} &aTime set to &e5 minutes&a." to player
+
+                stop
+
+
+            if arg-2 is 15:
+
+                set {far.duration} to 900
+                set {far.duration.text} to "15:00"
+
+                send "{@prefix} &aTime set to &e15 minutes&a." to player
+
+                stop
+
+
+            if arg-2 is 30:
+
+                set {far.duration} to 1800
+                set {far.duration.text} to "30:00"
+
+                send "{@prefix} &aTime set to &e30 minutes&a." to player
+
+                stop
+
+
+            if arg-2 is 60:
+
+                set {far.duration} to 3600
+                set {far.duration.text} to "60:00"
+
+                send "{@prefix} &aTime set to &e60 minutes&a." to player
+
+                stop
+
+
+            send "{@prefix} &cInvalid time." to player
+            send "{@prefix} &7Use: &f/far time 5|15|30|60" to player
+
+            stop
+
+
+        # ====================================================
+        # START
+        # ====================================================
+
+        if arg-1 is "start":
+
+            # ------------------------------------------------
+            # Start check
+            # ------------------------------------------------
+
+            if {far.start.x} is not set:
+
+                send "{@prefix} &cStart position is not set." to player
+
+                stop
+
+
+            if {far.running} is true:
+
+                send "{@prefix} &cFarRace is already running." to player
+
+                stop
+
+
+            if {far.countdown} is true:
+
+                send "{@prefix} &cFarRace is already starting." to player
+
+                stop
+
+
+            # ------------------------------------------------
+            # Default time
+            # ------------------------------------------------
+
+            if {far.duration} is not set:
+
+                set {far.duration} to 300
+                set {far.duration.text} to "5:00"
+
+
+            # ------------------------------------------------
+            # Game ID
+            # ------------------------------------------------
+
+            if {far.game.id} is not set:
+
+                set {far.game.id} to 0
+
+            add 1 to {far.game.id}
+
+            set {_gameid} to {far.game.id}
+
+
+            # ------------------------------------------------
+            # State
+            # ------------------------------------------------
+
+            set {far.running} to false
+            set {far.countdown} to true
+            set {far.finished} to false
+
+            set {far.elapsed} to 0
+            set {far.remaining} to {far.duration}
+
+
+            # ------------------------------------------------
+            # Players
+            # ------------------------------------------------
+
+            delete {far.players::*}
+            delete {far.distance::*}
+            delete {far.best::*}
+            delete {far.player.name::*}
+
+
+            loop all players:
+
+                set {_uuid} to uuid of loop-player
+
+                add {_uuid} to {far.players::*}
+
+                set {far.distance::%{_uuid}%} to 0
+                set {far.best::%{_uuid}%} to 0
+                set {far.player.name::%{_uuid}%} to name of loop-player
+
+
+            # ------------------------------------------------
+            # Scoreboard
+            # ------------------------------------------------
+
+            execute console command "scoreboard objectives remove farDistance"
+
+            execute console command "scoreboard objectives add farDistance dummy Distance"
+
+            execute console command "scoreboard objectives setdisplay sidebar farDistance"
+
+
+            loop all players:
+
+                execute console command "scoreboard players set %loop-player% farDistance 0"
+
+
+            # ------------------------------------------------
+            # BossBar
+            #
+            # Skript 2.16 native BossBar
+            # ------------------------------------------------
+
+            set {_bar} to boss bar with key "{@bossbar-key}"
+
+            if {_bar} is not set:
+
+                set {_bar} to a keyed blue boss bar with key "{@bossbar-key}":
+                    set title of event-bossbar to "&bFarRace &f%{far.duration.text}%"
+                    set progress of event-bossbar to 100%
+                    set style of event-bossbar to solid
+
+
+            set title of {_bar} to "&bFarRace &f%{far.duration.text}%"
+
+            set progress of {_bar} to 100%
+
+            set style of {_bar} to solid
+
+
+            # ------------------------------------------------
+            # Add viewers
+            # ------------------------------------------------
+
+            loop all players:
+
+                add loop-player to viewers of {_bar}
+
+
+            # ------------------------------------------------
+            # Announcement
+            # ------------------------------------------------
+
+            send "" to all players
+            send "&8&m--------------------------------" to all players
+            send "&b&lFarRace" to all players
+            send "" to all players
+            send "&7Time: &e%{far.duration.text}%" to all players
+            send "&7Players: &e%size of {far.players::*}%" to all players
+            send "" to all players
+            send "&eGame starting..." to all players
+            send "&8&m--------------------------------" to all players
+
+
+            # ------------------------------------------------
+            # Countdown
+            # ------------------------------------------------
+
+            wait 1 second
+
+
+            if {far.game.id} is not {_gameid}:
+
+                stop
+
+
+            if {far.countdown} is not true:
+
+                stop
+
+
+            send "&e&l3" to all players
+
+
+            wait 1 second
+
+
+            if {far.game.id} is not {_gameid}:
+
+                stop
+
+
+            if {far.countdown} is not true:
+
+                stop
+
+
+            send "&6&l2" to all players
+
+
+            wait 1 second
+
+
+            if {far.game.id} is not {_gameid}:
+
+                stop
+
+
+            if {far.countdown} is not true:
+
+                stop
+
+
+            send "&c&l1" to all players
+
+
+            wait 1 second
+
+
+            if {far.game.id} is not {_gameid}:
+
+                stop
+
+
+            if {far.countdown} is not true:
+
+                stop
+
+
+            # ------------------------------------------------
+            # START
+            # ------------------------------------------------
+
+            set {far.countdown} to false
+            set {far.running} to true
+
+            send "" to all players
+            send "&a&lFARRACE START!" to all players
+            send "&7Time limit: &e%{far.duration.text}%" to all players
+            send "" to all players
+
+
+            stop
+
+
+        # ====================================================
+        # STOP
+        # ====================================================
+
+        if arg-1 is "stop":
+
+            if {far.running} is not true:
+
+                set {far.countdown} to false
+
+                send "{@prefix} &cFarRace is not running." to player
+
+                stop
+
+
+            set {far.running} to false
+            set {far.countdown} to false
+            set {far.finished} to true
+
+
+            # ------------------------------------------------
+            # BossBar
+            # ------------------------------------------------
+
+            set {_bar} to boss bar with key "{@bossbar-key}"
+
+            if {_bar} is set:
+
+                remove all players from viewers of {_bar}
+
+
+            # ------------------------------------------------
+            # Scoreboard
+            # ------------------------------------------------
+
+            execute console command "scoreboard objectives remove farDistance"
+
+
+            send "" to all players
+            send "&8&m--------------------------------" to all players
+            send "&c&lFarRace STOPPED" to all players
+            send "&8&m--------------------------------" to all players
+            send "" to all players
+
+            stop
+
+
+        # ====================================================
+        # STATUS
+        # ====================================================
+
+        if arg-1 is "status":
+
+            send "" to player
+            send "&8&m--------------------------------" to player
+            send "&b&lFarRace STATUS" to player
+            send "" to player
+
+
+            if {far.running} is true:
+
+                send "&7Status: &aRUNNING" to player
+
+            else if {far.countdown} is true:
+
+                send "&7Status: &eCOUNTDOWN" to player
+
+            else:
+
+                send "&7Status: &cSTOPPED" to player
+
+
+            if {far.duration.text} is set:
+
+                send "&7Time: &e%{far.duration.text}%" to player
+
+
+            if {far.start.x} is set:
+
+                send "&7Start X: &f%{far.start.x}%" to player
+                send "&7Start Z: &f%{far.start.z}%" to player
+
+
+            if {far.running} is true:
+
+                send "&7Elapsed: &f%{far.elapsed}% sec" to player
+                send "&7Remaining: &f%{far.remaining}% sec" to player
+
+
+            send "&7Players: &f%size of {far.players::*}%" to player
+
+            send "&8&m--------------------------------" to player
+
+            stop
+
+
+        # ====================================================
+        # RESULT
+        # ====================================================
+
+        if arg-1 is "result":
+
+            if {far.players::*} is not set:
+
+                send "{@prefix} &cNo game result." to player
+
+                stop
+
+
+            send "" to player
+            send "&8&m--------------------------------" to player
+            send "&6&lFarRace RESULT" to player
+            send "" to player
+
+
+            # ------------------------------------------------
+            # Copy players
+            # ------------------------------------------------
+
+            set {_remaining::*} to {far.players::*}
+
+
+            # ------------------------------------------------
+            # 1st
+            # ------------------------------------------------
+
+            set {_winner} to none
+            set {_max} to -1
+
+            loop {_remaining::*}:
+
+                set {_uuid} to loop-value
+
+                set {_score} to {far.best::%{_uuid}%}
+
+                if {_score} is not set:
+
+                    set {_score} to 0
+
+                if {_score} > {_max}:
+
+                    set {_max} to {_score}
+                    set {_winner} to {_uuid}
+
+
+            if {_winner} is set:
+
+                set {_name} to {far.player.name::%{_winner}%}
+
+                send "&e&l1st &f%{_name}% &7- &e%{_max}%m" to player
+
+                remove {_winner} from {_remaining::*}
+
+
+            # ------------------------------------------------
+            # 2nd
+            # ------------------------------------------------
+
+            if {_remaining::*} is set:
+
+                set {_winner} to none
+                set {_max} to -1
+
+                loop {_remaining::*}:
+
+                    set {_uuid} to loop-value
+
+                    set {_score} to {far.best::%{_uuid}%}
+
+                    if {_score} is not set:
+
+                        set {_score} to 0
+
+                    if {_score} > {_max}:
+
+                        set {_max} to {_score}
+                        set {_winner} to {_uuid}
+
+
+                if {_winner} is set:
+
+                    set {_name} to {far.player.name::%{_winner}%}
+
+                    send "&f&l2nd &f%{_name}% &7- &e%{_max}%m" to player
+
+                    remove {_winner} from {_remaining::*}
+
+
+            # ------------------------------------------------
+            # 3rd
+            # ------------------------------------------------
+
+            if {_remaining::*} is set:
+
+                set {_winner} to none
+                set {_max} to -1
+
+                loop {_remaining::*}:
+
+                    set {_uuid} to loop-value
+
+                    set {_score} to {far.best::%{_uuid}%}
+
+                    if {_score} is not set:
+
+                        set {_score} to 0
+
+                    if {_score} > {_max}:
+
+                        set {_max} to {_score}
+                        set {_winner} to {_uuid}
+
+
+                if {_winner} is set:
+
+                    set {_name} to {far.player.name::%{_winner}%}
+
+                    send "&6&l3rd &f%{_name}% &7- &e%{_max}%m" to player
+
+                    remove {_winner} from {_remaining::*}
+
+
+            # ------------------------------------------------
+            # Other players
+            # ------------------------------------------------
+
+            if {_remaining::*} is set:
+
+                send "" to player
+                send "&7Other players:" to player
+
+
+                loop {_remaining::*}:
+
+                    set {_uuid} to loop-value
+
+                    set {_name} to {far.player.name::%{_uuid}%}
+                    set {_score} to {far.best::%{_uuid}%}
+
+                    if {_score} is not set:
+
+                        set {_score} to 0
+
+                    send "&7%{_name}% &f- &e%{_score}%m" to player
+
+
+            send "" to player
+            send "&8&m--------------------------------" to player
+
+            stop
+
+
+        # ====================================================
+        # DEBUG
+        # ====================================================
+
+        if arg-1 is "debug":
+
+            if {far.debug} is true:
+
+                set {far.debug} to false
+
+                send "{@prefix} &7DEBUG: &cOFF" to player
+
+            else:
+
+                set {far.debug} to true
+
+                send "{@prefix} &7DEBUG: &aON" to player
+
+            stop
+
+
+        # ====================================================
+        # RESET
+        # ====================================================
+
+        if arg-1 is "reset":
+
+            # ------------------------------------------------
+            # Invalidate old game
+            # ------------------------------------------------
+
+            if {far.game.id} is not set:
+
+                set {far.game.id} to 0
+
+            add 1 to {far.game.id}
+
+
+            set {far.running} to false
+            set {far.countdown} to false
+            set {far.finished} to false
+            set {far.debug} to false
+
+
+            # ------------------------------------------------
+            # BossBar
+            # ------------------------------------------------
+
+            set {_bar} to boss bar with key "{@bossbar-key}"
+
+            if {_bar} is set:
+
+                remove all players from viewers of {_bar}
+
+
+            # ------------------------------------------------
+            # Scoreboard
+            # ------------------------------------------------
+
+            execute console command "scoreboard objectives remove farDistance"
+
+
+            # ------------------------------------------------
+            # Delete variables
+            # ------------------------------------------------
+
+            delete {far.start.x}
+            delete {far.start.z}
+            delete {far.start.world}
+
+            delete {far.duration}
+            delete {far.duration.text}
+
+            delete {far.elapsed}
+            delete {far.remaining}
+
+            delete {far.players::*}
+            delete {far.distance::*}
+            delete {far.best::*}
+            delete {far.player.name::*}
+
+
+            send "{@prefix} &eFarRace RESET." to player
+
+            stop
+
+
+        # ====================================================
+        # HELP
+        # ====================================================
+
+        send "" to player
+        send "&8&m--------------------------------" to player
+
+        send "&b&lFarRace" to player
+
+        send "" to player
+
+        send "&f/far &7- Open GUI"
+        send "&f/far set &7- Set start position"
+        send "&f/far time 5 &7- 5 minutes"
+        send "&f/far time 15 &7- 15 minutes"
+        send "&f/far time 30 &7- 30 minutes"
+        send "&f/far time 60 &7- 60 minutes"
+        send "&f/far start &7- Start"
+        send "&f/far stop &7- Stop"
+        send "&f/far status &7- Status"
+        send "&f/far result &7- Result"
+        send "&f/far debug &7- Debug"
+        send "&f/far reset &7- Reset"
+
+        send "&8&m--------------------------------" to player
+
+
+# ============================================================
+# GUI CLICK
+# ============================================================
+
+on inventory click:
+
+    if name of event-inventory is not "{@gui-name}":
+
+        stop
+
+
+    cancel event
+
+
+    # ========================================================
+    # SET
+    # ========================================================
+
+    if clicked slot is 10:
+
+        close player's inventory
+
+        make player execute command "/far set"
+
+        stop
+
+
+    # ========================================================
+    # START
+    # ========================================================
+
+    if clicked slot is 12:
+
+        close player's inventory
+
+        make player execute command "/far start"
+
+        stop
+
+
+    # ========================================================
+    # STOP
+    # ========================================================
+
+    if clicked slot is 14:
+
+        close player's inventory
+
+        make player execute command "/far stop"
+
+        stop
+
+
+    # ========================================================
+    # RESET
+    # ========================================================
+
+    if clicked slot is 16:
+
+        close player's inventory
+
+        make player execute command "/far reset"
+
+        stop
+
+
+    # ========================================================
+    # 5 MIN
+    # ========================================================
+
+    if clicked slot is 28:
+
+        make player execute command "/far time 5"
+
+        wait 1 tick
+
+        make player execute command "/far"
+
+        stop
+
+
+    # ========================================================
+    # 15 MIN
+    # ========================================================
+
+    if clicked slot is 29:
+
+        make player execute command "/far time 15"
+
+        wait 1 tick
+
+        make player execute command "/far"
+
+        stop
+
+
+    # ========================================================
+    # 30 MIN
+    # ========================================================
+
+    if clicked slot is 30:
+
+        make player execute command "/far time 30"
+
+        wait 1 tick
+
+        make player execute command "/far"
+
+        stop
+
+
+    # ========================================================
+    # 60 MIN
+    # ========================================================
+
+    if clicked slot is 31:
+
+        make player execute command "/far time 60"
+
+        wait 1 tick
+
+        make player execute command "/far"
+
+        stop
+
+
+    # ========================================================
+    # RESULT
+    # ========================================================
+
+    if clicked slot is 44:
+
+        close player's inventory
+
+        make player execute command "/far result"
+
+        stop
+
+
+# ============================================================
+# GUI DRAG
+# ============================================================
+
+on inventory drag:
+
+    if name of event-inventory is not "{@gui-name}":
+
+        stop
+
+    cancel event
+
+
+# ============================================================
+# GAME TIMER
+#
+# 1秒ごと
+# ============================================================
+
+every 1 second:
+
+    if {far.running} is not true:
+
+        stop
+
+
+    if {far.start.x} is not set:
+
+        stop
+
+
+    # ========================================================
+    # ELAPSED
+    # ========================================================
+
+    add 1 to {far.elapsed}
+
+
+    # ========================================================
+    # REMAINING
+    # ========================================================
+
+    set {far.remaining} to {far.duration} - {far.elapsed}
+
+
+    # ========================================================
+    # BOSSBAR
+    # ========================================================
+
+    set {_bar} to boss bar with key "{@bossbar-key}"
+
+
+    if {_bar} is set:
+
+        set {_minutes} to floor({far.remaining} / 60)
+
+        set {_seconds} to {far.remaining} - ({_minutes} * 60)
+
+
+        # -----------------------------------------------
+        # 00:00 format
+        # -----------------------------------------------
+
+        if {_seconds} < 10:
+
+            set {_time-text} to "%{_minutes}%:0%{_seconds}%"
+
+        else:
+
+            set {_time-text} to "%{_minutes}%:%{_seconds}%"
+
+
+        set title of {_bar} to "&bFarRace &f%{_time-text}%"
+
+        set {_progress} to {far.remaining} / {far.duration}
+
+        set progress of {_bar} to {_progress}
+
+
+    # ========================================================
+    # TIME UP
+    # ========================================================
+
+    if {far.remaining} <= 0:
+
+        set {far.running} to false
+        set {far.finished} to true
+
+
+        # ----------------------------------------------------
+        # Final calculation
+        # ----------------------------------------------------
+
+        loop all players:
+
+            set {_uuid} to uuid of loop-player
+
+            set {_participant} to false
+
+
+            # -----------------------------------------------
+            # Participant check
+            #
+            # 外側 loop = 1
+            # 内側 loop = 2
+            # -----------------------------------------------
+
+            loop {far.players::*}:
+
+                if loop-value-2 is {_uuid}:
+
+                    set {_participant} to true
+
+                    stop loop
+
+
+            if {_participant} is not true:
+
+                stop
+
+
+            # -----------------------------------------------
+            # Current position
+            # -----------------------------------------------
+
+            set {_x} to x-coordinate of loop-player
+            set {_z} to z-coordinate of loop-player
+
+
+            # -----------------------------------------------
+            # Difference
+            # -----------------------------------------------
+
+            set {_dx} to {_x} - {far.start.x}
+            set {_dz} to {_z} - {far.start.z}
+
+
+            # -----------------------------------------------
+            # Distance
+            # -----------------------------------------------
+
+            set {_distance} to sqrt(({_dx} * {_dx}) + ({_dz} * {_dz}))
+
+            set {_score} to floor({_distance})
+
+
+            # -----------------------------------------------
+            # Save
+            # -----------------------------------------------
+
+            set {far.distance::%{_uuid}%} to {_score}
+            set {far.best::%{_uuid}%} to {_score}
+
+
+            # -----------------------------------------------
+            # Scoreboard
+            # -----------------------------------------------
+
+            execute console command "scoreboard players set %loop-player% farDistance %{_score}%"
+
+
+        # ====================================================
+        # TIME UP MESSAGE
+        # ====================================================
+
+        send "" to all players
+        send "&8&m--------------------------------" to all players
+        send "&c&lTIME UP!" to all players
+        send "" to all players
+        send "&6&lFarRace RESULT" to all players
+        send "" to all players
+
+
+        # ====================================================
+        # RANKING
+        # ====================================================
+
+        set {_remaining::*} to {far.players::*}
+
+
+        # ----------------------------------------------------
+        # 1st
+        # ----------------------------------------------------
+
+        set {_winner} to none
+        set {_max} to -1
+
+
+        loop {_remaining::*}:
+
+            set {_uuid} to loop-value
+
+            set {_score} to {far.best::%{_uuid}%}
+
+            if {_score} is not set:
+
+                set {_score} to 0
+
+
+            if {_score} > {_max}:
+
+                set {_max} to {_score}
+                set {_winner} to {_uuid}
+
+
+        if {_winner} is set:
+
+            set {_name} to {far.player.name::%{_winner}%}
+
+            send "&e&l1st &f%{_name}% &7- &e%{_max}%m" to all players
+
+            remove {_winner} from {_remaining::*}
+
+
+        # ----------------------------------------------------
+        # 2nd
+        # ----------------------------------------------------
+
+        if {_remaining::*} is set:
+
+            set {_winner} to none
+            set {_max} to -1
+
+
+            loop {_remaining::*}:
+
+                set {_uuid} to loop-value
+
+                set {_score} to {far.best::%{_uuid}%}
+
+                if {_score} is not set:
+
+                    set {_score} to 0
+
+
+                if {_score} > {_max}:
+
+                    set {_max} to {_score}
+                    set {_winner} to {_uuid}
+
+
+            if {_winner} is set:
+
+                set {_name} to {far.player.name::%{_winner}%}
+
+                send "&f&l2nd &f%{_name}% &7- &e%{_max}%m" to all players
+
+                remove {_winner} from {_remaining::*}
+
+
+        # ----------------------------------------------------
+        # 3rd
+        # ----------------------------------------------------
+
+        if {_remaining::*} is set:
+
+            set {_winner} to none
+            set {_max} to -1
+
+
+            loop {_remaining::*}:
+
+                set {_uuid} to loop-value
+
+                set {_score} to {far.best::%{_uuid}%}
+
+                if {_score} is not set:
+
+                    set {_score} to 0
+
+
+                if {_score} > {_max}:
+
+                    set {_max} to {_score}
+                    set {_winner} to {_uuid}
+
+
+            if {_winner} is set:
+
+                set {_name} to {far.player.name::%{_winner}%}
+
+                send "&6&l3rd &f%{_name}% &7- &e%{_max}%m" to all players
+
+                remove {_winner} from {_remaining::*}
+
+
+        # ----------------------------------------------------
+        # Other players
+        # ----------------------------------------------------
+
+        if {_remaining::*} is set:
+
+            send "" to all players
+            send "&7Other players:" to all players
+
+
+            loop {_remaining::*}:
+
+                set {_uuid} to loop-value
+
+                set {_name} to {far.player.name::%{_uuid}%}
+                set {_score} to {far.best::%{_uuid}%}
+
+                if {_score} is not set:
+
+                    set {_score} to 0
+
+                send "&7%{_name}% &f- &e%{_score}%m" to all players
+
+
+        send "" to all players
+        send "&8&m--------------------------------" to all players
+
+
+        # ====================================================
+        # REMOVE BOSSBAR
+        # ====================================================
+
+        set {_bar} to boss bar with key "{@bossbar-key}"
+
+        if {_bar} is set:
+
+            remove all players from viewers of {_bar}
+
+
+        # ====================================================
+        # REMOVE SCOREBOARD
+        # ====================================================
+
+        wait 5 seconds
+
+        execute console command "scoreboard objectives remove farDistance"
+
+        stop
+
+
+    # ========================================================
+    # DISTANCE CALCULATION
+    #
+    # ここは v0.1.00 / v0.2.00 と同じ。
+    # ========================================================
+
+    loop all players:
+
+        set {_uuid} to uuid of loop-player
+
+
+        # ----------------------------------------------------
+        # Participant check
+        # ----------------------------------------------------
+
+        set {_participant} to false
+
+
+        loop {far.players::*}:
+
+            if loop-value-2 is {_uuid}:
+
+                set {_participant} to true
+
+                stop loop
+
+
+        if {_participant} is not true:
+
+            stop
+
+
+        # ----------------------------------------------------
+        # Current position
+        # ----------------------------------------------------
+
+        set {_x} to x-coordinate of loop-player
+        set {_z} to z-coordinate of loop-player
+
+
+        # ----------------------------------------------------
+        # Difference
+        # ----------------------------------------------------
+
+        set {_dx} to {_x} - {far.start.x}
+        set {_dz} to {_z} - {far.start.z}
+
+
+        # ----------------------------------------------------
+        # Distance
+        # ----------------------------------------------------
+
+        set {_distance} to sqrt(({_dx} * {_dx}) + ({_dz} * {_dz}))
+
+
+        # ----------------------------------------------------
+        # Integer
+        # ----------------------------------------------------
+
+        set {_score} to floor({_distance})
+
+
+        # ----------------------------------------------------
+        # Save
+        # ----------------------------------------------------
+
+        set {far.distance::%{_uuid}%} to {_score}
+
+
+        # ----------------------------------------------------
+        # Best
+        # ----------------------------------------------------
+
+        if {far.best::%{_uuid}%} is not set:
+
+            set {far.best::%{_uuid}%} to {_score}
+
+        else:
+
+            if {_score} > {far.best::%{_uuid}%}:
+
+                set {far.best::%{_uuid}%} to {_score}
+
+
+        # ----------------------------------------------------
+        # Scoreboard
+        # ----------------------------------------------------
+
+        execute console command "scoreboard players set %loop-player% farDistance %{_score}%"
+
+
+# ============================================================
+# DEBUG
+#
+# 5秒ごと
+# ============================================================
+
+every 5 seconds:
+
+    if {far.debug} is not true:
+
+        stop
+
+
+    if {far.running} is not true:
+
+        stop
+
+
+    if {far.start.x} is not set:
+
+        stop
+
+
+    send "&8&m--------------------------------" to all players
+
+    send "&b[FarRace DEBUG]" to all players
+
+    send "&7Start X: &f%{far.start.x}%" to all players
+
+    send "&7Start Z: &f%{far.start.z}%" to all players
+
+    send "&7Elapsed: &f%{far.elapsed}% sec" to all players
+
+    send "&7Remaining: &f%{far.remaining}% sec" to all players
+
+    send "" to all players
+
+
+    loop all players:
+
+        set {_uuid} to uuid of loop-player
+
+        set {_participant} to false
+
+
+        loop {far.players::*}:
+
+            if loop-value-2 is {_uuid}:
+
+                set {_participant} to true
+
+                stop loop
+
+
+        if {_participant} is not true:
+
+            stop
+
+
+        # ----------------------------------------------------
+        # Position
+        # ----------------------------------------------------
+
+        set {_x} to x-coordinate of loop-player
+        set {_y} to y-coordinate of loop-player
+        set {_z} to z-coordinate of loop-player
+
+
+        # ----------------------------------------------------
+        # Difference
+        # ----------------------------------------------------
+
+        set {_dx} to {_x} - {far.start.x}
+        set {_dz} to {_z} - {far.start.z}
+
+
+        # ----------------------------------------------------
+        # Distance
+        # ----------------------------------------------------
+
+        set {_distance} to sqrt(({_dx} * {_dx}) + ({_dz} * {_dz}))
+
+        set {_score} to floor({_distance})
+
+
+        send "&fPlayer: &e%loop-player%" to all players
+
+        send "&7Current: X=&f%{_x}% &7Y=&f%{_y}% &7Z=&f%{_z}%" to all players
+
+        send "&7DX: &f%{_dx}% &7DZ=&f%{_dz}%" to all players
+
+        send "&7Distance: &a%{_distance}%" to all players
+
+        send "&7Score: &e%{_score}%" to all players
+
+        send "" to all players
+
+
+    send "&8&m--------------------------------" to all players
