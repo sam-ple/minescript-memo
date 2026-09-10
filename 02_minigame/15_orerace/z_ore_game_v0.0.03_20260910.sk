@@ -1,0 +1,1048 @@
+```vb
+# ============================================================
+# ORE RACE GAME SYSTEM
+# Version : v0.2.00
+# Date    : 2026-09-10
+#
+# Minecraft Java Edition + Paper + Skript
+#
+# ============================================================
+#
+# FEATURES
+#
+# ・16種類の鉱石採掘検知
+# ・鉱石ごとのポイント
+# ・プレイヤー別採掘数
+# ・プレイヤー別ポイント
+# ・鉱石別採掘数
+# ・Scoreboard
+#
+# ・OreRace GUI
+# ・5 / 15 / 30 / 60 minute selection
+# ・START
+# ・STOP
+# ・RESET
+# ・RESULT
+#
+# ・3 → 2 → 1 → START
+# ・3 → 2 → 1 → GAME SET
+#
+# ・BossBar timer
+# ・00:00 format
+# ・Automatic TIME UP
+# ・Automatic ranking
+#
+# ============================================================
+
+
+options:
+    prefix: &8[&6OreRace&8]&r
+    bossbar-id: orerace:timer
+
+
+# ============================================================
+# GLOBAL STATE
+# ============================================================
+
+# {orerace.state}
+#
+# IDLE
+# COUNTDOWN
+# RUNNING
+# FINISHED
+#
+# {orerace.time}
+# Remaining seconds
+#
+# {orerace.max-time}
+# Selected game time
+#
+# {orerace.debug}
+# Debug mode
+
+
+# ============================================================
+# GUI
+# ============================================================
+
+command /orerace [<text>]:
+    permission: op
+    trigger:
+
+        # ----------------------------------------------------
+        # NO ARGUMENT
+        # ----------------------------------------------------
+
+        if arg-1 is not set:
+
+            open chest with 3 rows named "&8OreRace Control" to player
+
+            wait 1 tick
+
+            # Time
+            set slot 10 of player's current inventory to clock named "&e&lTIME"
+            set lore of slot 10 of player's current inventory to "&7Current: &f%{orerace.max-time}% seconds" and "&8" and "&eClick to select time"
+
+            # 5 MIN
+            set slot 11 of player's current inventory to gold ingot named "&65 MIN"
+            set lore of slot 11 of player's current inventory to "&75 minutes" and "&8" and "&eClick to select"
+            
+            # 15 MIN
+            set slot 12 of player's current inventory to gold ingot named "&615 MIN"
+            set lore of slot 12 of player's current inventory to "&715 minutes" and "&8" and "&eClick to select"
+
+            # 30 MIN
+            set slot 13 of player's current inventory to gold ingot named "&630 MIN"
+            set lore of slot 13 of player's current inventory to "&730 minutes" and "&8" and "&eClick to select"
+
+            # 60 MIN
+            set slot 14 of player's current inventory to gold ingot named "&660 MIN"
+            set lore of slot 14 of player's current inventory to "&760 minutes" and "&8" and "&eClick to select"
+
+            # START
+            set slot 16 of player's current inventory to lime wool named "&a&lSTART"
+            set lore of slot 16 of player's current inventory to "&7Start OreRace" and "&8" and "&eClick to start"
+
+            # STOP
+            set slot 19 of player's current inventory to red wool named "&c&lSTOP"
+            set lore of slot 19 of player's current inventory to "&7Stop current game" and "&8" and "&eClick to stop"
+
+            # RESET
+            set slot 21 of player's current inventory to barrier named "&c&lRESET"
+            set lore of slot 21 of player's current inventory to "&7Reset all game data" and "&8" and "&eClick to reset"
+
+            # RESULT
+            set slot 23 of player's current inventory to book named "&b&lRESULT"
+            set lore of slot 23 of player's current inventory to "&7Show ranking" and "&8" and "&eClick to view result"
+
+            # STATUS
+            set slot 25 of player's current inventory to paper named "&f&lSTATUS"
+            set lore of slot 25 of player's current inventory to "&7Show current status"
+
+            stop
+
+
+        # ====================================================
+        # COMMANDS
+        # ====================================================
+
+        if arg-1 is "start":
+            make player execute command "/orerace_start"
+            stop
+
+        if arg-1 is "stop":
+            make player execute command "/orerace_stop"
+            stop
+
+        if arg-1 is "reset":
+            make player execute command "/orerace_reset"
+            stop
+
+        if arg-1 is "result":
+            make player execute command "/orerace_result"
+            stop
+
+        if arg-1 is "status":
+            make player execute command "/orerace_status"
+            stop
+
+        if arg-1 is "debug":
+
+            if {orerace.debug} is true:
+                set {orerace.debug} to false
+                send "{@prefix} &7DEBUG: &cOFF" to player
+            else:
+                set {orerace.debug} to true
+                send "{@prefix} &7DEBUG: &aON" to player
+
+            stop
+
+        send "{@prefix} &cUnknown command."
+        send "&7/orerace"
+        send "&7/orerace start"
+        send "&7/orerace stop"
+        send "&7/orerace reset"
+        send "&7/orerace result"
+        send "&7/orerace status"
+        send "&7/orerace debug"
+
+
+# ============================================================
+# GUI CLICK
+# ============================================================
+
+on inventory click:
+
+    if name of event-inventory is "&8OreRace Control":
+
+        cancel event
+
+        if clicked inventory is not event-inventory:
+            stop
+
+        # ----------------------------------------------------
+        # 5 MIN
+        # ----------------------------------------------------
+
+        if clicked slot is 11:
+
+            if {orerace.state} is "RUNNING":
+                send "{@prefix} &cGame is running." to player
+                stop
+
+            set {orerace.max-time} to 300
+            send "{@prefix} &aTime set to &e5:00&a." to player
+            stop
+
+
+        # ----------------------------------------------------
+        # 15 MIN
+        # ----------------------------------------------------
+
+        if clicked slot is 12:
+
+            if {orerace.state} is "RUNNING":
+                send "{@prefix} &cGame is running." to player
+                stop
+
+            set {orerace.max-time} to 900
+            send "{@prefix} &aTime set to &e15:00&a." to player
+            stop
+
+
+        # ----------------------------------------------------
+        # 30 MIN
+        # ----------------------------------------------------
+
+        if clicked slot is 13:
+
+            if {orerace.state} is "RUNNING":
+                send "{@prefix} &cGame is running." to player
+                stop
+
+            set {orerace.max-time} to 1800
+            send "{@prefix} &aTime set to &e30:00&a." to player
+            stop
+
+
+        # ----------------------------------------------------
+        # 60 MIN
+        # ----------------------------------------------------
+
+        if clicked slot is 14:
+
+            if {orerace.state} is "RUNNING":
+                send "{@prefix} &cGame is running." to player
+                stop
+
+            set {orerace.max-time} to 3600
+            send "{@prefix} &aTime set to &e60:00&a." to player
+            stop
+
+
+        # ----------------------------------------------------
+        # START
+        # ----------------------------------------------------
+
+        if clicked slot is 16:
+
+            close player's inventory
+            make player execute command "/orerace_start"
+            stop
+
+
+        # ----------------------------------------------------
+        # STOP
+        # ----------------------------------------------------
+
+        if clicked slot is 19:
+
+            close player's inventory
+            make player execute command "/orerace_stop"
+            stop
+
+
+        # ----------------------------------------------------
+        # RESET
+        # ----------------------------------------------------
+
+        if clicked slot is 21:
+
+            close player's inventory
+            make player execute command "/orerace_reset"
+            stop
+
+
+        # ----------------------------------------------------
+        # RESULT
+        # ----------------------------------------------------
+
+        if clicked slot is 23:
+
+            close player's inventory
+            make player execute command "/orerace_result"
+            stop
+
+
+        # ----------------------------------------------------
+        # STATUS
+        # ----------------------------------------------------
+
+        if clicked slot is 25:
+
+            close player's inventory
+            make player execute command "/orerace_status"
+            stop
+
+
+# ============================================================
+# START COMMAND
+# ============================================================
+
+command /orerace_start:
+    permission: op
+    trigger:
+
+        # ----------------------------------------------------
+        # STATE CHECK
+        # ----------------------------------------------------
+
+        if {orerace.state} is "RUNNING":
+            send "{@prefix} &cOreRace is already running." to player
+            stop
+
+        if {orerace.state} is "COUNTDOWN":
+            send "{@prefix} &cOreRace is starting." to player
+            stop
+
+
+        # ----------------------------------------------------
+        # DEFAULT TIME
+        # ----------------------------------------------------
+
+        if {orerace.max-time} is not set:
+            set {orerace.max-time} to 900
+
+
+        # ----------------------------------------------------
+        # RESET GAME DATA
+        # ----------------------------------------------------
+
+        delete {orerace.points::*}
+        delete {orerace.count::*}
+        delete {orerace.orecount::*}
+        delete {orerace.players::*}
+        delete {orerace.playername::*}
+
+
+        # ----------------------------------------------------
+        # REGISTER CURRENT PLAYERS
+        # ----------------------------------------------------
+
+        loop all players:
+
+            set {_uuid} to uuid of loop-player
+
+            set {orerace.players::%{_uuid}%} to true
+            set {orerace.playername::%{_uuid}%} to name of loop-player
+
+            set {orerace.points::%{_uuid}%} to 0
+            set {orerace.count::%{_uuid}%} to 0
+
+
+        # ----------------------------------------------------
+        # SCOREBOARD
+        # ----------------------------------------------------
+
+        execute console command "scoreboard objectives remove orePoints"
+        execute console command "scoreboard objectives add orePoints dummy Points"
+        execute console command "scoreboard objectives setdisplay sidebar orePoints"
+
+        loop all players:
+            execute console command "scoreboard players set %loop-player% orePoints 0"
+
+
+        # ----------------------------------------------------
+        # BOSSBAR
+        # ----------------------------------------------------
+
+        execute console command "bossbar remove {@bossbar-id}"
+        execute console command "bossbar add {@bossbar-id} \"&6OreRace\""
+        execute console command "bossbar set {@bossbar-id} max %{orerace.max-time}%"
+        execute console command "bossbar set {@bossbar-id} value %{orerace.max-time}%"
+        execute console command "bossbar set {@bossbar-id} color yellow"
+        execute console command "bossbar set {@bossbar-id} style progress"
+        execute console command "bossbar set {@bossbar-id} players @a"
+
+
+        # ----------------------------------------------------
+        # COUNTDOWN STATE
+        # ----------------------------------------------------
+
+        set {orerace.state} to "COUNTDOWN"
+
+
+        # ====================================================
+        # FIRST COUNTDOWN
+        # ====================================================
+
+        send title "&e&l3" with subtitle "&7GET READY" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
+        wait 1 second
+
+        if {orerace.state} is not "COUNTDOWN":
+            stop
+
+        send title "&e&l2" with subtitle "&7GET READY" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
+        wait 1 second
+
+        if {orerace.state} is not "COUNTDOWN":
+            stop
+
+        send title "&e&l1" with subtitle "&7GET READY" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
+        wait 1 second
+
+        if {orerace.state} is not "COUNTDOWN":
+            stop
+
+
+        # ----------------------------------------------------
+        # START
+        # ----------------------------------------------------
+
+        send title "&a&lSTART!" with subtitle "&fOreRace" to all players
+        play sound "entity.player.levelup" with volume 1 and pitch 1 to all players
+
+
+        # ====================================================
+        # SECOND COUNTDOWN
+        # ====================================================
+
+        wait 1 second
+
+        if {orerace.state} is not "COUNTDOWN":
+            stop
+
+        send title "&e&l3" with subtitle "&7GAME SET" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
+        wait 1 second
+
+        if {orerace.state} is not "COUNTDOWN":
+            stop
+
+        send title "&e&l2" with subtitle "&7GAME SET" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
+        wait 1 second
+
+        if {orerace.state} is not "COUNTDOWN":
+            stop
+
+        send title "&e&l1" with subtitle "&7GAME SET" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
+        wait 1 second
+
+        if {orerace.state} is not "COUNTDOWN":
+            stop
+
+
+        # ====================================================
+        # GAME SET
+        # ====================================================
+
+        send title "&6&lGAME SET!" with subtitle "&f%{orerace.max-time}% seconds" to all players
+        play sound "block.anvil.land" with volume 1 and pitch 1 to all players
+
+
+        # ----------------------------------------------------
+        # RUNNING
+        # ----------------------------------------------------
+
+        set {orerace.state} to "RUNNING"
+        set {orerace.time} to {orerace.max-time}
+
+        send "{@prefix} &a&lORE RACE START!" to all players
+
+
+# ============================================================
+# STOP COMMAND
+# ============================================================
+
+command /orerace_stop:
+    permission: op
+    trigger:
+
+        if {orerace.state} is not "RUNNING":
+            if {orerace.state} is not "COUNTDOWN":
+                send "{@prefix} &cOreRace is not running." to player
+                stop
+
+        set {orerace.state} to "FINISHED"
+
+        execute console command "bossbar remove {@bossbar-id}"
+
+        send title "&c&lSTOP!" with subtitle "&7OreRace stopped." to all players
+        play sound "block.anvil.land" with volume 1 and pitch 1 to all players
+
+        send "{@prefix} &cOreRace STOPPED." to all players
+
+        wait 2 seconds
+
+        execute player command "/orerace_result"
+
+
+# ============================================================
+# RESET COMMAND
+# ============================================================
+
+command /orerace_reset:
+    permission: op
+    trigger:
+
+        set {orerace.state} to "IDLE"
+
+        delete {orerace.points::*}
+        delete {orerace.count::*}
+        delete {orerace.orecount::*}
+        delete {orerace.players::*}
+        delete {orerace.playername::*}
+
+        delete {orerace.time}
+        delete {orerace.max-time}
+
+        execute console command "bossbar remove {@bossbar-id}"
+
+        execute console command "scoreboard objectives remove orePoints"
+
+        send "{@prefix} &eReset complete." to player
+
+
+# ============================================================
+# TIMER
+# ============================================================
+
+every 1 second:
+
+    if {orerace.state} is not "RUNNING":
+        stop
+
+    # --------------------------------------------------------
+    # DECREASE TIME
+    # --------------------------------------------------------
+
+    remove 1 from {orerace.time}
+
+
+    # --------------------------------------------------------
+    # TIME UP
+    # --------------------------------------------------------
+
+    if {orerace.time} <= 0:
+
+        set {orerace.time} to 0
+        set {orerace.state} to "FINISHED"
+
+        execute console command "bossbar set {@bossbar-id} value 0"
+        execute console command "bossbar remove {@bossbar-id}"
+
+        send title "&c&lTIME UP!" with subtitle "&fOreRace finished!" to all players
+        play sound "entity.ender_dragon.growl" with volume 1 and pitch 1 to all players
+
+        send "{@prefix} &c&lTIME UP!" to all players
+
+        wait 3 seconds
+
+        execute console command "orerace_result"
+
+        stop
+
+
+    # --------------------------------------------------------
+    # FORMAT TIME
+    # --------------------------------------------------------
+
+    set {_minutes} to floor({orerace.time} / 60)
+    set {_seconds} to {orerace.time} - ({_minutes} * 60)
+
+
+    # --------------------------------------------------------
+    # TWO DIGITS
+    # --------------------------------------------------------
+
+    if {_minutes} < 10:
+        set {_minute-text} to "0%{_minutes}%"
+    else:
+        set {_minute-text} to "%{_minutes}%"
+
+
+    if {_seconds} < 10:
+        set {_second-text} to "0%{_seconds}%"
+    else:
+        set {_second-text} to "%{_seconds}%"
+
+
+    set {_time-text} to "%{_minute-text}%:%{_second-text}%"
+
+
+    # --------------------------------------------------------
+    # BOSSBAR
+    # --------------------------------------------------------
+
+    execute console command "bossbar set {@bossbar-id} name \"&6&lORE RACE &f%{_time-text}%\""
+    execute console command "bossbar set {@bossbar-id} value %{orerace.time}%"
+
+
+# ============================================================
+# RESULT COMMAND
+# ============================================================
+
+command /orerace_result:
+    permission: op
+    trigger:
+
+        send "&8&m----------------------------------------"
+        send "&6&lORE RACE RESULT"
+        send "&8&m----------------------------------------"
+
+        if {orerace.players::*} is not set:
+
+            send "&7No players."
+            send "&8&m----------------------------------------"
+
+            stop
+
+
+        # ----------------------------------------------------
+        # CREATE TEMPORARY RANKING
+        # ----------------------------------------------------
+
+        delete {_remaining::*}
+
+        loop {orerace.players::*}:
+
+            set {_uuid} to loop-index
+            add {_uuid} to {_remaining::*}
+
+
+        # ----------------------------------------------------
+        # TOP 10
+        # ----------------------------------------------------
+
+        set {_rank} to 1
+
+        while {_rank} <= 10:
+
+            if size of {_remaining::*} <= 0:
+                stop
+
+            set {_best-uuid} to ""
+            set {_best-points} to -1
+            set {_best-count} to -1
+
+
+            # ------------------------------------------------
+            # FIND BEST PLAYER
+            # ------------------------------------------------
+
+            loop {_remaining::*}:
+
+                set {_uuid} to loop-value
+
+                set {_points} to {orerace.points::%{_uuid}%}
+                set {_count} to {orerace.count::%{_uuid}%}
+
+                if {_points} is not set:
+                    set {_points} to 0
+
+                if {_count} is not set:
+                    set {_count} to 0
+
+
+                # Points first
+                if {_points} > {_best-points}:
+
+                    set {_best-uuid} to {_uuid}
+                    set {_best-points} to {_points}
+                    set {_best-count} to {_count}
+
+
+                else if {_points} is {_best-points}:
+
+                    # Ore count as tie breaker
+                    if {_count} > {_best-count}:
+
+                        set {_best-uuid} to {_uuid}
+                        set {_best-points} to {_points}
+                        set {_best-count} to {_count}
+
+
+            # ------------------------------------------------
+            # NO RESULT
+            # ------------------------------------------------
+
+            if {_best-uuid} is "":
+
+                stop
+
+
+            # ------------------------------------------------
+            # NAME
+            # ------------------------------------------------
+
+            set {_name} to {orerace.playername::%{_best-uuid}%}
+
+            if {_name} is not set:
+                set {_name} to "Unknown"
+
+
+            # ------------------------------------------------
+            # RANK COLOR
+            # ------------------------------------------------
+
+            if {_rank} is 1:
+                set {_rank-color} to "&6&l"
+
+            else if {_rank} is 2:
+                set {_rank-color} to "&f&l"
+
+            else if {_rank} is 3:
+                set {_rank-color} to "&c&l"
+
+            else:
+                set {_rank-color} to "&7"
+
+
+            # ------------------------------------------------
+            # RESULT
+            # ------------------------------------------------
+
+            send "%{_rank-color}%%{_rank}%. &f%{_name}% &7- &e%{_best-points}% pt &7(%{_best-count}% ores)"
+
+
+            # ------------------------------------------------
+            # REMOVE PLAYER
+            # ------------------------------------------------
+
+            remove {_best-uuid} from {_remaining::*}
+
+            add 1 to {_rank}
+
+
+        send "&8&m----------------------------------------"
+
+
+# ============================================================
+# STATUS COMMAND
+# ============================================================
+
+command /orerace_status:
+    permission: op
+    trigger:
+
+        send "&8&m----------------------------------------"
+        send "&6&lORE RACE STATUS"
+        send "&8&m----------------------------------------"
+
+        if {orerace.state} is "RUNNING":
+            send "&7State: &aRUNNING"
+
+        else if {orerace.state} is "COUNTDOWN":
+            send "&7State: &eCOUNTDOWN"
+
+        else if {orerace.state} is "FINISHED":
+            send "&7State: &6FINISHED"
+
+        else:
+            send "&7State: &cIDLE"
+
+
+        if {orerace.max-time} is set:
+            send "&7Game Time: &e%{orerace.max-time}% seconds"
+
+        if {orerace.time} is set:
+            send "&7Remaining: &e%{orerace.time}% seconds"
+
+
+        send "&8&m----------------------------------------"
+
+        if {orerace.players::*} is set:
+
+            loop {orerace.players::*}:
+
+                set {_uuid} to loop-index
+
+                set {_name} to {orerace.playername::%{_uuid}%}
+                set {_points} to {orerace.points::%{_uuid}%}
+                set {_count} to {orerace.count::%{_uuid}%}
+
+                if {_points} is not set:
+                    set {_points} to 0
+
+                if {_count} is not set:
+                    set {_count} to 0
+
+                send "&f%{_name}% &7: &e%{_points}% pt &7(%{_count}% ores)"
+
+
+        send "&8&m----------------------------------------"
+
+
+# ============================================================
+# BLOCK BREAK
+# ============================================================
+
+on break:
+
+    # --------------------------------------------------------
+    # GAME CHECK
+    # --------------------------------------------------------
+
+    if {orerace.state} is not "RUNNING":
+        stop
+
+
+    # --------------------------------------------------------
+    # PLAYER DATA
+    # --------------------------------------------------------
+
+    set {_player} to player
+    set {_uuid} to uuid of {_player}
+    set {_block} to event-block
+
+
+    # ========================================================
+    # NORMAL ORES
+    # ========================================================
+
+    if {_block} is coal ore:
+
+        set {_ore} to "COAL_ORE"
+        set {_point} to 1
+
+
+    else if {_block} is copper ore:
+
+        set {_ore} to "COPPER_ORE"
+        set {_point} to 1
+
+
+    else if {_block} is iron ore:
+
+        set {_ore} to "IRON_ORE"
+        set {_point} to 2
+
+
+    else if {_block} is gold ore:
+
+        set {_ore} to "GOLD_ORE"
+        set {_point} to 2
+
+
+    else if {_block} is redstone ore:
+
+        set {_ore} to "REDSTONE_ORE"
+        set {_point} to 3
+
+
+    else if {_block} is lapis ore:
+
+        set {_ore} to "LAPIS_ORE"
+        set {_point} to 3
+
+
+    else if {_block} is emerald ore:
+
+        set {_ore} to "EMERALD_ORE"
+        set {_point} to 4
+
+
+    else if {_block} is diamond ore:
+
+        set {_ore} to "DIAMOND_ORE"
+        set {_point} to 5
+
+
+    # ========================================================
+    # DEEPSLATE ORES
+    # ========================================================
+
+    else if {_block} is deepslate coal ore:
+
+        set {_ore} to "DEEPSLATE_COAL_ORE"
+        set {_point} to 1
+
+
+    else if {_block} is deepslate copper ore:
+
+        set {_ore} to "DEEPSLATE_COPPER_ORE"
+        set {_point} to 1
+
+
+    else if {_block} is deepslate iron ore:
+
+        set {_ore} to "DEEPSLATE_IRON_ORE"
+        set {_point} to 2
+
+
+    else if {_block} is deepslate gold ore:
+
+        set {_ore} to "DEEPSLATE_GOLD_ORE"
+        set {_point} to 2
+
+
+    else if {_block} is deepslate redstone ore:
+
+        set {_ore} to "DEEPSLATE_REDSTONE_ORE"
+        set {_point} to 3
+
+
+    else if {_block} is deepslate lapis ore:
+
+        set {_ore} to "DEEPSLATE_LAPIS_ORE"
+        set {_point} to 3
+
+
+    else if {_block} is deepslate emerald ore:
+
+        set {_ore} to "DEEPSLATE_EMERALD_ORE"
+        set {_point} to 4
+
+
+    else if {_block} is deepslate diamond ore:
+
+        set {_ore} to "DEEPSLATE_DIAMOND_ORE"
+        set {_point} to 5
+
+
+    # ========================================================
+    # NOT TARGET ORE
+    # ========================================================
+
+    else:
+
+        stop
+
+
+    # ========================================================
+    # PLAYER REGISTRATION
+    # ========================================================
+
+    if {orerace.players::%{_uuid}%} is not set:
+
+        set {orerace.players::%{_uuid}%} to true
+        set {orerace.playername::%{_uuid}%} to name of {_player}
+        set {orerace.points::%{_uuid}%} to 0
+        set {orerace.count::%{_uuid}%} to 0
+
+
+    # ========================================================
+    # POINT
+    # ========================================================
+
+    add {_point} to {orerace.points::%{_uuid}%}
+
+
+    # ========================================================
+    # TOTAL ORE COUNT
+    # ========================================================
+
+    add 1 to {orerace.count::%{_uuid}%}
+
+
+    # ========================================================
+    # INDIVIDUAL ORE COUNT
+    # ========================================================
+
+    add 1 to {orerace.orecount::%{_uuid}%::%{_ore}%}
+
+
+    # ========================================================
+    # SCOREBOARD
+    # ========================================================
+
+    set {_total} to {orerace.points::%{_uuid}%}
+
+    execute console command "scoreboard players set %{_player}% orePoints %{_total}%"
+
+
+    # ========================================================
+    # DEBUG
+    # ========================================================
+
+    if {orerace.debug} is true:
+
+        set {_orecount} to {orerace.orecount::%{_uuid}%::%{_ore}%}
+        set {_totalcount} to {orerace.count::%{_uuid}%}
+
+        send "{@prefix} &8&m--------------------------------" to {_player}
+        send "{@prefix} &7[DEBUG] Ore detected!" to {_player}
+        send "{@prefix} &7Player: &f%{_player}%" to {_player}
+        send "{@prefix} &7Ore: &e%{_ore}%" to {_player}
+        send "{@prefix} &7Point: &a+%{_point}%" to {_player}
+        send "{@prefix} &7Total Point: &e%{_total}%" to {_player}
+        send "{@prefix} &7This Ore Count: &b%{_orecount}%" to {_player}
+        send "{@prefix} &7Total Ore Count: &d%{_totalcount}%" to {_player}
+        send "{@prefix} &8&m--------------------------------" to {_player}
+
+
+# ============================================================
+# PLAYER JOIN
+# ============================================================
+
+on join:
+
+    if {orerace.state} is "RUNNING":
+
+        set {_uuid} to uuid of player
+
+        # New player does not automatically participate
+        # unless they mine an ore.
+
+        if {orerace.players::%{_uuid}%} is not set:
+
+            set {orerace.players::%{_uuid}%} to true
+            set {orerace.playername::%{_uuid}%} to name of player
+            set {orerace.points::%{_uuid}%} to 0
+            set {orerace.count::%{_uuid}%} to 0
+
+            execute console command "scoreboard players set %player% orePoints 0"
+
+
+# ============================================================
+# SCRIPT LOAD
+# ============================================================
+
+on script load:
+
+    # --------------------------------------------------------
+    # DEFAULT STATE
+    # --------------------------------------------------------
+
+    if {orerace.state} is not set:
+        set {orerace.state} to "IDLE"
+
+    if {orerace.max-time} is not set:
+        set {orerace.max-time} to 900
+
+
+    # --------------------------------------------------------
+    # OLD BOSSBAR
+    # --------------------------------------------------------
+
+    execute console command "bossbar remove {@bossbar-id}"
+
+
+    # --------------------------------------------------------
+    # OLD SCOREBOARD
+    # --------------------------------------------------------
+
+    execute console command "scoreboard objectives remove orePoints"
+
+
+    # --------------------------------------------------------
+    # CREATE SCOREBOARD
+    # --------------------------------------------------------
+
+    execute console command "scoreboard objectives add orePoints dummy Points"
+```
