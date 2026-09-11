@@ -1,0 +1,402 @@
+# ============================================================
+# SOUND TEST SYSTEM
+# Version : v0.1.00
+#
+# Minecraft Java Edition + Paper + Skript
+#
+# Commands:
+#   /soundtest
+#   /soundtest <number>
+#   /soundtest all
+#   /soundtest stop
+#
+# Purpose:
+#   Minecraftの標準サウンドを実際に鳴らして確認するテスト用。
+#
+# ============================================================
+
+
+# ============================================================
+# SOUND LIST
+# ============================================================
+
+command /soundtest [<text>]:
+    permission: soundtest.use
+    permission message: &cYou don't have permission to use /soundtest.
+    trigger:
+
+        # ----------------------------------------------------
+        # /soundtest
+        # ----------------------------------------------------
+
+        if arg-1 is not set:
+
+            send ""
+            send "&6&l========== SOUND TEST =========="
+            send ""
+            send "&e/soundtest 1 &7- 正解・通知系"
+            send "&e/soundtest 2 &7- 不正解・警告系"
+            send "&e/soundtest 3 &7- ボタン・クリック系"
+            send "&e/soundtest 4 &7- レベル・成功系"
+            send "&e/soundtest 5 &7- 爆発・インパクト系"
+            send "&e/soundtest 6 &7- モンスター系"
+            send "&e/soundtest 7 &7- プレイヤー系"
+            send "&e/soundtest 8 &7- ブロック系"
+            send "&e/soundtest 9 &7- 自然・環境系"
+            send "&e/soundtest 10 &7- その他"
+            send ""
+            send "&e/soundtest all &7- 全サウンドを順番に再生"
+            send "&e/soundtest stop &7- 連続再生停止"
+            send ""
+            send "&6&l================================"
+            send ""
+
+            stop
+
+
+        # ----------------------------------------------------
+        # STOP
+        # ----------------------------------------------------
+
+        if arg-1 is "stop":
+
+            delete {soundtest.running::%uuid of player%}
+
+            send "&c[SOUND TEST] Stopped."
+
+            stop
+
+
+        # ----------------------------------------------------
+        # CATEGORY 1
+        # 正解・通知
+        # ----------------------------------------------------
+
+        if arg-1 is "1":
+
+            send "&a[SOUND 1] 正解・通知系"
+
+            play sound "block.note_block.pling" with volume 1 and pitch 2 to player
+            wait 5 ticks
+
+            play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.5 to player
+            wait 5 ticks
+
+            play sound "entity.player.levelup" with volume 1 and pitch 1 to player
+            wait 5 ticks
+
+            play sound "block.amethyst_block.chime" with volume 1 and pitch 1.5 to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # CATEGORY 2
+        # 不正解・警告
+        # ----------------------------------------------------
+
+        if arg-1 is "2":
+
+            send "&c[SOUND 2] 不正解・警告系"
+
+            play sound "block.note_block.bass" with volume 1 and pitch 0.5 to player
+            wait 5 ticks
+
+            play sound "block.note_block.bass" with volume 1 and pitch 0.7 to player
+            wait 5 ticks
+
+            play sound "entity.villager.no" with volume 1 and pitch 1 to player
+            wait 5 ticks
+
+            play sound "entity.item.break" with volume 1 and pitch 1 to player
+            wait 5 ticks
+
+            play sound "block.anvil.land" with volume 0.8 and pitch 0.7 to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # CATEGORY 3
+        # ボタン・クリック
+        # ----------------------------------------------------
+
+        if arg-1 is "3":
+
+            send "&e[SOUND 3] ボタン・クリック系"
+
+            play sound "ui.button.click" with volume 1 and pitch 1 to player
+            wait 5 ticks
+
+            play sound "block.lever.click" with volume 1 and pitch 1 to player
+            wait 5 ticks
+
+            play sound "block.note_block.hat" with volume 1 and pitch 2 to player
+            wait 5 ticks
+
+            play sound "block.tripwire.click" with volume 1 and pitch 1 to player
+            wait 5 ticks
+
+            play sound "block.wooden_button.click_on" with volume 1 and pitch 1.5 to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # CATEGORY 4
+        # 成功・レベルアップ
+        # ----------------------------------------------------
+
+        if arg-1 is "4":
+
+            send "&a[SOUND 4] 成功・レベルアップ系"
+
+            play sound "entity.player.levelup" with volume 1 and pitch 1 to player
+            wait 8 ticks
+
+            play sound "entity.experience_orb.pickup" with volume 1 and pitch 2 to player
+            wait 5 ticks
+
+            play sound "block.enchantment_table.use" with volume 1 and pitch 1 to player
+            wait 8 ticks
+
+            play sound "entity.firework_rocket.twinkle" with volume 1 and pitch 1.2 to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # CATEGORY 5
+        # 爆発・インパクト
+        # ----------------------------------------------------
+
+        if arg-1 is "5":
+
+            send "&4[SOUND 5] 爆発・インパクト系"
+
+            play sound "entity.generic.explode" with volume 0.8 and pitch 1 to player
+            wait 10 ticks
+
+            play sound "entity.generic.big_fall" with volume 1 and pitch 0.8 to player
+            wait 10 ticks
+
+            play sound "block.anvil.land" with volume 1 and pitch 0.5 to player
+            wait 10 ticks
+
+            play sound "entity.dragon_fireball.explode" with volume 0.7 and pitch 1 to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # CATEGORY 6
+        # モンスター
+        # ----------------------------------------------------
+
+        if arg-1 is "6":
+
+            send "&5[SOUND 6] モンスター系"
+
+            play sound "entity.zombie.ambient" with volume 1 and pitch 1 to player
+            wait 10 ticks
+
+            play sound "entity.creeper.primed" with volume 1 and pitch 1 to player
+            wait 10 ticks
+
+            play sound "entity.enderman.stare" with volume 1 and pitch 1 to player
+            wait 10 ticks
+
+            play sound "entity.ender_dragon.growl" with volume 0.5 and pitch 1 to player
+            wait 10 ticks
+
+            play sound "entity.wither.spawn" with volume 0.5 and pitch 1 to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # CATEGORY 7
+        # プレイヤー
+        # ----------------------------------------------------
+
+        if arg-1 is "7":
+
+            send "&b[SOUND 7] プレイヤー系"
+
+            play sound "entity.player.attack.strong" with volume 1 and pitch 1 to player
+            wait 7 ticks
+
+            play sound "entity.player.attack.crit" with volume 1 and pitch 1 to player
+            wait 7 ticks
+
+            play sound "entity.player.hurt" with volume 1 and pitch 1 to player
+            wait 7 ticks
+
+            play sound "entity.player.burp" with volume 1 and pitch 1 to player
+            wait 7 ticks
+
+            play sound "entity.player.levelup" with volume 1 and pitch 1.5 to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # CATEGORY 8
+        # ブロック
+        # ----------------------------------------------------
+
+        if arg-1 is "8":
+
+            send "&7[SOUND 8] ブロック系"
+
+            play sound "block.stone.break" with volume 1 and pitch 1 to player
+            wait 6 ticks
+
+            play sound "block.wood.break" with volume 1 and pitch 1 to player
+            wait 6 ticks
+
+            play sound "block.glass.break" with volume 1 and pitch 1 to player
+            wait 6 ticks
+
+            play sound "block.metal.break" with volume 1 and pitch 1 to player
+            wait 6 ticks
+
+            play sound "block.grass.break" with volume 1 and pitch 1 to player
+            wait 6 ticks
+
+            play sound "block.anvil.land" with volume 1 and pitch 1 to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # CATEGORY 9
+        # 自然・環境
+        # ----------------------------------------------------
+
+        if arg-1 is "9":
+
+            send "&2[SOUND 9] 自然・環境系"
+
+            play sound "ambient.cave" with volume 1 and pitch 1 to player
+            wait 15 ticks
+
+            play sound "weather.rain" with volume 0.7 and pitch 1 to player
+            wait 15 ticks
+
+            play sound "block.water.ambient" with volume 1 and pitch 1 to player
+            wait 10 ticks
+
+            play sound "block.lava.ambient" with volume 1 and pitch 1 to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # CATEGORY 10
+        # その他
+        # ----------------------------------------------------
+
+        if arg-1 is "10":
+
+            send "&d[SOUND 10] その他"
+
+            play sound "block.bell.use" with volume 1 and pitch 1 to player
+            wait 8 ticks
+
+            play sound "block.beacon.activate" with volume 1 and pitch 1 to player
+            wait 12 ticks
+
+            play sound "block.conduit.activate" with volume 1 and pitch 1 to player
+            wait 12 ticks
+
+            play sound "block.respawn_anchor.charge" with volume 1 and pitch 1 to player
+            wait 10 ticks
+
+            play sound "item.totem.use" with volume 1 and pitch 1 to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # ALL
+        # ----------------------------------------------------
+
+        if arg-1 is "all":
+
+            if {soundtest.running::%uuid of player%} is set:
+                send "&e[SOUND TEST] Already running."
+                stop
+
+            set {soundtest.running::%uuid of player%} to true
+
+            send "&6[SOUND TEST] Starting..."
+            send "&7Use &e/soundtest stop &7to stop."
+
+            # ------------------------------------------------
+            # 1
+            # ------------------------------------------------
+
+            play sound "block.note_block.pling" with volume 1 and pitch 2 to player
+            wait 15 ticks
+
+            if {soundtest.running::%uuid of player%} is not set:
+                stop
+
+            play sound "entity.villager.no" with volume 1 and pitch 1 to player
+            wait 15 ticks
+
+            if {soundtest.running::%uuid of player%} is not set:
+                stop
+
+            play sound "ui.button.click" with volume 1 and pitch 1 to player
+            wait 15 ticks
+
+            if {soundtest.running::%uuid of player%} is not set:
+                stop
+
+            play sound "entity.player.levelup" with volume 1 and pitch 1 to player
+            wait 15 ticks
+
+            if {soundtest.running::%uuid of player%} is not set:
+                stop
+
+            play sound "entity.generic.explode" with volume 0.8 and pitch 1 to player
+            wait 15 ticks
+
+            if {soundtest.running::%uuid of player%} is not set:
+                stop
+
+            play sound "entity.zombie.ambient" with volume 1 and pitch 1 to player
+            wait 15 ticks
+
+            if {soundtest.running::%uuid of player%} is not set:
+                stop
+
+            play sound "entity.player.attack.strong" with volume 1 and pitch 1 to player
+            wait 15 ticks
+
+            if {soundtest.running::%uuid of player%} is not set:
+                stop
+
+            play sound "block.glass.break" with volume 1 and pitch 1 to player
+            wait 15 ticks
+
+            if {soundtest.running::%uuid of player%} is not set:
+                stop
+
+            play sound "block.bell.use" with volume 1 and pitch 1 to player
+
+            delete {soundtest.running::%uuid of player%}
+
+            send "&a[SOUND TEST] Complete."
+
+            stop
+
+
+        # ----------------------------------------------------
+        # Unknown
+        # ----------------------------------------------------
+
+        send "&cUnknown option."
+        send "&7Use &e/soundtest &7to see the list."

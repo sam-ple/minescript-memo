@@ -80,6 +80,61 @@ Build the Mob Capture System with Skript
 #dozle #ドズル社 #モブキャッチ
 #再現 #マインクラフト #マイクラ #mod
 
+## ビンゴ
+
+Minescript × Skript | I Recreated a Bingo Minigame in Minecraft
+
+Minecraft Minigames
+Minescript × Skript
+
+Bingo
+
+#1 Build the Bingo Arena with Minescript
+#2 Build the Game System with Skript
+
+Minecraft Java Edition 26.2
+
+#minecraft #minigames #minescript #skript
+#bingo #ビンゴ
+#マインクラフト #マイクラ #mod
+
+
+## 遠くまで
+
+Skript | I Recreated FarRace in Minecraft
+
+Minecraft Minigames
+Skript
+
+FarRace (Distance Race)
+
+Build the Game System with Skript
+
+Minecraft Java Edition 26.2
+
+#minecraft #minigames #skript
+#farrace #distancerace
+#マインクラフト #マイクラ #mod
+
+
+## 鉱石レース
+
+Minescript × Skript | I Recreated OreRace in Minecraft
+
+Minecraft Minigames
+Minescript × Skript
+
+OreRace
+
+#1 Create a Test Arena with Minescript
+#2 Build the Game System with Skript
+
+Minecraft Java Edition 26.2
+
+#minecraft #minigames #minescript #skript
+#鉱石競争 #マインクラフト #マイクラ #mod
+
+
 ## テンプレート
 
 [Tech Stack] | I Recreated [GAME] in Minecraft

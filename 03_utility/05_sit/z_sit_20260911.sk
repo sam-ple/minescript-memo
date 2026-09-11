@@ -1,0 +1,229 @@
+# ============================================================
+# SIT SYSTEM
+# Version : v0.1.00
+#
+# Minecraft Java Edition + Paper + Skript + SkBee
+#
+# Commands:
+#   /sit
+#   /stand
+#
+# Purpose:
+#   Invisible Armor Standをプレイヤーの下に生成し、
+#   プレイヤーをArmor Standに乗せて座っているように見せる。
+#
+# ============================================================
+
+
+options:
+    sit-tag: sit_stand
+
+
+# ============================================================
+# /sit
+# ============================================================
+
+command /sit:
+    permission: sit.use
+    permission message: &cYou don't have permission to use /sit.
+    trigger:
+
+        # ----------------------------------------------------
+        # Already sitting?
+        # ----------------------------------------------------
+
+        if {sit::%uuid of player%} is set:
+            send "&e❗ You are already sitting." to player
+            stop
+
+
+        # ----------------------------------------------------
+        # Get player location
+        # ----------------------------------------------------
+
+        set {_loc} to location of player
+
+        # Armor Standをプレイヤーより少し下に配置
+        subtract 2 from y-coordinate of {_loc}
+
+
+        # ----------------------------------------------------
+        # Spawn Armor Stand
+        # ----------------------------------------------------
+
+        spawn armor stand at {_loc}
+
+        set {_stand} to last spawned entity
+
+
+        # ----------------------------------------------------
+        # Armor Stand settings
+        # ----------------------------------------------------
+
+        set gravity of {_stand} to false
+        set invisible state of {_stand} to true
+        set invulnerability of {_stand} to true
+
+        add "{@sit-tag}" to scoreboard tags of {_stand}
+
+
+        # ----------------------------------------------------
+        # Save relationship
+        #
+        # プレイヤー → Armor Stand
+        # ----------------------------------------------------
+
+        set {sit::%uuid of player%} to {_stand}
+
+
+        # ----------------------------------------------------
+        # Mount player
+        # ----------------------------------------------------
+
+        mount player on {_stand}
+
+
+        # ----------------------------------------------------
+        # Message
+        # ----------------------------------------------------
+
+        send "&a🪑 You sat down." to player
+
+
+# ============================================================
+# /stand
+# ============================================================
+
+command /stand:
+    permission: sit.use
+    permission message: &cYou don't have permission to use /stand.
+    trigger:
+
+        # ----------------------------------------------------
+        # Check sitting state
+        # ----------------------------------------------------
+
+        if {sit::%uuid of player%} is not set:
+            send "&e❗ You are not sitting." to player
+            stop
+
+
+        # ----------------------------------------------------
+        # Dismount
+        # ----------------------------------------------------
+
+        dismount player
+
+
+        # ----------------------------------------------------
+        # Get Armor Stand
+        # ----------------------------------------------------
+
+        set {_stand} to {sit::%uuid of player%}
+
+
+        # ----------------------------------------------------
+        # Remove Armor Stand
+        # ----------------------------------------------------
+
+        if {_stand} is an entity:
+            kill {_stand}
+
+
+        # ----------------------------------------------------
+        # Clear variable
+        # ----------------------------------------------------
+
+        delete {sit::%uuid of player%}
+
+
+        # ----------------------------------------------------
+        # Move player slightly upward
+        # ----------------------------------------------------
+
+        wait 1 tick
+
+        set {_loc} to location of player
+        add 0.5 to y-coordinate of {_loc}
+        teleport player to {_loc}
+
+
+        # ----------------------------------------------------
+        # Message
+        # ----------------------------------------------------
+
+        send "&a🧍 You stood up." to player
+
+
+# ============================================================
+# PLAYER QUIT
+# ============================================================
+#
+# ログアウト時にArmor Standが残らないようにする。
+#
+# ============================================================
+
+on quit:
+
+    if {sit::%uuid of player%} is set:
+
+        set {_stand} to {sit::%uuid of player%}
+
+        if {_stand} is an entity:
+            kill {_stand}
+
+        delete {sit::%uuid of player%}
+
+
+# ============================================================
+# PLAYER DEATH
+# ============================================================
+#
+# 死亡時にもArmor StandをCleanup。
+#
+# ============================================================
+
+on death:
+
+    if {sit::%uuid of player%} is set:
+
+        set {_stand} to {sit::%uuid of player%}
+
+        if {_stand} is an entity:
+            kill {_stand}
+
+        delete {sit::%uuid of player%}
+
+
+# ============================================================
+# SERVER / SCRIPT CLEANUP
+# ============================================================
+#
+# /sit reloadなどで変数とArmor Standがずれた場合に備えて、
+# タグ付きArmor Standを削除するコマンド。
+#
+# ============================================================
+
+command /sitcleanup:
+    permission: sit.admin
+    permission message: &cYou don't have permission to use this command.
+    trigger:
+
+        set {_count} to 0
+
+        loop all armor stands:
+
+            if "{@sit-tag}" is in scoreboard tags of loop-entity:
+
+                kill loop-entity
+                add 1 to {_count}
+
+
+        # プレイヤー側の状態も削除
+        loop all players:
+
+            if {sit::%uuid of loop-player%} is set:
+                delete {sit::%uuid of loop-player%}
+
+
+        send "&a[SIT] Cleanup complete. Removed %{_count}% sitting stands."

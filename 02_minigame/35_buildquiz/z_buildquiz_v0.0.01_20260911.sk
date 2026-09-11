@@ -1,0 +1,1052 @@
+# ============================================================
+# BUILDING QUIZ GAME
+# Version : v0.1.00
+# Minecraft Java Edition + Paper + Skript
+#
+# PURPOSE
+#
+#   建築しながら回答できる建築クイズゲーム
+#
+#   READY
+#     ↓
+#   建築者決定・お題決定
+#     ↓
+#   START
+#     ↓
+#   建築中 ＋ 回答受付
+#     ↓
+#   正解 / GIVE UP
+#     ↓
+#   ROUND END
+#
+# ============================================================
+#
+# GAME RULE
+#
+#   ・全員 Creative
+#   ・建築者はランダムではなく順番に交代
+#   ・お題はランダム
+#   ・お題は建築者本人にだけ表示
+#   ・建築途中でも回答可能
+#   ・最初に回答ボタンを押した人が回答者
+#   ・不正解なら回答者ロック解除
+#   ・正解なら +1 点
+#   ・GIVE UP は建築者以外なら可能
+#   ・GIVE UP するとラウンド終了
+#
+# ============================================================
+#
+# OPERATION ITEMS
+#
+#   slot 0 : READY
+#   slot 1 : START
+#   slot 2 : 回答
+#   slot 3 : 正解
+#   slot 4 : 不正解
+#   slot 5 : GIVE UP
+#   slot 6 : +1
+#   slot 7 : -1
+#
+# ============================================================
+
+
+# ============================================================
+# CONFIG
+# ============================================================
+
+options:
+
+    # --------------------------------------------------------
+    # Stage size
+    # --------------------------------------------------------
+
+    clear-radius: 25
+    stage-radius: 15
+    clear-height: 100
+
+    # --------------------------------------------------------
+    # Materials
+    # --------------------------------------------------------
+
+    ground-material: grass_block
+    stage-material: quartz_block
+
+    # --------------------------------------------------------
+    # Operation item names
+    # --------------------------------------------------------
+
+    ready-name: &eREADY
+    start-name: &aSTART
+    answer-name: &b回答
+    correct-name: &a正解
+    wrong-name: &c不正解
+    giveup-name: &cGIVE UP
+    plus-name: &a+1
+    minus-name: &c-1
+
+
+# ============================================================
+# GAME VARIABLES
+# ============================================================
+#
+# {quiz.state}
+#   WAITING
+#   PLAYING
+#   ROUND_END
+#
+# {quiz.builder}
+#   現在の建築者
+#
+# {quiz.answerer}
+#   現在の回答者
+#
+# {quiz.topic}
+#   現在のお題
+#
+# {quiz.round}
+#   ラウンド数
+#
+# {quiz.player.index}
+#   建築者交代用インデックス
+#
+# {quiz.participants::*}
+#   参加者
+#
+# {quiz.score::UUID}
+#   スコア
+#
+# {quiz.center.x}
+# {quiz.center.y}
+# {quiz.center.z}
+# {quiz.center.world}
+#
+# ============================================================
+
+
+# ============================================================
+# TOPICS
+# ============================================================
+
+on load:
+
+    # --------------------------------------------------------
+    # お題
+    # --------------------------------------------------------
+
+    delete {quiz.topic.list::*}
+
+    add "猫" to {quiz.topic.list::*}
+    add "犬" to {quiz.topic.list::*}
+    add "車" to {quiz.topic.list::*}
+    add "家" to {quiz.topic.list::*}
+    add "飛行機" to {quiz.topic.list::*}
+    add "木" to {quiz.topic.list::*}
+    add "剣" to {quiz.topic.list::*}
+    add "ケーキ" to {quiz.topic.list::*}
+    add "時計" to {quiz.topic.list::*}
+    add "学校" to {quiz.topic.list::*}
+
+    # --------------------------------------------------------
+    # 操作アイテム
+    #
+    # アイテム種類はここだけ変更すればOK
+    # --------------------------------------------------------
+
+    set {quiz.item.ready} to compass named "{@ready-name}"
+    set {quiz.item.start} to clock named "{@start-name}"
+    set {quiz.item.answer} to feather named "{@answer-name}"
+    set {quiz.item.correct} to emerald named "{@correct-name}"
+    set {quiz.item.wrong} to redstone named "{@wrong-name}"
+    set {quiz.item.giveup} to barrier named "{@giveup-name}"
+    set {quiz.item.plus} to lime dye named "{@plus-name}"
+    set {quiz.item.minus} to red dye named "{@minus-name}"
+
+    # --------------------------------------------------------
+    # 初期状態
+    # --------------------------------------------------------
+
+    if {quiz.state} is not set:
+        set {quiz.state} to "WAITING"
+
+    broadcast "&7[Quiz] &f建築クイズを読み込みました。"
+
+
+# ============================================================
+# FUNCTION : GIVE HOTBAR
+# ============================================================
+
+function quizGiveHotbar(p: player):
+
+    set slot 0 of {_p}'s inventory to {quiz.item.ready}
+    set slot 1 of {_p}'s inventory to {quiz.item.start}
+    set slot 2 of {_p}'s inventory to {quiz.item.answer}
+    set slot 3 of {_p}'s inventory to {quiz.item.correct}
+    set slot 4 of {_p}'s inventory to {quiz.item.wrong}
+    set slot 5 of {_p}'s inventory to {quiz.item.giveup}
+    set slot 6 of {_p}'s inventory to {quiz.item.plus}
+    set slot 7 of {_p}'s inventory to {quiz.item.minus}
+    set slot 8 of {_p}'s inventory to air
+
+
+# ============================================================
+# FUNCTION : SAVE HOTBAR
+# ============================================================
+
+function quizSaveHotbar(p: player):
+
+    loop 9 times:
+
+        set {_slot} to loop-number - 1
+
+        set {quiz.saved.hotbar::%uuid of {_p}%::%{_slot}%} to slot {_slot} of {_p}'s inventory
+
+
+# ============================================================
+# FUNCTION : CLEAR HOTBAR
+# ============================================================
+
+function quizClearHotbar(p: player):
+
+    loop 9 times:
+
+        set {_slot} to loop-number - 1
+
+        set slot {_slot} of {_p}'s inventory to air
+
+
+# ============================================================
+# FUNCTION : RESTORE HOTBAR
+# ============================================================
+
+function quizRestoreHotbar(p: player):
+
+    loop 9 times:
+
+        set {_slot} to loop-number - 1
+
+        if {quiz.saved.hotbar::%uuid of {_p}%::%{_slot}%} is set:
+            set slot {_slot} of {_p}'s inventory to {quiz.saved.hotbar::%uuid of {_p}%::%{_slot}%}
+        else:
+            set slot {_slot} of {_p}'s inventory to air
+
+    delete {quiz.saved.hotbar::%uuid of {_p}%::*}
+
+
+# ============================================================
+# FUNCTION : RESET STAGE
+# ============================================================
+
+function quizResetArea():
+
+    if {quiz.center.x} is not set:
+        stop
+
+    set {_cx} to {quiz.center.x}
+    set {_cy} to {quiz.center.y}
+    set {_cz} to {quiz.center.z}
+    set {_world} to {quiz.center.world}
+
+    # --------------------------------------------------------
+    # Clear area
+    #
+    # X/Z : ±25
+    # Y   : -1 ～ +100
+    # --------------------------------------------------------
+
+    set {_x1} to {_cx} - {@clear-radius}
+    set {_x2} to {_cx} + {@clear-radius}
+
+    set {_y1} to {_cy} - 1
+    set {_y2} to {_cy} + {@clear-height}
+
+    set {_z1} to {_cz} - {@clear-radius}
+    set {_z2} to {_cz} + {@clear-radius}
+
+    execute console command "execute in %{_world}% run fill %{_x1}% %{_y1}% %{_z1}% %{_x2}% %{_y2}% %{_z2}% air"
+
+    # --------------------------------------------------------
+    # Ground
+    #
+    # Y = center Y - 2
+    # 51 x 51
+    # --------------------------------------------------------
+
+    set {_ground-y} to {_cy} - 2
+
+    execute console command "execute in %{_world}% run fill %{_x1}% %{_ground-y}% %{_z1}% %{_x2}% %{_ground-y}% %{_z2}% {@ground-material}"
+
+    # --------------------------------------------------------
+    # Building stage
+    #
+    # Y = center Y - 1
+    # 31 x 31
+    # --------------------------------------------------------
+
+    set {_sx1} to {_cx} - {@stage-radius}
+    set {_sx2} to {_cx} + {@stage-radius}
+
+    set {_sz1} to {_cz} - {@stage-radius}
+    set {_sz2} to {_cz} + {@stage-radius}
+
+    set {_stage-y} to {_cy} - 1
+
+    execute console command "execute in %{_world}% run fill %{_sx1}% %{_stage-y}% %{_sz1}% %{_sx2}% %{_stage-y}% %{_sz2}% {@stage-material}"
+
+
+# ============================================================
+# FUNCTION : READY
+# ============================================================
+
+function quizReady(p: player):
+
+    if {quiz.state} is not "WAITING":
+        send "&c現在READYできる状態ではありません。" to {_p}
+        stop
+
+    if {quiz.center.x} is not set:
+        send "&c先に /quizset でステージを設定してください。" to {_p}
+        stop
+
+    # --------------------------------------------------------
+    # Participants
+    # --------------------------------------------------------
+
+    delete {quiz.participants::*}
+
+    loop all players:
+
+        add loop-player to {quiz.participants::*}
+
+        # 全員Creative
+        set gamemode of loop-player to creative
+
+        # スコア初期化
+        if {quiz.score::%uuid of loop-player%} is not set:
+            set {quiz.score::%uuid of loop-player%} to 0
+
+        # 操作アイテム
+        quizGiveHotbar(loop-player)
+
+    # --------------------------------------------------------
+    # 最低人数
+    # --------------------------------------------------------
+
+    if size of {quiz.participants::*} < 2:
+        broadcast "&c参加者が2人以上必要です。"
+        stop
+
+    # --------------------------------------------------------
+    # Round
+    # --------------------------------------------------------
+
+    add 1 to {quiz.round}
+
+    # --------------------------------------------------------
+    # Builder rotation
+    # --------------------------------------------------------
+
+    add 1 to {quiz.player.index}
+
+    if {quiz.player.index} > size of {quiz.participants::*}:
+        set {quiz.player.index} to 1
+
+    set {quiz.builder} to {quiz.participants::%{quiz.player.index}%}
+
+    # --------------------------------------------------------
+    # Random topic
+    # --------------------------------------------------------
+
+    set {quiz.topic} to random element out of {quiz.topic.list::*}
+
+    # --------------------------------------------------------
+    # Reset stage
+    # --------------------------------------------------------
+
+    quizResetArea()
+
+    # --------------------------------------------------------
+    # Answerer reset
+    # --------------------------------------------------------
+
+    delete {quiz.answerer}
+
+    # --------------------------------------------------------
+    # Builder only moves to stage
+    # --------------------------------------------------------
+
+    set {_x} to {quiz.center.x} + 0.5
+    set {_y} to {quiz.center.y}
+    set {_z} to {quiz.center.z} + 0.5
+
+    teleport {quiz.builder} to location at {_x}, {_y}, {_z} in world {quiz.center.world}
+
+    # --------------------------------------------------------
+    # Builder only receives topic
+    # --------------------------------------------------------
+
+    send "&6================================" to {quiz.builder}
+    send "&e今回のお題：&f%{quiz.topic}%" to {quiz.builder}
+    send "&6================================" to {quiz.builder}
+    send "&7他のプレイヤーにはお題を見せないでください。" to {quiz.builder}
+
+    # --------------------------------------------------------
+    # Announcement
+    # --------------------------------------------------------
+
+    broadcast ""
+    broadcast "&e現在の建築者は &f%name of {quiz.builder}%&e。"
+    broadcast "&7ラウンド %{quiz.round}%"
+    broadcast "&7建築者はREADY地点へ移動しました。"
+    broadcast "&7STARTで建築開始。"
+    broadcast ""
+
+
+# ============================================================
+# FUNCTION : START
+# ============================================================
+
+function quizStart(p: player):
+
+    if {quiz.state} is not "WAITING":
+        send "&c現在STARTできる状態ではありません。" to {_p}
+        stop
+
+    if {quiz.builder} is not set:
+        send "&c先にREADYしてください。" to {_p}
+        stop
+
+    if {_p} is not {quiz.builder}:
+        send "&cSTARTできるのは建築者だけです。" to {_p}
+        stop
+
+    # --------------------------------------------------------
+    # Builder's original hotbar
+    # --------------------------------------------------------
+
+    quizSaveHotbar({_p})
+
+    # --------------------------------------------------------
+    # Builder operation items removed
+    #
+    # 建築者は自由にアイテムを使える
+    # --------------------------------------------------------
+
+    quizClearHotbar({_p})
+
+    # --------------------------------------------------------
+    # Game state
+    # --------------------------------------------------------
+
+    set {quiz.state} to "PLAYING"
+
+    delete {quiz.answerer}
+
+    broadcast ""
+    broadcast "&a建築開始！"
+    broadcast "&7建築途中でも回答できます。"
+    broadcast "&7回答が分かったら &b回答 &7を押してください。"
+    broadcast ""
+
+
+# ============================================================
+# FUNCTION : ANSWER
+# ============================================================
+
+function quizAnswer(p: player):
+
+    if {quiz.state} is not "PLAYING":
+        send "&c現在回答できません。" to {_p}
+        stop
+
+    # Builder cannot answer
+    if {_p} is {quiz.builder}:
+        send "&c建築者は回答できません。" to {_p}
+        stop
+
+    # Already locked
+    if {quiz.answerer} is set:
+        send "&c現在の回答者は %name of {quiz.answerer}% です。" to {_p}
+        stop
+
+    # --------------------------------------------------------
+    # Lock answerer
+    # --------------------------------------------------------
+
+    set {quiz.answerer} to {_p}
+
+    broadcast "回答者 %name of {_p}%。"
+
+    play sound "block.note_block.bell" with volume 1 and pitch 2 to all players
+
+
+# ============================================================
+# FUNCTION : WRONG
+# ============================================================
+
+function quizWrong(p: player):
+
+    if {quiz.state} is not "PLAYING":
+        send "&c現在ゲーム中ではありません。" to {_p}
+        stop
+
+    if {quiz.answerer} is not {_p}:
+        send "&cあなたは現在の回答者ではありません。" to {_p}
+        stop
+
+    # --------------------------------------------------------
+    # Wrong
+    # --------------------------------------------------------
+
+    broadcast "不正解。"
+
+    delete {quiz.answerer}
+
+    play sound "entity.villager.no" with volume 1 and pitch 1 to all players
+
+    broadcast "再び回答を受け付けます。"
+
+
+# ============================================================
+# FUNCTION : CORRECT
+# ============================================================
+
+function quizCorrect(p: player):
+
+    if {quiz.state} is not "PLAYING":
+        send "&c現在ゲーム中ではありません。" to {_p}
+        stop
+
+    if {quiz.answerer} is not {_p}:
+        send "&cあなたは現在の回答者ではありません。" to {_p}
+        stop
+
+    # --------------------------------------------------------
+    # Score
+    # --------------------------------------------------------
+
+    add 1 to {quiz.score::%uuid of {_p}%}
+
+    broadcast "正解！ +1"
+    broadcast "答え：%{quiz.topic}%"
+
+    play sound "entity.player.levelup" with volume 1 and pitch 1 to all players
+
+    # --------------------------------------------------------
+    # Round end
+    # --------------------------------------------------------
+
+    quizRoundEnd()
+
+
+# ============================================================
+# FUNCTION : GIVE UP
+# ============================================================
+
+function quizGiveUp(p: player):
+
+    if {quiz.state} is not "PLAYING":
+        send "&c現在GIVE UPできません。" to {_p}
+        stop
+
+    # Builder cannot give up
+    if {_p} is {quiz.builder}:
+        send "&c建築者はGIVE UPできません。" to {_p}
+        stop
+
+    broadcast "ギブアップ。"
+    broadcast "答え：%{quiz.topic}%"
+
+    play sound "block.note_block.bass" with volume 1 and pitch 1 to all players
+
+    quizRoundEnd()
+
+
+# ============================================================
+# FUNCTION : ROUND END
+# ============================================================
+
+function quizRoundEnd():
+
+    set {quiz.state} to "ROUND_END"
+
+    # --------------------------------------------------------
+    # Restore builder's original hotbar
+    # --------------------------------------------------------
+
+    if {quiz.builder} is online:
+
+        quizRestoreHotbar({quiz.builder})
+
+    # --------------------------------------------------------
+    # Answerer reset
+    # --------------------------------------------------------
+
+    delete {quiz.answerer}
+
+    # --------------------------------------------------------
+    # Reset stage
+    # --------------------------------------------------------
+
+    quizResetArea()
+
+    # --------------------------------------------------------
+    # State
+    # --------------------------------------------------------
+
+    set {quiz.state} to "WAITING"
+
+    broadcast ""
+    broadcast "&6ラウンド終了。"
+    broadcast "&7次のラウンドはREADYしてください。"
+    broadcast ""
+
+
+# ============================================================
+# COMMAND : /quizset
+#
+# 現在地をゲームセンターとして設定
+#
+# center
+#   X/Z ±25 = 51x51 clear
+#   Y-2      = ground
+#   Y-1      = 31x31 stage
+# ============================================================
+
+command /quizset:
+    permission: quiz.admin
+    permission message: "&c権限がありません。"
+    trigger:
+
+        set {quiz.center.x} to floor(x-coordinate of player's location)
+        set {quiz.center.y} to floor(y-coordinate of player's location)
+        set {quiz.center.z} to floor(z-coordinate of player's location)
+        set {quiz.center.world} to name of world of player
+
+        quizResetArea()
+
+        teleport player to location at ({quiz.center.x} + 0.5), {quiz.center.y}, ({quiz.center.z} + 0.5) in world {quiz.center.world}
+
+        send "&a建築クイズのステージを設定しました。" to player
+        send "&7中心: %{quiz.center.x}%, %{quiz.center.y}%, %{quiz.center.z}%" to player
+        send "&7ワールド: %{quiz.center.world}%" to player
+        send "&7クリア範囲: 51x51" to player
+        send "&7建築ステージ: 31x31" to player
+
+
+# ============================================================
+# COMMAND : /ready
+# ============================================================
+
+command /ready:
+    trigger:
+
+        quizReady(player)
+
+
+# ============================================================
+# COMMAND : /startquiz
+# ============================================================
+
+command /startquiz:
+    trigger:
+
+        quizStart(player)
+
+
+# ============================================================
+# COMMAND : /quizanswer
+# ============================================================
+
+command /quizanswer:
+    trigger:
+
+        quizAnswer(player)
+
+
+# ============================================================
+# COMMAND : /quizwrong
+# ============================================================
+
+command /quizwrong:
+    trigger:
+
+        quizWrong(player)
+
+
+# ============================================================
+# COMMAND : /quizcorrect
+# ============================================================
+
+command /quizcorrect:
+    trigger:
+
+        quizCorrect(player)
+
+
+# ============================================================
+# COMMAND : /giveup
+# ============================================================
+
+command /giveup:
+    trigger:
+
+        quizGiveUp(player)
+
+
+# ============================================================
+# COMMAND : /quizplus
+#
+# TEST用
+# ============================================================
+
+command /quizplus:
+    permission: quiz.admin
+    permission message: "&c権限がありません。"
+    trigger:
+
+        add 1 to {quiz.score::%uuid of player%}
+
+        send "&a+1" to player
+        send "&7現在のスコア: %{quiz.score::%uuid of player%}%" to player
+
+
+# ============================================================
+# COMMAND : /quizminus
+#
+# TEST用
+# ============================================================
+
+command /quizminus:
+    permission: quiz.admin
+    permission message: "&c権限がありません。"
+    trigger:
+
+        remove 1 from {quiz.score::%uuid of player%}
+
+        if {quiz.score::%uuid of player%} < 0:
+            set {quiz.score::%uuid of player%} to 0
+
+        send "&c-1" to player
+        send "&7現在のスコア: %{quiz.score::%uuid of player%}%" to player
+
+
+# ============================================================
+# COMMAND : /quizscore
+# ============================================================
+
+command /quizscore:
+    trigger:
+
+        send "&6===== 建築クイズ SCORE =====" to player
+
+        loop {quiz.participants::*}:
+
+            set {_uuid} to uuid of loop-value
+
+            send "&f%name of loop-value% &7: &e%{quiz.score::%{_uuid}%}%" to player
+
+
+# ============================================================
+# COMMAND : /quizreset
+#
+# TEST / ADMIN
+# ============================================================
+
+command /quizreset:
+    permission: quiz.admin
+    permission message: "&c権限がありません。"
+    trigger:
+
+        delete {quiz.builder}
+        delete {quiz.answerer}
+        delete {quiz.topic}
+        delete {quiz.participants::*}
+
+        set {quiz.state} to "WAITING"
+
+        quizResetArea()
+
+        loop all players:
+            quizGiveHotbar(loop-player)
+
+        broadcast "&e建築クイズをリセットしました。"
+
+
+# ============================================================
+# RIGHT CLICK : OPERATION ITEMS
+#
+# 実際のゲーム処理はfunctionへ渡す
+#
+# アイテム種類とゲームロジックを分離
+# ============================================================
+
+on right click:
+
+    # --------------------------------------------------------
+    # READY
+    # --------------------------------------------------------
+
+    if player's tool is {quiz.item.ready}:
+
+        cancel event
+
+        quizReady(player)
+
+        stop
+
+
+    # --------------------------------------------------------
+    # START
+    # --------------------------------------------------------
+
+    if player's tool is {quiz.item.start}:
+
+        cancel event
+
+        quizStart(player)
+
+        stop
+
+
+    # --------------------------------------------------------
+    # ANSWER
+    # --------------------------------------------------------
+
+    if player's tool is {quiz.item.answer}:
+
+        cancel event
+
+        quizAnswer(player)
+
+        stop
+
+
+    # --------------------------------------------------------
+    # CORRECT
+    # --------------------------------------------------------
+
+    if player's tool is {quiz.item.correct}:
+
+        cancel event
+
+        quizCorrect(player)
+
+        stop
+
+
+    # --------------------------------------------------------
+    # WRONG
+    # --------------------------------------------------------
+
+    if player's tool is {quiz.item.wrong}:
+
+        cancel event
+
+        quizWrong(player)
+
+        stop
+
+
+    # --------------------------------------------------------
+    # GIVE UP
+    # --------------------------------------------------------
+
+    if player's tool is {quiz.item.giveup}:
+
+        cancel event
+
+        quizGiveUp(player)
+
+        stop
+
+
+    # --------------------------------------------------------
+    # +1
+    # --------------------------------------------------------
+
+    if player's tool is {quiz.item.plus}:
+
+        cancel event
+
+        if player has permission "quiz.admin":
+
+            add 1 to {quiz.score::%uuid of player%}
+
+            send "&a+1 &7→ %{quiz.score::%uuid of player%}%" to player
+
+        stop
+
+
+    # --------------------------------------------------------
+    # -1
+    # --------------------------------------------------------
+
+    if player's tool is {quiz.item.minus}:
+
+        cancel event
+
+        if player has permission "quiz.admin":
+
+            remove 1 from {quiz.score::%uuid of player%}
+
+            if {quiz.score::%uuid of player%} < 0:
+                set {quiz.score::%uuid of player%} to 0
+
+            send "&c-1 &7→ %{quiz.score::%uuid of player%}%" to player
+
+        stop
+
+
+# ============================================================
+# PROTECT OPERATION ITEMS
+# ============================================================
+
+on drop:
+
+    if event-item is {quiz.item.ready}:
+        cancel event
+        stop
+
+    if event-item is {quiz.item.start}:
+        cancel event
+        stop
+
+    if event-item is {quiz.item.answer}:
+        cancel event
+        stop
+
+    if event-item is {quiz.item.correct}:
+        cancel event
+        stop
+
+    if event-item is {quiz.item.wrong}:
+        cancel event
+        stop
+
+    if event-item is {quiz.item.giveup}:
+        cancel event
+        stop
+
+    if event-item is {quiz.item.plus}:
+        cancel event
+        stop
+
+    if event-item is {quiz.item.minus}:
+        cancel event
+        stop
+
+
+# ============================================================
+# JOIN
+# ============================================================
+
+on join:
+
+    wait 2 ticks
+
+    if {quiz.state} is "WAITING":
+
+        quizGiveHotbar(player)
+
+
+# ============================================================
+# QUIT
+# ============================================================
+
+on quit:
+
+    # --------------------------------------------------------
+    # 回答者が抜けた
+    # --------------------------------------------------------
+
+    if {quiz.answerer} is player:
+
+        delete {quiz.answerer}
+
+        broadcast "回答者が退出しました。"
+        broadcast "再び回答を受け付けます。"
+
+
+    # --------------------------------------------------------
+    # Builderが抜けた
+    # --------------------------------------------------------
+
+    if {quiz.builder} is player:
+
+        if {quiz.state} is "PLAYING":
+
+            broadcast "&c建築者が退出しました。"
+            broadcast "ラウンドを終了します。"
+
+            quizRoundEnd()
+
+
+# ============================================================
+# INVENTORY CLICK PROTECTION
+#
+# 操作アイテムを別スロットへ移動させない
+# ============================================================
+
+on inventory click:
+
+    if clicked item is {quiz.item.ready}:
+        cancel event
+        stop
+
+    if clicked item is {quiz.item.start}:
+        cancel event
+        stop
+
+    if clicked item is {quiz.item.answer}:
+        cancel event
+        stop
+
+    if clicked item is {quiz.item.correct}:
+        cancel event
+        stop
+
+    if clicked item is {quiz.item.wrong}:
+        cancel event
+        stop
+
+    if clicked item is {quiz.item.giveup}:
+        cancel event
+        stop
+
+    if clicked item is {quiz.item.plus}:
+        cancel event
+        stop
+
+    if clicked item is {quiz.item.minus}:
+        cancel event
+        stop
+
+
+# ============================================================
+# GAME INFO COMMAND
+# ============================================================
+
+command /quizinfo:
+    trigger:
+
+        send "&6===== BUILDING QUIZ =====" to player
+        send "&7State    : &f%{quiz.state}%" to player
+        send "&7Round    : &f%{quiz.round}%" to player
+
+        if {quiz.builder} is set:
+            send "&7Builder  : &f%name of {quiz.builder}%" to player
+        else:
+            send "&7Builder  : &f-"
+
+        if {quiz.answerer} is set:
+            send "&7Answerer : &f%name of {quiz.answerer}%" to player
+        else:
+            send "&7Answerer : &f-"
+
+        if {quiz.topic} is set:
+            if player is {quiz.builder}:
+                send "&7Topic    : &f%{quiz.topic}%" to player
+            else:
+                send "&7Topic    : &f？？？" to player
+        else:
+            send "&7Topic    : &f-" to player
