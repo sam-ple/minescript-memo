@@ -1,0 +1,193 @@
+# ============================================================
+# BACK HOME TP
+# ============================================================
+#
+# Version : v1.0.00
+# Minecraft Java Edition + Paper + Skript
+#
+# ============================================================
+#
+# PURPOSE
+#
+#   Right-click the BackHome item to teleport
+#   the player to their registered home location.
+#
+#   The BackHome item is a renamed Clock.
+#
+# ============================================================
+
+
+# ============================================================
+# OPTIONS
+# ============================================================
+
+options:
+
+    # --------------------------------------------------------
+    # Teleport cooldown
+    # --------------------------------------------------------
+
+    cooldown: 5 seconds
+
+    # --------------------------------------------------------
+    # BackHome item
+    # --------------------------------------------------------
+
+    backhome-item: clock
+    backhome-item-name: &b&lBackHome
+
+
+# ============================================================
+# LOAD
+# ============================================================
+
+on load:
+
+    send "[BackHome] System loaded." to console
+
+
+# ============================================================
+# COMMAND
+# /backhome
+# ============================================================
+
+command /backhome [<text>]:
+
+    permission: op
+
+    trigger:
+
+
+        # ====================================================
+        # SET HOME
+        # ====================================================
+
+        if arg-1 is "set":
+
+            set {backhome.location} to location of player
+
+            send "&a================================" to player
+            send "&a[BackHome] Home Set" to player
+            send "&aYour current location has been registered as your home." to player
+            send "&7X: %{backhome.location}'s x-coordinate%" to player
+            send "&7Y: %{backhome.location}'s y-coordinate%" to player
+            send "&7Z: %{backhome.location}'s z-coordinate%" to player
+            send "&7World: %world of {backhome.location}%" to player
+            send "&a================================" to player
+
+            stop
+
+
+        # ====================================================
+        # GIVE BACKHOME
+        # ====================================================
+
+        if arg-1 is "give":
+
+            set {_item} to {@backhome-item}
+
+            set name of {_item} to colored "{@backhome-item-name}"
+
+            give {_item} to player
+
+            send "&a================================" to player
+            send "&a[BackHome] BackHome received." to player
+            send "&7Right-click the BackHome item to teleport home." to player
+            send "&a================================" to player
+
+            stop
+
+
+        # ====================================================
+        # HELP
+        # ====================================================
+
+        send "&e================================" to player
+        send "&eBackHome System" to player
+        send "" to player
+        send "&e/backhome set &7- Set the current location as home" to player
+        send "&e/backhome give &7- Receive the BackHome item" to player
+        send "&e/backhome &7- Show this help" to player
+        send "&e================================" to player
+
+
+# ============================================================
+# RIGHT CLICK
+# ============================================================
+
+on right click:
+
+
+    # --------------------------------------------------------
+    # Check item type
+    # --------------------------------------------------------
+
+    if player's tool is not {@backhome-item}:
+
+        stop
+
+
+    # --------------------------------------------------------
+    # Check item name
+    #
+    # A normal Clock does not activate BackHome.
+    # Only the named BackHome item can be used.
+    # --------------------------------------------------------
+
+    if name of player's tool is not colored "{@backhome-item-name}":
+
+        stop
+
+
+    # --------------------------------------------------------
+    # Cancel the normal Clock interaction
+    # --------------------------------------------------------
+
+    cancel event
+
+
+    # ========================================================
+    # CHECK HOME
+    # ========================================================
+
+    if {backhome.location} is not set:
+
+        send "&c[BackHome] No home location has been set." to player
+        send "&7An operator must use &f/backhome set&7 first." to player
+
+        stop
+
+
+    # ========================================================
+    # CHECK COOLDOWN
+    # ========================================================
+
+    if {backhome.cooldown::%uuid of player%} is set:
+
+        if difference between now and {backhome.cooldown::%uuid of player%} < {@cooldown}:
+
+            send "&c[BackHome] Teleport is still on cooldown." to player
+
+            stop
+
+
+    # ========================================================
+    # TELEPORT
+    # ========================================================
+
+    teleport player to {backhome.location}
+
+
+    # ========================================================
+    # UPDATE COOLDOWN
+    # ========================================================
+
+    set {backhome.cooldown::%uuid of player%} to now
+
+
+    # ========================================================
+    # MESSAGE
+    # ========================================================
+
+    send "&a[BackHome] Teleported to home." to player
+
