@@ -1,7 +1,7 @@
 # ============================================================
 # FARRACE
 # Distance Race Game
-# Version : v0.4.00
+# Version : v0.4.01
 #
 # ============================================================
 #
@@ -32,40 +32,6 @@
 #   /far debug
 #   /far reset
 #
-#
-# GAME FLOW
-#
-#   /far
-#      ↓
-#   SET
-#      ↓
-#   TIME
-#      ↓
-#   START
-#      ↓
-#   5
-#   4
-#   3
-#   2
-#   1
-#      ↓
-#   START!
-#      ↓
-#   BossBar
-#      ↓
-#   Distance measurement
-#      ↓
-#   0:00
-#      ↓
-#   3
-#   2
-#   1
-#   GAME SET!
-#      ↓
-#   RESULT
-#      ↓
-#   Start Positionへ帰還
-#
 # ============================================================
 
 
@@ -88,6 +54,18 @@ command /far [<text>] [<number>]:
         # ====================================================
 
         if arg-1 is not set:
+
+            # ------------------------------------------------
+            # Default duration
+            # ------------------------------------------------
+
+            if {far.duration} is not set:
+                set {far.duration} to 300
+                set {far.duration.text} to "5:00"
+
+            # ------------------------------------------------
+            # GUI
+            # ------------------------------------------------
 
             set {_gui} to chest inventory with 6 rows named "{@gui-name}"
 
@@ -224,10 +202,7 @@ command /far [<text>] [<number>]:
             if {far.start.x} is set:
 
                 set slot 49 of {_gui} to emerald named "&aStart Position"
-
-                set lore of slot 49 of {_gui} to \
-                    "&7X: &f%{far.start.x}%" and \
-                    "&7Z: &f%{far.start.z}%"
+                set lore of slot 49 of {_gui} to "&7X: &f%{far.start.x}%" and "&7Z: &f%{far.start.z}%"
 
             else:
 
@@ -245,12 +220,10 @@ command /far [<text>] [<number>]:
         if arg-1 is "set":
 
             if {far.running} is true:
-
                 send "{@prefix} &cGame is running." to player
                 stop
 
             if {far.countdown} is true:
-
                 send "{@prefix} &cGame is starting." to player
                 stop
 
@@ -261,9 +234,7 @@ command /far [<text>] [<number>]:
             set {far.start.x} to x-coordinate of player
             set {far.start.z} to z-coordinate of player
 
-            # Yを含む完全な帰還地点
             set {far.start.location} to location of player
-
             set {far.start.world} to world of player
 
             send "{@prefix} &aStart position set!" to player
@@ -281,17 +252,14 @@ command /far [<text>] [<number>]:
         if arg-1 is "time":
 
             if {far.running} is true:
-
                 send "{@prefix} &cGame is running." to player
                 stop
 
             if {far.countdown} is true:
-
                 send "{@prefix} &cGame is starting." to player
                 stop
 
             if arg-2 is not set:
-
                 send "{@prefix} &e/far time <5|15|30|60>" to player
                 stop
 
@@ -300,7 +268,7 @@ command /far [<text>] [<number>]:
                 set {far.duration} to 300
                 set {far.duration.text} to "5:00"
 
-                send "{@prefix} &aTime set to &e5 minutes&a."
+                send "{@prefix} &aTime set to &e5 minutes&a." to player
                 stop
 
             if arg-2 is 15:
@@ -308,7 +276,7 @@ command /far [<text>] [<number>]:
                 set {far.duration} to 900
                 set {far.duration.text} to "15:00"
 
-                send "{@prefix} &aTime set to &e15 minutes&a."
+                send "{@prefix} &aTime set to &e15 minutes&a." to player
                 stop
 
             if arg-2 is 30:
@@ -316,7 +284,7 @@ command /far [<text>] [<number>]:
                 set {far.duration} to 1800
                 set {far.duration.text} to "30:00"
 
-                send "{@prefix} &aTime set to &e30 minutes&a."
+                send "{@prefix} &aTime set to &e30 minutes&a." to player
                 stop
 
             if arg-2 is 60:
@@ -324,7 +292,7 @@ command /far [<text>] [<number>]:
                 set {far.duration} to 3600
                 set {far.duration.text} to "60:00"
 
-                send "{@prefix} &aTime set to &e60 minutes&a."
+                send "{@prefix} &aTime set to &e60 minutes&a." to player
                 stop
 
             send "{@prefix} &cInvalid time." to player
@@ -418,8 +386,7 @@ command /far [<text>] [<number>]:
 
             loop all players:
 
-                execute console command \
-                    "scoreboard players set %loop-player% farDistance 0"
+                execute console command "scoreboard players set %loop-player% farDistance 0"
 
             # ------------------------------------------------
             # BossBar
@@ -1066,6 +1033,9 @@ every 1 second:
     if {far.start.x} is not set:
         stop
 
+    if {far.duration} is not set:
+        stop
+
     # ========================================================
     # ELAPSED
     # ========================================================
@@ -1113,7 +1083,6 @@ every 1 second:
     loop all players:
 
         set {_uuid} to uuid of loop-player
-
         set {_participant} to false
 
         loop {far.players::*}:
@@ -1166,8 +1135,7 @@ every 1 second:
         # Scoreboard
         # ----------------------------------------------------
 
-        execute console command \
-            "scoreboard players set %loop-player% farDistance %{_score}%"
+        execute console command "scoreboard players set %loop-player% farDistance %{_score}%"
 
     # ========================================================
     # TIME UP
@@ -1179,7 +1147,7 @@ every 1 second:
         set {far.finished} to true
 
         # ----------------------------------------------------
-        # BossBar stays at 0:00 during end countdown
+        # BossBar stays at 0:00
         # ----------------------------------------------------
 
         set {_bar} to boss bar with key "{@bossbar-key}"
@@ -1229,7 +1197,6 @@ every 1 second:
         loop all players:
 
             set {_uuid} to uuid of loop-player
-
             set {_participant} to false
 
             loop {far.players::*}:
@@ -1255,8 +1222,7 @@ every 1 second:
             set {far.distance::%{_uuid}%} to {_score}
             set {far.best::%{_uuid}%} to {_score}
 
-            execute console command \
-                "scoreboard players set %loop-player% farDistance %{_score}%"
+            execute console command "scoreboard players set %loop-player% farDistance %{_score}%"
 
         # ----------------------------------------------------
         # RESULT
@@ -1387,7 +1353,6 @@ every 1 second:
         loop all players:
 
             set {_uuid} to uuid of loop-player
-
             set {_participant} to false
 
             loop {far.players::*}:
@@ -1441,7 +1406,6 @@ every 1 second:
     loop all players:
 
         set {_uuid} to uuid of loop-player
-
         set {_participant} to false
 
         loop {far.players::*}:
@@ -1481,6 +1445,4 @@ every 1 second:
         # ActionBar
         # ----------------------------------------------------
 
-        send action bar \
-            "&7X:&f %{_x}% &7Y:&f %{_y}% &7Z:&f %{_z}% &8| &7DX:&f %{_dx}% &7DZ:&f %{_dz}% &8| &aDistance:&f %{_distance}%m &8| &eScore:&f %{_score}%" \
-            to loop-player
+        send action bar "&7X:&f %{_x}% &7Y:&f %{_y}% &7Z:&f %{_z}% &8| &7DX:&f %{_dx}% &7DZ:&f %{_dz}% &8| &aDistance:&f %{_distance}%m &8| &eScore:&f %{_score}%" to loop-player
