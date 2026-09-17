@@ -1,0 +1,35 @@
+command /south:
+    permission: op
+    trigger:
+        set {_loc} to location of player
+        set yaw of {_loc} to 0
+        set pitch of {_loc} to 0
+        teleport player to {_loc}
+        send "&a南を向きました。"
+
+command /north:
+    permission: op
+    trigger:
+        set {_loc} to location of player
+        set yaw of {_loc} to 180
+        set pitch of {_loc} to 0
+        teleport player to {_loc}
+        send "&a北を向きました。"
+
+command /east:
+    permission: op
+    trigger:
+        set {_loc} to location of player
+        set yaw of {_loc} to -90
+        set pitch of {_loc} to 0
+        teleport player to {_loc}
+        send "&a東を向きました。"
+
+command /west:
+    permission: op
+    trigger:
+        set {_loc} to location of player
+        set yaw of {_loc} to 90
+        set pitch of {_loc} to 0
+        teleport player to {_loc}
+        send "&a西を向きました。"
