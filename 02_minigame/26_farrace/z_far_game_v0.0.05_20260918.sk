@@ -1,7 +1,7 @@
 # ============================================================
 # FARRACE
 # Distance Race Game
-# Version : v0.4.03
+# Version : v0.4.04
 #
 # ============================================================
 #
@@ -17,6 +17,19 @@
 #
 #   Distance =
 #   sqrt((X - StartX)^2 + (Z - StartZ)^2)
+#
+#
+# END FLOW
+#
+#   3
+#   2
+#   1
+#   FINISH!
+#   Time Up!
+#   Final Results
+#   Ranking
+#   1秒後スタート地点へTP
+#   BossBar / Scoreboard 即時Cleanup
 #
 #
 # COMMAND
@@ -1131,7 +1144,7 @@ every 1 second:
     # 0:03 → 3
     # 0:02 → 2
     # 0:01 → 1
-    # 0:00 → GAME SET
+    # 0:00 → FINISH
     # ========================================================
 
     if {far.remaining} <= 0:
@@ -1194,17 +1207,9 @@ every 1 second:
 
 
         # ====================================================
-        # 0:00 GAME SET
-        # ====================================================
-
-        send title "&c&lGAME SET!" with subtitle "&70:00" to all players
-        play sound "entity.player.levelup" with volume 1 and pitch 0.8 to all players
-
-
-        # ====================================================
         # FINAL DISTANCE
         #
-        # GAME SET時点の現在地点を最終スコアとして保存
+        # FINISH表示直前に現在地点を最終スコアとして確定
         # ====================================================
 
         loop all players:
@@ -1249,12 +1254,24 @@ every 1 second:
 
 
         # ====================================================
-        # RESULT
+        # FINISH
+        # ====================================================
+
+        send title "&c&lFINISH!" to all players
+        play sound "entity.player.levelup" with volume 1 and pitch 0.8 to all players
+
+
+        # ====================================================
+        # FINAL RESULTS
         # ====================================================
 
         send "" to all players
-        send "&6&lFarRace RESULT" to all players
+        send "&6&l==============================" to all players
+        send "&c&l          Time Up!" to all players
+        send "&e&l        Final Results" to all players
+        send "&6&l==============================" to all players
         send "" to all players
+
 
         set {_remaining::*} to {far.players::*}
 
@@ -1404,12 +1421,9 @@ every 1 second:
 
         # ====================================================
         # Cleanup
+        #
+        # TP直後に即Cleanup
         # ====================================================
-
-        wait 1 second
-
-        if {far.game.id} is not {_gameid}:
-            stop
 
         set {_bar} to boss bar with key "{@bossbar-key}"
 
