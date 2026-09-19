@@ -1,0 +1,332 @@
+# ============================================================
+# BINGO MINI TEST
+# Version : v0.1.05
+#
+# ============================================================
+#
+# INPUT
+#
+#   プレイヤーが入力用額縁にアイテムを入れる
+#
+# CORRECT
+#
+#   APPLE
+#
+# RESULT
+#
+#   WHITE GLASS
+#       ↓
+#   GOLD BLOCK
+#
+#   ITEM FRAME
+#       ↓
+#   GLOW ITEM FRAME
+#
+# ============================================================
+
+
+# ============================================================
+# /BINGOTEST
+# ============================================================
+
+command /bingotest [<text>]:
+
+    permission: op
+
+    trigger:
+
+
+        # ====================================================
+        # SETUP
+        # ====================================================
+
+        if arg-1 is "setup":
+
+            # ------------------------------------------------
+            # 古い額縁を削除
+            # ------------------------------------------------
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_input]"
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_bingo]"
+
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_bingo]"
+
+
+            # ------------------------------------------------
+            # 状態
+            # ------------------------------------------------
+
+            set {bingotest.running} to true
+
+            set {bingotest.completed} to false
+
+
+            # =================================================
+            # INPUT SIDE
+            # =================================================
+
+            # Emerald
+            execute console command "execute at %player% run setblock ~ ~ ~ minecraft:emerald_block"
+
+
+            # Stone
+            execute console command "execute at %player% run setblock ~ ~1 ~ minecraft:stone"
+
+
+            # Input Item Frame
+            #
+            # 通常の額縁
+            #
+            execute console command "execute at %player% run summon minecraft:item_frame ~ ~1 ~1 {Facing:3b,Tags:[""bingotest_input""]}"
+
+
+            # =================================================
+            # BINGO SIDE
+            # =================================================
+
+            # Quartz
+            execute console command "execute at %player% run setblock ~2 ~ ~ minecraft:quartz_block"
+
+
+            # White Glass
+            execute console command "execute at %player% run setblock ~2 ~1 ~ minecraft:white_stained_glass"
+
+
+            # Bingo Item Frame
+            execute console command "execute at %player% run summon minecraft:item_frame ~2 ~1 ~1 {Facing:3b,Tags:[""bingotest_bingo""]}"
+
+
+            # ------------------------------------------------
+            # AppleをBINGO額縁へセット
+            # ------------------------------------------------
+
+            wait 2 ticks
+
+            execute console command "data merge entity @e[type=minecraft:item_frame,tag=bingotest_bingo,limit=1,sort=nearest] {Item:{id:""minecraft:apple"",count:1}}"
+
+
+            # =================================================
+            # MESSAGE
+            # =================================================
+
+            send "" to player
+
+            send "&6&l==============================" to player
+
+            send "&e&l       BINGO MINI TEST" to player
+
+            send "&6&l==============================" to player
+
+            send "" to player
+
+            send "&f正解アイテム：" to player
+
+            send "&a&lAPPLE" to player
+
+            send "" to player
+
+            send "&f左側の入力額縁に &aAPPLE &fを入れてください。" to player
+
+            send "" to player
+
+            stop
+
+
+        # ====================================================
+        # RESET
+        # ====================================================
+
+        if arg-1 is "reset":
+
+            # ------------------------------------------------
+            # 額縁削除
+            # ------------------------------------------------
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_input]"
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_bingo]"
+
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_bingo]"
+
+
+            # ------------------------------------------------
+            # 状態
+            # ------------------------------------------------
+
+            set {bingotest.running} to false
+
+            set {bingotest.completed} to false
+
+
+            send "&aBINGO MINI TESTをリセットしました。" to player
+
+            stop
+
+
+        # ====================================================
+        # STATUS
+        # ====================================================
+
+        if arg-1 is "status":
+
+            send "" to player
+
+            send "&6&lBINGO MINI TEST STATUS" to player
+
+            if {bingotest.running} is true:
+
+                send "&fRunning   : &aYES"
+
+            else:
+
+                send "&fRunning   : &cNO"
+
+
+            if {bingotest.completed} is true:
+
+                send "&fCompleted : &aYES"
+
+            else:
+
+                send "&fCompleted : &eNO"
+
+            send ""
+
+            stop
+
+
+        # ====================================================
+        # COMPLETE
+        # ====================================================
+
+        if arg-1 is "complete":
+
+            # ------------------------------------------------
+            # 二重処理防止
+            # ------------------------------------------------
+
+            if {bingotest.running} is not true:
+
+                stop
+
+
+            if {bingotest.completed} is true:
+
+                stop
+
+
+            set {bingotest.completed} to true
+
+
+            # =================================================
+            # BINGO側の額縁を基準に処理
+            # =================================================
+            #
+            # 額縁
+            #   ↓ ~ ~ ~-1
+            # ガラス
+            #
+            # =================================================
+
+
+            # ------------------------------------------------
+            # ガラス → 金ブロック
+            #
+            # 額縁自身の位置からZ-1
+            # ------------------------------------------------
+
+            execute console command "execute as @e[type=minecraft:item_frame,tag=bingotest_bingo,limit=1] at @s run setblock ~ ~ ~-1 minecraft:gold_block"
+
+
+            # ------------------------------------------------
+            # 光る額縁を同じ位置に召喚
+            #
+            # Appleを入れる
+            # ------------------------------------------------
+
+            execute console command "execute as @e[type=minecraft:item_frame,tag=bingotest_bingo,limit=1] at @s run summon minecraft:glow_item_frame ~ ~ ~ {Facing:3b,Tags:[""bingotest_bingo""]}"
+
+
+            # ------------------------------------------------
+            # Appleを光る額縁へ
+            # ------------------------------------------------
+
+            wait 2 ticks
+
+            execute console command "data merge entity @e[type=minecraft:glow_item_frame,tag=bingotest_bingo,limit=1,sort=nearest] {Item:{id:""minecraft:apple"",count:1}}"
+
+
+            # ------------------------------------------------
+            # 元の額縁を削除
+            # ------------------------------------------------
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_bingo]"
+
+
+            # =================================================
+            # 完了メッセージ
+            # =================================================
+
+            send "" to all players
+
+            send "&6&l==============================" to all players
+
+            send "&e&l          BINGO!!" to all players
+
+            send "&6&l==============================" to all players
+
+            send "" to all players
+
+            send "&f正解アイテム &aAPPLE &fが入力されました！" to all players
+
+            send "" to all players
+
+
+            # =================================================
+            # SOUND
+            # =================================================
+
+            play sound "entity.player.levelup" with volume 1 and pitch 1.2 to all players
+
+            stop
+
+
+        # ====================================================
+        # HELP
+        # ====================================================
+
+        send "" to player
+
+        send "&6&lBINGO MINI TEST" to player
+
+        send "&7/bingotest setup &f- テスト開始"
+
+        send "&7/bingotest reset  &f- リセット"
+
+        send "&7/bingotest status &f- 状態確認"
+
+        send "" to player
+
+
+# ============================================================
+# APPLE DETECTION
+# ============================================================
+
+every 2 ticks:
+
+    if {bingotest.running} is not true:
+
+        stop
+
+
+    if {bingotest.completed} is true:
+
+        stop
+
+
+    # --------------------------------------------------------
+    # 入力額縁にAPPLEが入っているか
+    # --------------------------------------------------------
+
+    execute console command "execute if entity @e[type=minecraft:item_frame,tag=bingotest_input,nbt={Item:{id:""minecraft:apple""}}] run bingotest complete"
