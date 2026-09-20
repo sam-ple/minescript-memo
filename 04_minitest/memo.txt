@@ -2,3 +2,6 @@
 4952758610227563860
 -19 32
 90 107 -120
+
+server.properties
+broadcast-console-to-ops=false
