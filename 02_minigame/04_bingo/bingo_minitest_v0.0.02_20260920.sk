@@ -1,6 +1,6 @@
 # ============================================================
 # BINGO MINI TEST
-# Version : v0.1.06
+# Version : v0.1.08
 #
 # ============================================================
 #
@@ -66,7 +66,7 @@ command /bingotest [<text>]:
             # INPUT SIDE
             # =================================================
             #
-            # 南を向いて実行する前提
+            # 南を向いて /bingotest setup
             #
             # プレイヤー
             #
@@ -79,15 +79,28 @@ command /bingotest [<text>]:
             # =================================================
 
 
+            # ------------------------------------------------
             # Emerald
+            # ------------------------------------------------
+
             execute console command "execute at %player% run setblock ~ ~ ~3 minecraft:emerald_block"
 
 
+            # ------------------------------------------------
             # Stone
+            # ------------------------------------------------
+
             execute console command "execute at %player% run setblock ~ ~1 ~3 minecraft:stone"
 
 
+            # ------------------------------------------------
             # Input Item Frame
+            #
+            # 通常の額縁
+            # → アイテムを入れたり取り出したりできる
+            #
+            # ------------------------------------------------
+
             execute console command "execute at %player% run summon minecraft:item_frame ~ ~1 ~4 {Facing:3b,Tags:[""bingotest_input""]}"
 
 
@@ -95,16 +108,29 @@ command /bingotest [<text>]:
             # BINGO SIDE
             # =================================================
 
+            # ------------------------------------------------
             # Quartz
+            # ------------------------------------------------
+
             execute console command "execute at %player% run setblock ~2 ~ ~3 minecraft:quartz_block"
 
 
+            # ------------------------------------------------
             # White Glass
+            # ------------------------------------------------
+
             execute console command "execute at %player% run setblock ~2 ~1 ~3 minecraft:white_stained_glass"
 
 
+            # ------------------------------------------------
             # Bingo Item Frame
-            execute console command "execute at %player% run summon minecraft:item_frame ~2 ~1 ~4 {Facing:3b,Tags:[""bingotest_bingo""]}"
+            #
+            # Invulnerable
+            # → 壊れない
+            #
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run summon minecraft:item_frame ~2 ~1 ~4 {Facing:3b,Invulnerable:1b,Tags:[""bingotest_bingo""]}"
 
 
             # ------------------------------------------------
@@ -184,6 +210,7 @@ command /bingotest [<text>]:
 
             send "&6&lBINGO MINI TEST STATUS" to player
 
+
             if {bingotest.running} is true:
 
                 send "&fRunning   : &aYES"
@@ -230,7 +257,7 @@ command /bingotest [<text>]:
 
 
             # =================================================
-            # INPUT側
+            # INPUT SIDE
             # =================================================
             #
             # 正解したので入力額縁のAPPLEを消す
@@ -241,20 +268,14 @@ command /bingotest [<text>]:
 
 
             # =================================================
-            # BINGO側の額縁を基準に処理
-            # =================================================
-            #
-            # 額縁
-            #   ↓ ~ ~ ~-1
-            # ガラス
-            #
+            # BINGO SIDE
             # =================================================
 
 
             # ------------------------------------------------
-            # ガラス → 金ブロック
-            #
-            # 額縁自身の位置からZ-1
+            # White Glass
+            # ↓
+            # Gold Block
             # ------------------------------------------------
 
             execute console command "execute as @e[type=minecraft:item_frame,tag=bingotest_bingo,limit=1] at @s run setblock ~ ~ ~-1 minecraft:gold_block"
@@ -262,9 +283,12 @@ command /bingotest [<text>]:
 
             # ------------------------------------------------
             # 光る額縁を同じ位置に召喚
+            #
+            # Invulnerable
+            # → 壊れない
             # ------------------------------------------------
 
-            execute console command "execute as @e[type=minecraft:item_frame,tag=bingotest_bingo,limit=1] at @s run summon minecraft:glow_item_frame ~ ~ ~ {Facing:3b,Tags:[""bingotest_bingo""]}"
+            execute console command "execute as @e[type=minecraft:item_frame,tag=bingotest_bingo,limit=1] at @s run summon minecraft:glow_item_frame ~ ~ ~ {Facing:3b,Invulnerable:1b,Tags:[""bingotest_bingo""]}"
 
 
             # ------------------------------------------------
