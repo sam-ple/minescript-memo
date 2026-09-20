@@ -1,6 +1,6 @@
 # ============================================================
 # LINERACE GAME SYSTEM
-# Version : v0.3.06
+# Version : v0.1.00(v0.0.16)
 #
 # Minecraft Java Edition
 # Paper + Skript 2.16.1
@@ -650,6 +650,7 @@ on inventory click:
         # ====================================================
 
         send title "&6&l3" with subtitle "&fGET READY" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
 
         wait 1 second
 
@@ -660,6 +661,7 @@ on inventory click:
             stop
 
         send title "&e&l2" with subtitle "&fGET READY" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
 
         wait 1 second
 
@@ -670,6 +672,7 @@ on inventory click:
             stop
 
         send title "&a&l1" with subtitle "&fGET READY" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
 
         wait 1 second
 
@@ -727,6 +730,8 @@ on inventory click:
         # ----------------------------------------------------
 
         send title "&b&lGO!" with subtitle "&fLINERACE START!" to all players
+
+        play sound "entity.player.levelup" with volume 1 and pitch 1 to all players
 
         send "" to all players
         send "&6&l==============================" to all players
@@ -1774,17 +1779,16 @@ every 1 second:
     # ========================================================
 
     if {_remaining} is 3:
-
         send title "&6&l3" with subtitle "&f" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
 
     else if {_remaining} is 2:
-
         send title "&e&l2" with subtitle "&f" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
 
     else if {_remaining} is 1:
-
         send title "&a&l1" with subtitle "&f" to all players
-
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
 
     # ========================================================
     # GAME END
@@ -1867,19 +1871,18 @@ every 1 second:
                 set block at location({_finalX}, {_markerY}, {_finalZ}, {_finalWorld}) to red concrete
 
 
-        # ====================================================
+        # ========================================================
         # FINISH
-        # ====================================================
+        # ========================================================
 
         send title "&c&lFINISH!" with subtitle "&b&lTime Up!" to all players
-
+        play sound "entity.player.levelup" with volume 1 and pitch 1 to all players
 
         send "" to all players
         send "&6&l==============================" to all players
-        send "&e&l      Time Up! Final Results"
+        send "&e&l      Time Up! Final Results" to all players
         send "&6&l==============================" to all players
         send "" to all players
-
 
         # ====================================================
         # RESULT
