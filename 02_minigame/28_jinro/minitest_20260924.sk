@@ -1,0 +1,11 @@
+command /skh testspawn:
+
+    permission: op
+
+    trigger:
+
+        set {_world} to world of player
+
+        execute console command "execute in minecraft:%{_world}% run summon minecraft:sheep -7.00 68.46 10.48"
+
+        send "&aTEST END" to player
