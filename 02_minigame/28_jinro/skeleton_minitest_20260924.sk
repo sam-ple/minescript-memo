@@ -12,31 +12,36 @@ options:
 # /skh info
 # /skh reset
 #
-# 今回は地上のみ
+# 地上のみ
 # =========================================================
 
 
 command /skh [<text>] [<number>]:
+
     permission: skh.admin
     permission message: "&c権限がありません。"
+
     trigger:
+
 
         # =====================================================
         # HELP
         # =====================================================
 
         if arg-1 is not set:
+
             send "&6&l===== Skeleton Hunt Test ====="
             send "&e/skh set_sign &7- 現在地をステージ起点として登録"
             send "&e/skh scan_area &7- 安全地点をスキャン"
             send "&e/skh testspawn <数> &7- 保存地点からテスト召喚"
             send "&e/skh info &7- 状態確認"
             send "&e/skh reset &7- 全データ削除"
+
             stop
 
 
         # =====================================================
-        # SET SIGN / ORIGIN
+        # SET SIGN
         # =====================================================
 
         if arg-1 is "set_sign":
@@ -44,7 +49,6 @@ command /skh [<text>] [<number>]:
             set {skh.origin} to location of player
             set {skh.origin-world} to world of player
 
-            # 起点を変更したのでスキャン結果を無効化
             set {skh.scanned} to false
 
             delete {skh.safe::*}
@@ -71,13 +75,19 @@ command /skh [<text>] [<number>]:
         if arg-1 is "scan_area":
 
             if {skh.origin} is not set:
+
                 send "&c先に /skh set_sign を実行してください。"
+
                 stop
 
+
             if {skh.scanned} is true:
+
                 send "&eすでにスキャン済みです。"
                 send "&7再スキャンする場合は /skh reset を実行してください。"
+
                 stop
+
 
             send ""
             send "&e&l[SKH] スキャン開始"
@@ -86,12 +96,28 @@ command /skh [<text>] [<number>]:
             send "&c※完了まで少し時間がかかります。"
             send ""
 
+
             delete {skh.safe::*}
+
+
+            # =================================================
+            # WORLD
+            # =================================================
 
             set {_world} to {skh.origin-world}
 
+
+            # =================================================
+            # CENTER
+            # =================================================
+
             set {_center-x} to floor(x-coordinate of {skh.origin})
             set {_center-z} to floor(z-coordinate of {skh.origin})
+
+
+            # =================================================
+            # RANGE
+            # =================================================
 
             set {_min-x} to {_center-x} - {@scan-radius}
             set {_max-x} to {_center-x} + {@scan-radius}
@@ -99,27 +125,33 @@ command /skh [<text>] [<number>]:
             set {_min-z} to {_center-z} - {@scan-radius}
             set {_max-z} to {_center-z} + {@scan-radius}
 
+
             set {_columns} to 0
             set {_safe} to 0
 
 
             # =================================================
-            # X / Z をスキャン
+            # X
             # =================================================
 
             loop integers between {_min-x} and {_max-x}:
 
                 set {_x} to loop-value
 
+
+                # =================================================
+                # Z
+                # =================================================
+
                 loop integers between {_min-z} and {_max-z}:
 
-                    set {_z} to loop-value
+                    set {_z} to loop-value-2
 
                     add 1 to {_columns}
 
 
                     # -----------------------------------------
-                    # X/Z列の一番高い固体ブロックを取得
+                    # COLUMN
                     # -----------------------------------------
 
                     set {_column} to location at {_x}, 0, {_z} in {_world}
@@ -129,21 +161,14 @@ command /skh [<text>] [<number>]:
 
                     if {_floor} is set:
 
+
                         # -------------------------------------
-                        # 足元から上を確認
-                        #
-                        # floor = 足元
-                        # one   = 1ブロック上
-                        # two   = 2ブロック上
+                        # TWO AIR BLOCKS
                         # -------------------------------------
 
                         set {_one} to block above {_floor}
                         set {_two} to block above {_one}
 
-
-                        # -------------------------------------
-                        # 縦2ブロックが空気
-                        # -------------------------------------
 
                         if {_one} is air:
 
@@ -151,16 +176,16 @@ command /skh [<text>] [<number>]:
 
 
                                 # ---------------------------------
-                                # 水・溶岩を除外
+                                # WATER / LAVA
                                 # ---------------------------------
 
                                 if {_floor} is not water:
 
-                                    if {_floor} is not lava:
+                                    if {_floor} is not lava block:
 
 
                                         # ---------------------------------
-                                        # 木の葉を除外
+                                        # LEAVES
                                         # ---------------------------------
 
                                         if {_floor} is not oak leaves:
@@ -185,7 +210,7 @@ command /skh [<text>] [<number>]:
 
 
                                                                                 # ---------------------------------
-                                                                                # スケルトンが立つ位置
+                                                                                # SPAWN LOCATION
                                                                                 # ---------------------------------
 
                                                                                 set {_spawn} to location of {_floor}
@@ -196,7 +221,7 @@ command /skh [<text>] [<number>]:
 
 
                                                                                 # ---------------------------------
-                                                                                # 安全地点として保存
+                                                                                # SAVE
                                                                                 # ---------------------------------
 
                                                                                 add {_spawn} to {skh.safe::*}
@@ -212,11 +237,13 @@ command /skh [<text>] [<number>]:
             set {skh.safe-count} to {_safe}
             set {skh.scan-columns} to {_columns}
 
+
             send ""
             send "&a&l[SKH] スキャン完了"
             send "&7調査した列: &f%{_columns}%"
             send "&7安全地点: &a%{_safe}%"
             send ""
+
 
             if {_safe} is 0:
 
@@ -227,7 +254,9 @@ command /skh [<text>] [<number>]:
             else:
 
                 send "&aテストできます。"
-                send "&e/skh testspawn 10"
+                send "&e/skh testspawn 1"
+                send "&7※まずは1体で確認してください。"
+
 
             send ""
 
@@ -241,43 +270,78 @@ command /skh [<text>] [<number>]:
         if arg-1 is "testspawn":
 
             if {skh.scanned} is not true:
+
                 send "&c先に /skh scan_area を実行してください。"
+
                 stop
 
+
             if arg-2 is not set:
+
                 send "&c使用方法: /skh testspawn <数>"
+
                 stop
+
 
             set {_amount} to arg-2
 
+
             if {_amount} < 1:
+
                 send "&c1以上を指定してください。"
+
                 stop
 
+
             if {_amount} > size of {skh.safe::*}:
+
                 send "&c安全地点が不足しています。"
                 send "&7安全地点: &f%size of {skh.safe::*}%"
+
                 stop
 
 
             # =================================================
-            # 選択
+            # WORLD
+            # =================================================
+
+            set {_world} to {skh.origin-world}
+
+
+            if {_world} is not set:
+
+                send "&cステージワールドが設定されていません。"
+
+                stop
+
+
+            # =================================================
+            # SELECT
             # =================================================
 
             delete {_selected::*}
 
+            set {_attempts} to 0
+            set {_max-attempts} to size of {skh.safe::*} * 20
+
+
             while size of {_selected::*} < {_amount}:
 
+                add 1 to {_attempts}
+
+
+                if {_attempts} > {_max-attempts}:
+
+                    stop loop
+
+
                 set {_candidate} to random element out of {skh.safe::*}
+
 
                 if {_candidate} is not in {_selected::*}:
 
                     set {_okay} to true
 
-
-                    # -----------------------------------------
-                    # 近すぎる場所を避ける
-                    # -----------------------------------------
 
                     loop {_selected::*}:
 
@@ -294,16 +358,47 @@ command /skh [<text>] [<number>]:
 
 
             # =================================================
+            # CHECK
+            # =================================================
+
+            if size of {_selected::*} < {_amount}:
+
+                send ""
+                send "&c&l[SKH] 指定数を確保できませんでした。"
+                send "&7要求数: &f%{_amount}%"
+                send "&7確保数: &f%size of {_selected::*}%"
+                send "&7最小距離: &f{@min-spawn-distance} blocks"
+                send ""
+
+                stop
+
+
+            # =================================================
             # SUMMON
             # =================================================
 
             set {_count} to 0
 
+
             loop {_selected::*}:
 
                 set {_loc} to loop-value
 
-                execute console command "summon minecraft:skeleton %x-coordinate of {_loc}% %y-coordinate of {_loc}% %z-coordinate of {_loc}% {Tags:["skh_test"],Health:2.0f,HandItems:[{},{}]}"
+
+                set {_x} to x-coordinate of {_loc}
+                set {_y} to y-coordinate of {_loc}
+                set {_z} to z-coordinate of {_loc}
+
+
+                # -------------------------------------------------
+                # IMPORTANT
+                #
+                # コンソールからの summon は
+                # ワールドを明示する
+                # -------------------------------------------------
+
+                execute console command "execute in minecraft:%{_world}% run summon minecraft:skeleton %{_x}% %{_y}% %{_z}% {Tags:[""skh_test""],Health:2.0f,HandItems:[{},{}]}"
+
 
                 add 1 to {_count}
 
@@ -314,6 +409,7 @@ command /skh [<text>] [<number>]:
 
             send ""
             send "&a&l[SKH] テスト召喚完了"
+            send "&7World: &f%{_world}%"
             send "&7召喚数: &f%{_count}%"
             send "&7HP: &f2"
             send "&7武器: &fなし"
@@ -331,10 +427,15 @@ command /skh [<text>] [<number>]:
             send ""
             send "&6&l===== Skeleton Hunt INFO ====="
 
+
             if {skh.origin} is set:
+
                 send "&7起点: &f%{skh.origin}%"
+
             else:
+
                 send "&7起点: &c未設定"
+
 
             send "&7World: &f%{skh.origin-world}%"
             send "&7スキャン済み: &f%{skh.scanned}%"
@@ -361,8 +462,9 @@ command /skh [<text>] [<number>]:
             delete {skh.safe-count}
             delete {skh.scan-columns}
 
-            # テスト用スケルトン削除
+
             execute console command "kill @e[type=minecraft:skeleton,tag=skh_test]"
+
 
             send ""
             send "&a&l[SKH] リセット完了"
