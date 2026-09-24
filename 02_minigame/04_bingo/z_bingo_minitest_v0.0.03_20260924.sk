@@ -1,0 +1,564 @@
+# ============================================================
+# BINGO MINI TEST
+# Version : v0.1.09
+#
+# ============================================================
+#
+# INPUT
+#
+#   プレイヤーが入力用額縁にアイテムを入れる
+#
+# CORRECT
+#
+#   APPLE
+#   BREAD
+#
+# RESULT
+#
+#   APPLE
+#       WHITE GLASS
+#           ↓
+#       GOLD BLOCK
+#
+#       ITEM FRAME
+#           ↓
+#       GLOW ITEM FRAME
+#
+#   BREAD
+#       WHITE GLASS
+#           ↓
+#       GOLD BLOCK
+#
+#       ITEM FRAME
+#           ↓
+#       GLOW ITEM FRAME
+#
+# ============================================================
+
+
+# ============================================================
+# /BINGOTEST
+# ============================================================
+
+command /bingotest [<text>]:
+
+    permission: op
+
+    trigger:
+
+
+        # ====================================================
+        # SETUP
+        # ====================================================
+
+        if arg-1 is "setup":
+
+            # ------------------------------------------------
+            # 古い額縁を削除
+            # ------------------------------------------------
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_input]"
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_apple]"
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_bread]"
+
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_apple]"
+
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_bread]"
+
+
+            # ------------------------------------------------
+            # 状態
+            # ------------------------------------------------
+
+            set {bingotest.running} to true
+
+            set {bingotest.apple.completed} to false
+
+            set {bingotest.bread.completed} to false
+
+
+            # =================================================
+            # INPUT SIDE
+            # =================================================
+            #
+            # 南を向いて /bingotest setup
+            #
+            # プレイヤー
+            #
+            #       ↓ 南
+            #
+            #       Emerald
+            #       Stone
+            #       Input Frame
+            #
+            # =================================================
+
+
+            # ------------------------------------------------
+            # Emerald
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~ ~ ~3 minecraft:emerald_block"
+
+
+            # ------------------------------------------------
+            # Stone
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~ ~1 ~3 minecraft:stone"
+
+
+            # ------------------------------------------------
+            # Input Item Frame
+            #
+            # 通常の額縁
+            # → アイテムを入れたり取り出したりできる
+            #
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run summon minecraft:item_frame ~ ~1 ~4 {Facing:3b,Tags:[""bingotest_input""]}"
+
+
+            # =================================================
+            # APPLE SIDE
+            # =================================================
+            #
+            # 入力額縁の右側
+            #
+            # =================================================
+
+
+            # ------------------------------------------------
+            # Quartz
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~2 ~ ~3 minecraft:quartz_block"
+
+
+            # ------------------------------------------------
+            # White Glass
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~2 ~1 ~3 minecraft:white_stained_glass"
+
+
+            # ------------------------------------------------
+            # Apple Item Frame
+            #
+            # Invulnerable
+            # → 壊れない
+            #
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run summon minecraft:item_frame ~2 ~1 ~4 {Facing:3b,Invulnerable:1b,Tags:[""bingotest_apple""]}"
+
+
+            # ------------------------------------------------
+            # Appleをセット
+            # ------------------------------------------------
+
+            wait 2 ticks
+
+            execute console command "data merge entity @e[type=minecraft:item_frame,tag=bingotest_apple,limit=1,sort=nearest] {Item:{id:""minecraft:apple"",count:1}}"
+
+
+            # =================================================
+            # BREAD SIDE
+            # =================================================
+            #
+            # Appleのさらに右側
+            #
+            # =================================================
+
+
+            # ------------------------------------------------
+            # Quartz
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~4 ~ ~3 minecraft:quartz_block"
+
+
+            # ------------------------------------------------
+            # White Glass
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~4 ~1 ~3 minecraft:white_stained_glass"
+
+
+            # ------------------------------------------------
+            # Bread Item Frame
+            #
+            # Invulnerable
+            # → 壊れない
+            #
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run summon minecraft:item_frame ~4 ~1 ~4 {Facing:3b,Invulnerable:1b,Tags:[""bingotest_bread""]}"
+
+
+            # ------------------------------------------------
+            # Breadをセット
+            # ------------------------------------------------
+
+            wait 2 ticks
+
+            execute console command "data merge entity @e[type=minecraft:item_frame,tag=bingotest_bread,limit=1,sort=nearest] {Item:{id:""minecraft:bread"",count:1}}"
+
+
+            # =================================================
+            # MESSAGE
+            # =================================================
+
+            send "" to player
+
+            send "&6&l====================================" to player
+
+            send "&e&l         BINGO MINI TEST" to player
+
+            send "&6&l====================================" to player
+
+            send "" to player
+
+            send "&f正解アイテム：" to player
+
+            send "&a&lAPPLE" to player
+
+            send "&6&lBREAD" to player
+
+            send "" to player
+
+            send "&f入力額縁に &aAPPLE &fまたは &6BREAD &fを入れてください。" to player
+
+            send "&7その他のアイテムを入れた場合は何も起こりません。" to player
+
+            send "" to player
+
+            stop
+
+
+        # ====================================================
+        # RESET
+        # ====================================================
+
+        if arg-1 is "reset":
+
+            # ------------------------------------------------
+            # 額縁削除
+            # ------------------------------------------------
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_input]"
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_apple]"
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_bread]"
+
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_apple]"
+
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_bread]"
+
+
+            # ------------------------------------------------
+            # 状態
+            # ------------------------------------------------
+
+            set {bingotest.running} to false
+
+            set {bingotest.apple.completed} to false
+
+            set {bingotest.bread.completed} to false
+
+
+            send "&aBINGO MINI TESTをリセットしました。" to player
+
+            stop
+
+
+        # ====================================================
+        # STATUS
+        # ====================================================
+
+        if arg-1 is "status":
+
+            send "" to player
+
+            send "&6&lBINGO MINI TEST STATUS" to player
+
+            send "" to player
+
+
+            if {bingotest.running} is true:
+
+                send "&fRunning : &aYES"
+
+            else:
+
+                send "&fRunning : &cNO"
+
+
+            if {bingotest.apple.completed} is true:
+
+                send "&fApple   : &aCOMPLETED"
+
+            else:
+
+                send "&fApple   : &eWAITING"
+
+
+            if {bingotest.bread.completed} is true:
+
+                send "&fBread   : &aCOMPLETED"
+
+            else:
+
+                send "&fBread   : &eWAITING"
+
+
+            send ""
+
+            stop
+
+
+        # ====================================================
+        # COMPLETE APPLE
+        # ====================================================
+
+        if arg-1 is "apple":
+
+            # ------------------------------------------------
+            # 実行中チェック
+            # ------------------------------------------------
+
+            if {bingotest.running} is not true:
+
+                stop
+
+
+            # ------------------------------------------------
+            # 二重処理防止
+            # ------------------------------------------------
+
+            if {bingotest.apple.completed} is true:
+
+                stop
+
+
+            set {bingotest.apple.completed} to true
+
+
+            # =================================================
+            # INPUT SIDE
+            # =================================================
+
+            execute console command "data merge entity @e[type=minecraft:item_frame,tag=bingotest_input,limit=1,sort=nearest] {Item:{}}"
+
+
+            # =================================================
+            # APPLE SIDE
+            # =================================================
+
+
+            # ------------------------------------------------
+            # White Glass
+            # ↓
+            # Gold Block
+            # ------------------------------------------------
+
+            execute console command "execute as @e[type=minecraft:item_frame,tag=bingotest_apple,limit=1] at @s run setblock ~ ~ ~-1 minecraft:gold_block"
+
+
+            # ------------------------------------------------
+            # 光る額縁を同じ位置に召喚
+            # ------------------------------------------------
+
+            execute console command "execute as @e[type=minecraft:item_frame,tag=bingotest_apple,limit=1] at @s run summon minecraft:glow_item_frame ~ ~ ~ {Facing:3b,Invulnerable:1b,Tags:[""bingotest_apple""]}"
+
+
+            # ------------------------------------------------
+            # Appleを光る額縁へ
+            # ------------------------------------------------
+
+            wait 2 ticks
+
+            execute console command "data merge entity @e[type=minecraft:glow_item_frame,tag=bingotest_apple,limit=1,sort=nearest] {Item:{id:""minecraft:apple"",count:1}}"
+
+
+            # ------------------------------------------------
+            # 元の額縁を削除
+            # ------------------------------------------------
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_apple]"
+
+
+            # =================================================
+            # MESSAGE
+            # =================================================
+
+            send "" to all players
+
+            send "&6&l====================================" to all players
+
+            send "&e&l          APPLE BINGO!!" to all players
+
+            send "&6&l====================================" to all players
+
+            send "" to all players
+
+            send "&f正解アイテム &aAPPLE &fが入力されました！" to all players
+
+            send "" to all players
+
+
+            # =================================================
+            # SOUND
+            # =================================================
+
+            play sound "entity.player.levelup" with volume 1 and pitch 1.2 to all players
+
+            stop
+
+
+        # ====================================================
+        # COMPLETE BREAD
+        # ====================================================
+
+        if arg-1 is "bread":
+
+            # ------------------------------------------------
+            # 実行中チェック
+            # ------------------------------------------------
+
+            if {bingotest.running} is not true:
+
+                stop
+
+
+            # ------------------------------------------------
+            # 二重処理防止
+            # ------------------------------------------------
+
+            if {bingotest.bread.completed} is true:
+
+                stop
+
+
+            set {bingotest.bread.completed} to true
+
+
+            # =================================================
+            # INPUT SIDE
+            # =================================================
+
+            execute console command "data merge entity @e[type=minecraft:item_frame,tag=bingotest_input,limit=1,sort=nearest] {Item:{}}"
+
+
+            # =================================================
+            # BREAD SIDE
+            # =================================================
+
+
+            # ------------------------------------------------
+            # White Glass
+            # ↓
+            # Gold Block
+            # ------------------------------------------------
+
+            execute console command "execute as @e[type=minecraft:item_frame,tag=bingotest_bread,limit=1] at @s run setblock ~ ~ ~-1 minecraft:gold_block"
+
+
+            # ------------------------------------------------
+            # 光る額縁を同じ位置に召喚
+            # ------------------------------------------------
+
+            execute console command "execute as @e[type=minecraft:item_frame,tag=bingotest_bread,limit=1] at @s run summon minecraft:glow_item_frame ~ ~ ~ {Facing:3b,Invulnerable:1b,Tags:[""bingotest_bread""]}"
+
+
+            # ------------------------------------------------
+            # Breadを光る額縁へ
+            # ------------------------------------------------
+
+            wait 2 ticks
+
+            execute console command "data merge entity @e[type=minecraft:glow_item_frame,tag=bingotest_bread,limit=1,sort=nearest] {Item:{id:""minecraft:bread"",count:1}}"
+
+
+            # ------------------------------------------------
+            # 元の額縁を削除
+            # ------------------------------------------------
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_bread]"
+
+
+            # =================================================
+            # MESSAGE
+            # =================================================
+
+            send "" to all players
+
+            send "&6&l====================================" to all players
+
+            send "&e&l          BREAD BINGO!!" to all players
+
+            send "&6&l====================================" to all players
+
+            send "" to all players
+
+            send "&f正解アイテム &6BREAD &fが入力されました！" to all players
+
+            send "" to all players
+
+
+            # =================================================
+            # SOUND
+            # =================================================
+
+            play sound "entity.player.levelup" with volume 1 and pitch 1.4 to all players
+
+            stop
+
+
+        # ====================================================
+        # HELP
+        # ====================================================
+
+        send "" to player
+
+        send "&6&lBINGO MINI TEST" to player
+
+        send "&7/bingotest setup &f- テスト開始"
+
+        send "&7/bingotest reset  &f- リセット"
+
+        send "&7/bingotest status &f- 状態確認"
+
+        send "" to player
+
+
+# ============================================================
+# APPLE / BREAD DETECTION
+# ============================================================
+
+every 2 ticks:
+
+    if {bingotest.running} is not true:
+
+        stop
+
+
+    # --------------------------------------------------------
+    # Appleは未完成の場合のみチェック
+    # --------------------------------------------------------
+
+    if {bingotest.apple.completed} is not true:
+
+        execute console command "execute if entity @e[type=minecraft:item_frame,tag=bingotest_input,nbt={Item:{id:""minecraft:apple""}}] run bingotest apple"
+
+
+    # --------------------------------------------------------
+    # Breadは未完成の場合のみチェック
+    # --------------------------------------------------------
+
+    if {bingotest.bread.completed} is not true:
+
+        execute console command "execute if entity @e[type=minecraft:item_frame,tag=bingotest_input,nbt={Item:{id:""minecraft:bread""}}] run bingotest bread"
