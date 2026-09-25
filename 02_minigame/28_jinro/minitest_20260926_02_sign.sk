@@ -1,0 +1,24 @@
+# ============================================================
+# Sign Information Mini Test
+# ============================================================
+
+on right click:
+
+    if clicked block is not set:
+        stop
+
+    if type of clicked block is oak sign:
+        
+        cancel event
+
+        set {_loc} to location of clicked block
+        set {_world} to world of {_loc}
+
+        send ""
+        send "&6===== SIGN INFO ====="
+        send "&e種類: &f%type of clicked block%"
+        send "&eワールド: &f%{_world}%"
+        send "&eX: &f%x-coordinate of {_loc}%"
+        send "&eY: &f%y-coordinate of {_loc}%"
+        send "&eZ: &f%z-coordinate of {_loc}%"
+        send ""
