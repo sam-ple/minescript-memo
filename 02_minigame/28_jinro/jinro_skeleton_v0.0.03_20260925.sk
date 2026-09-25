@@ -489,15 +489,10 @@ command /skh [<text>] [<number>]:
 
 on death of skeleton:
 
-    # テスト用スケルトン以外は無視
-    if victim has tag "skh_test":
+    if attacker is a player:
 
-        # プレイヤーに倒された場合のみ
-        if attacker is a player:
+        chance of 50%:
 
-            # 50%判定
-            chance of 50%:
+            give 1 emerald to attacker
 
-                give 1 emerald to attacker
-
-                send "&a&l[SKH] &fエメラルドを1個獲得！" to attacker
+            send "&a&l[SKH] &fエメラルドを1個獲得！" to attacker
