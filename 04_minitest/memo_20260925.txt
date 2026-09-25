@@ -1,0 +1,218 @@
+うん、**そこは気にしたほうがいい**。
+結論からいうと、
+
+> **ゲーム終了時に明示的に `delete` している変数は消える。
+> でも、Skriptの通常のグローバル変数は、ゲーム終了・ワールド移動だけでは自動では消えない。**
+
+Skriptの通常変数は `variables.csv` に保存され、サーバー再起動後も残る仕様です。([sovdee.com][1])
+
+だから、今作っている **鉱石レース・距離レース・進捗レース・FarRace・LineRace** などは、
+
+```text
+ゲーム終了
+↓
+変数をdelete
+↓
+次のゲーム
+```
+
+という設計にしておくのが安全。
+
+### 特に危ないのはこういう変数
+
+例えば、
+
+```text
+{far.running}
+{far.players::*}
+{far.start-location}
+{far.distance::%player%}
+
+{line.running}
+{line.players::*}
+{line.distance::%player%}
+
+{ore.running}
+{ore.score::%player%}
+
+{bingo.board::*}
+```
+
+みたいなもの。
+
+これらは**ワールドを変えても自動的に消えるわけではない**。
+
+さらに、以前起きていた「同じ名前のワールドを削除→再作成したら変な情報が残る」問題を考えると、**ワールド自体が消えてもSkriptの変数は別管理**なので、そこは特に注意したほうがいい。Skriptではワールドを値として持つ変数も扱えるため、ワールド再生成を伴うゲームでは管理方法を決めておくのが安全です。([GitHub][2])
+
+---
+
+## ただし、今のゲーム構成ならかなり簡単に対策できる
+
+僕なら全部のゲームを、
+
+```text
+SET
+ ↓
+START
+ ↓
+PLAYING
+ ↓
+TIME UP / FINISH / STOP
+ ↓
+RESULT
+ ↓
+CLEANUP
+```
+
+にして、
+
+**CLEANUPでゲーム用変数を全部消す**
+
+方式にする。
+
+例えばFarRaceなら、
+
+```skript
+delete {far.running}
+delete {far.players::*}
+delete {far.distance::*}
+delete {far.start-location}
+delete {far.timer}
+delete {far.world}
+```
+
+のようにする。
+
+そしてさらに安全策として、
+
+```skript
+command /far reset:
+    ...
+    delete {far::*}
+```
+
+のように**管理者がいつでも全消去できるRESET**を用意する。
+
+---
+
+## もっと重要なのが「ワールドごとの情報」
+
+例えば今後、
+
+```text
+{far::world}
+```
+
+のようにワールドを保存するなら、
+
+```text
+{far::world-id}
+```
+
+として**UUIDを保存する設計**がかなり安全。
+
+LineRaceで以前やった、
+
+> ワールド名が同じでも、削除→再生成されたら別ワールドとして扱う
+
+という考え方は、今回のゲーム群にもそのまま使える。
+
+---
+
+## 「前のゲームの情報が残ってるか？」を確認するなら
+
+実際には、今の各 `.sk` を見て、
+
+**① ゲーム開始時に初期化しているか**
+**② ゲーム終了時にdeleteしているか**
+**③ STOP/RESETでもdeleteしているか**
+**④ ワールド削除・再生成時に古いワールド情報を参照しないか**
+
+を見るのが一番確実。
+
+特に重要なのは②と③。
+
+### 理想形
+
+```text
+/ore start
+   ↓
+ゲーム変数作成
+   ↓
+ゲーム終了
+   ↓
+delete {ore::*}
+```
+
+```text
+/ore stop
+   ↓
+強制終了
+   ↓
+delete {ore::*}
+```
+
+```text
+/ore reset
+   ↓
+強制終了
+   ↓
+delete {ore::*}
+```
+
+こうしておけば、
+
+```text
+鉱石レース
+↓
+別ワールド
+↓
+距離レース
+↓
+別ワールド
+↓
+進捗レース
+↓
+また鉱石レース
+```
+
+と何度繰り返しても、かなり安定する。
+
+ちなみに**ローカル変数 `{_xxx}` はイベント終了時に消える**ので、この問題の中心は `{_xxx}` ではなく、`{xxx}` のような**グローバル変数**です。([sovdee.com][1])
+
+---
+
+### そして今の環境なら、もう一段安全にできる
+
+Skriptには `-` で始まる**エフェメラル変数**もあり、例えば
+
+```skript
+{-far::running}
+{-far::players::*}
+```
+
+のようにすると、通常の永続グローバル変数とは違ってサーバー再起動をまたいで保存しない方式にできます。([sovdee.gitbook.io][3])
+
+ただ、**今のゲーム全部を一気に `{-xxx::*}` に変更する必要はない**と思う。
+
+むしろ今の
+
+```text
+{far::*}
+{line::*}
+{ore::*}
+{tetsusen::*}
+{bingo::*}
+```
+
+というゲームごとの名前空間を維持して、
+
+**「各ゲーム終了時に `{ゲーム名::*}` を丸ごとdeleteする」**
+
+方式が、今のプロジェクトには分かりやすい。
+
+もしよければ次に、**今作っている「鉱石レース・距離レース・進捗レース・LineRace・FarRace・Tetsusen・BINGO」について、どの変数が残る可能性があるかをゲームごとにチェックするための「変数クリーンアップ基準」**を作れる。これを基準に今後のSkriptを全部統一すると、かなり事故が減る。
+
+[1]: https://www.sovdee.com/skript/variables/index.html?utm_source=chatgpt.com "Skript Documentation - 2.6.4"
+[2]: https://github.com/SkriptLang/Skript/issues/1144?utm_source=chatgpt.com "World reload causes worlds in location variables to not work correctly until restart · Issue #1144 · SkriptLang/Skript · GitHub"
+[3]: https://sovdee.gitbook.io/skript-tutorials/core-concepts/variables/global-and-local?utm_source=chatgpt.com "Global and Local | Skript Tutorials"

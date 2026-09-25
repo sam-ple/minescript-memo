@@ -1,0 +1,210 @@
+# ============================================================
+# Biome TP Mini Test
+# Paper 26.2
+# Skript 2.16.1
+#
+# 看板の1行目を読んで、そのバイオームの安全地点へTP
+#
+# 対応:
+#   plains / plain / 平原
+#   desert / 砂漠
+#   taiga / タイガ
+#   savanna / サバンナ
+#   jungle / ジャングル
+#
+# 右クリックした看板の1行目を読む
+#
+# /btp test
+#   現在位置周辺からランダムに安全地点を探すテスト
+#
+# /btp reset
+#   テスト用変数を削除
+# ============================================================
+
+
+options:
+    search-radius: 1000
+    search-count: 80
+
+
+# ============================================================
+# 看板クリック
+# ============================================================
+
+on right click:
+    if clicked block is not a sign:
+        stop
+
+    set {_name} to "%line 1 of clicked block%"
+    set {_name} to lowercase {_name}
+
+    # --------------------------------
+    # バイオーム名を判定
+    # --------------------------------
+
+    if {_name} is "plains" or {_name} is "plain" or {_name} is "平原":
+        set {_biome} to plains
+        set {_display} to "Plains"
+
+    else if {_name} is "desert" or {_name} is "砂漠":
+        set {_biome} to desert
+        set {_display} to "Desert"
+
+    else if {_name} is "taiga" or {_name} is "タイガ":
+        set {_biome} to taiga
+        set {_display} to "Taiga"
+
+    else if {_name} is "savanna" or {_name} is "サバンナ":
+        set {_biome} to savanna
+        set {_display} to "Savanna"
+
+    else if {_name} is "jungle" or {_name} is "ジャングル":
+        set {_biome} to jungle
+        set {_display} to "Jungle"
+
+    else:
+        send "&c[BiomeTP] 未対応のバイオームです: %{_name}%" to player
+        stop
+
+
+    # --------------------------------
+    # 探索開始
+    # --------------------------------
+
+    send "&e[BiomeTP] %{_display}% を探しています..." to player
+
+    set {_world} to player's world
+    set {_base-x} to floor(x-coordinate of player)
+    set {_base-z} to floor(z-coordinate of player)
+
+    delete {_found}
+    delete {_safe-location}
+
+
+    # ========================================================
+    # ランダム探索
+    # ========================================================
+
+    loop {@search-count} times:
+
+        if {_found} is set:
+            stop loop
+
+        # ランダムなX/Z
+        set {_rx} to random integer between (-{@search-radius}) and {@search-radius}
+        set {_rz} to random integer between (-{@search-radius}) and {@search-radius}
+
+        set {_x} to {_base-x} + {_rx}
+        set {_z} to {_base-z} + {_rz}
+
+        # Yは仮の値
+        set {_check} to location at {_x}, 100, {_z} of {_world}
+
+        # --------------------------------
+        # バイオーム確認
+        # --------------------------------
+
+        if biome at {_check} is not {_biome}:
+            next loop
+
+
+        # --------------------------------
+        # 地表の最高固体ブロック
+        # --------------------------------
+
+        set {_ground} to highest solid block at {_check}
+
+        if {_ground} is not set:
+            next loop
+
+
+        # プレイヤーが立つ位置
+        set {_safe} to location above {_ground}
+
+
+        # --------------------------------
+        # 安全判定
+        # --------------------------------
+
+        # 足元
+        if block at {_safe} is not air:
+            next loop
+
+        # 頭
+        if block above {_safe} is not air:
+            next loop
+
+        # さらに上
+        if block 2 above {_safe} is not air:
+            next loop
+
+        # 水・溶岩などを念のため除外
+        if block at {_safe} is water:
+            next loop
+
+        if block at {_safe} is lava:
+            next loop
+
+        if block below {_safe} is water:
+            next loop
+
+        if block below {_safe} is lava:
+            next loop
+
+
+        # --------------------------------
+        # 発見
+        # --------------------------------
+
+        set {_found} to true
+        set {_safe-location} to {_safe}
+
+
+    # ========================================================
+    # 結果
+    # ========================================================
+
+    if {_found} is not set:
+        send "&c[BiomeTP] 安全な %{_display}% を見つけられませんでした。" to player
+        send "&7検索範囲: 半径 {@search-radius} / {@search-count} 回" to player
+        stop
+
+
+    # ========================================================
+    # TP
+    # ========================================================
+
+    teleport player to {_safe-location}
+
+    send "&a[BiomeTP] %{_display}% にTPしました。" to player
+    send "&7座標: %x-coordinate of {_safe-location}%, %y-coordinate of {_safe-location}%, %z-coordinate of {_safe-location}%" to player
+
+
+# ============================================================
+# 管理用コマンド
+# ============================================================
+
+command /btp [<text>]:
+    permission: op
+    trigger:
+
+        if arg-1 is "reset":
+            delete {biometp::*}
+            send "&a[BiomeTP] テスト変数を削除しました。"
+            stop
+
+        if arg-1 is "test":
+            send "&e[BiomeTP] 看板を右クリックしてください。"
+            send "&7例: 1行目に plains / desert / taiga"
+            stop
+
+        send "&e===== BiomeTP Mini Test ====="
+        send "&f看板を右クリックしてください。"
+        send "&f1行目:"
+        send "&7  plains / plain / 平原"
+        send "&7  desert / 砂漠"
+        send "&7  taiga / タイガ"
+        send "&7  savanna / サバンナ"
+        send "&7  jungle / ジャングル"
+        send "&f/btp test"
+        send "&f/btp reset"

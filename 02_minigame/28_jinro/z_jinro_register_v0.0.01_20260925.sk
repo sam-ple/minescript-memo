@@ -1,0 +1,103 @@
+# ============================================================
+# Player Sign Register - Mini Test
+#
+# 看板を右クリック
+#   ↓
+# 右クリックしたプレイヤーを登録
+#   ↓
+# 看板にプレイヤー名
+#   ↓
+# 看板の上にプレイヤーヘッド
+#
+# ============================================================
+
+command /psr [<text>]:
+    permission: psr.admin
+    trigger:
+
+        if arg-1 is "reset":
+            delete {psr.sign::*}
+            delete {psr.head::*}
+
+            send "&a[PSR] 登録データをリセットしました。"
+            stop
+
+        if arg-1 is "info":
+            send "&e[PSR] 登録数: %{psr.sign::*}%"
+            stop
+
+        send "&e/psr reset &7- 登録データをリセット"
+
+
+# ============================================================
+# 看板右クリック
+# ============================================================
+
+on right click on sign:
+
+    cancel event
+
+    # --------------------------------------------
+    # 看板の場所
+    # --------------------------------------------
+
+    set {_sign} to location of clicked block
+
+    # --------------------------------------------
+    # すでに登録済みなら何もしない
+    # --------------------------------------------
+
+    if {psr.sign::%{_sign}%} is set:
+        send "&cこの看板にはすでにプレイヤーが登録されています。"
+        stop
+
+    # --------------------------------------------
+    # プレイヤー登録
+    # --------------------------------------------
+
+    set {psr.sign::%{_sign}%} to player's uuid
+    set {psr.name::%{_sign}%} to player's name
+
+    # --------------------------------------------
+    # 看板に名前を書く
+    # --------------------------------------------
+
+    set line 1 of clicked block to "&6&lPLAYER"
+    set line 2 of clicked block to "&f%player's name%"
+    set line 3 of clicked block to ""
+    set line 4 of clicked block to ""
+
+    # --------------------------------------------
+    # 看板の上にプレイヤーヘッド
+    # --------------------------------------------
+
+    set {_headLoc} to {_sign}
+    add 0.5 to x-coordinate of {_headLoc}
+    add 1.0 to y-coordinate of {_headLoc}
+    add 0.5 to z-coordinate of {_headLoc}
+
+    # プレイヤーの頭アイテム
+    set {_head} to player's skull
+
+    # Armor Standを生成
+    spawn armor stand at {_headLoc}
+    set {_armor} to last spawned entity
+
+    # 非表示・無敵・小型
+    set invisible state of {_armor} to true
+    set invulnerability state of {_armor} to true
+    set gravity of {_armor} to false
+    set marker state of {_armor} to true
+    set small state of {_armor} to true
+
+    # 頭を装備
+    set helmet of {_armor} to {_head}
+
+    # 看板と同じ方向を向かせる
+    set {_dir} to direction of clicked block
+    set yaw of {_armor} to yaw of {_dir}
+
+    # 登録
+    set {psr.head::%{_sign}%} to {_armor}
+
+    send "&a[PSR] &f%player's name% &aを登録しました。"

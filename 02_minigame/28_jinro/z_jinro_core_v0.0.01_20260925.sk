@@ -1,0 +1,268 @@
+# ============================================================
+# Jinro RPG - Ultra Minimum Test
+# Version : v0.1.00
+#
+# 目的
+#   2人で人狼RPGの最小ゲームを動かす
+#
+# 内容
+#   ・参加者登録
+#   ・2人でゲーム開始
+#   ・村人1人 / 人狼1人を配布
+#   ・役職を本人だけに通知
+#   ・昼 → 夜 → 昼
+#   ・ゲーム終了
+#
+# まだ実装しないもの
+#   ・アイテム
+#   ・スケルトン
+#   ・死亡
+#   ・勝敗判定
+#   ・GUI
+#   ・特殊能力
+# ============================================================
+
+
+options:
+
+    prefix: &8[&6人狼RPG&8]&r
+
+
+# ============================================================
+# COMMAND
+# ============================================================
+
+command /jinro [<text>]:
+
+    permission: op
+
+    trigger:
+
+        # ----------------------------------------------------
+        # JOIN
+        # ----------------------------------------------------
+
+        if arg-1 is "join":
+
+            if {jinro.game} is "running":
+                send "{@prefix} &cゲーム中です。" to player
+                stop
+
+            if player is in {jinro.players::*}:
+                send "{@prefix} &eすでに参加しています。" to player
+                stop
+
+            add player to {jinro.players::*}
+
+            send "{@prefix} &a人狼RPGに参加しました。" to player
+            send "{@prefix} &7現在の参加者: &f%size of {jinro.players::*}%人" to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # LEAVE
+        # ----------------------------------------------------
+
+        if arg-1 is "leave":
+
+            remove player from {jinro.players::*}
+
+            delete {jinro.role.%player%}
+
+            send "{@prefix} &e人狼RPGから退出しました。"
+
+            stop
+
+
+        # ----------------------------------------------------
+        # START
+        # ----------------------------------------------------
+
+        if arg-1 is "start":
+
+            if {jinro.game} is "running":
+                send "{@prefix} &cすでにゲーム中です。" to player
+                stop
+
+            if size of {jinro.players::*} is not 2:
+                send "{@prefix} &c参加者が2人必要です。" to player
+                send "{@prefix} &7現在: &f%size of {jinro.players::*}%人" to player
+                stop
+
+            # ゲーム状態
+            set {jinro.game} to "running"
+
+            # ------------------------------------------------
+            # 役職配布
+            # ------------------------------------------------
+
+            set {_p1} to {jinro.players::1}
+            set {_p2} to {jinro.players::2}
+
+            set {jinro.role.%{_p1}%} to "villager"
+            set {jinro.role.%{_p2}%} to "wolf"
+
+            # ------------------------------------------------
+            # 役職通知
+            # ------------------------------------------------
+
+            send "" to {_p1}
+            send "&6&l========== 人狼RPG ==========" to {_p1}
+            send "&fあなたの役職は..." to {_p1}
+            send "&a&l村人" to {_p1}
+            send "&7このテストでは特殊能力はありません。" to {_p1}
+            send "&6&l=============================" to {_p1}
+            send "" to {_p1}
+
+            send "" to {_p2}
+            send "&6&l========== 人狼RPG ==========" to {_p2}
+            send "&fあなたの役職は..." to {_p2}
+            send "&c&l人狼" to {_p2}
+            send "&7このテストでは特殊能力はありません。" to {_p2}
+            send "&6&l=============================" to {_p2}
+            send "" to {_p2}
+
+            # ------------------------------------------------
+            # ゲーム開始
+            # ------------------------------------------------
+
+            broadcast "{@prefix} &aゲーム開始！"
+            broadcast "{@prefix} &7参加者: &f%size of {jinro.players::*}%人"
+
+            wait 2 seconds
+
+            # ------------------------------------------------
+            # 昼
+            # ------------------------------------------------
+
+            set {jinro.phase} to "day"
+
+            broadcast ""
+            broadcast "{@prefix} &e&l昼です。"
+            broadcast "{@prefix} &7昼のテスト時間です。"
+            broadcast ""
+
+            wait 10 seconds
+
+            # ------------------------------------------------
+            # 夜
+            # ------------------------------------------------
+
+            set {jinro.phase} to "night"
+
+            broadcast ""
+            broadcast "{@prefix} &1&l夜です。"
+            broadcast "{@prefix} &7夜のテスト時間です。"
+            broadcast ""
+
+            wait 10 seconds
+
+            # ------------------------------------------------
+            # もう一度昼
+            # ------------------------------------------------
+
+            set {jinro.phase} to "day"
+
+            broadcast ""
+            broadcast "{@prefix} &e&l昼です。"
+            broadcast "{@prefix} &72回目の昼です。"
+            broadcast ""
+
+            wait 5 seconds
+
+            # ------------------------------------------------
+            # 終了
+            # ------------------------------------------------
+
+            broadcast ""
+            broadcast "{@prefix} &a&lテストゲーム終了！"
+            broadcast ""
+
+            set {jinro.game} to "finished"
+
+            stop
+
+
+        # ----------------------------------------------------
+        # INFO
+        # ----------------------------------------------------
+
+        if arg-1 is "info":
+
+            send ""
+            send "&6&l========== Jinro INFO =========="
+
+            if {jinro.game} is set:
+                send "&7Game : &f%{jinro.game}%"
+            else:
+                send "&7Game : &fnone"
+
+            if {jinro.phase} is set:
+                send "&7Phase : &f%{jinro.phase}%"
+            else:
+                send "&7Phase : &fnone"
+
+            send "&7Players : &f%size of {jinro.players::*}%"
+
+            loop {jinro.players::*}:
+                send "&7- &f%loop-value%"
+
+            send "&6&l================================"
+            send ""
+
+            stop
+
+
+        # ----------------------------------------------------
+        # ROLE
+        # ----------------------------------------------------
+
+        if arg-1 is "role":
+
+            if {jinro.role.%player%} is "villager":
+                send "{@prefix} あなたの役職: &a村人"
+                stop
+
+            if {jinro.role.%player%} is "wolf":
+                send "{@prefix} あなたの役職: &c人狼"
+                stop
+
+            send "{@prefix} &7役職は設定されていません。"
+
+            stop
+
+
+        # ----------------------------------------------------
+        # RESET
+        # ----------------------------------------------------
+
+        if arg-1 is "reset":
+
+            delete {jinro.game}
+            delete {jinro.phase}
+
+            loop {jinro.players::*}:
+                delete {jinro.role.%loop-value%}
+
+            delete {jinro.players::*}
+
+            send "{@prefix} &e人狼RPGのテストデータをリセットしました。"
+
+            stop
+
+
+        # ----------------------------------------------------
+        # HELP
+        # ----------------------------------------------------
+
+        send ""
+        send "&6&l========== 人狼RPG =========="
+        send "&e/jinro join &7- 参加"
+        send "&e/jinro leave &7- 退出"
+        send "&e/jinro start &7- ゲーム開始"
+        send "&e/jinro info &7- 状態確認"
+        send "&e/jinro role &7- 自分の役職確認"
+        send "&e/jinro reset &7- リセット"
+        send "&6&l============================="
+        send ""

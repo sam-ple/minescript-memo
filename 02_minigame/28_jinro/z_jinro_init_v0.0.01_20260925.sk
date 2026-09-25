@@ -1,0 +1,301 @@
+# ============================================================
+# Jinro RPG - World Initialize
+# Version : v0.1.00
+#
+# /jinroinit
+#   実行したワールドだけを人狼RPG用に初期化
+#
+# /jinroreset
+#   人狼RPG用ワールド登録を解除
+#
+# ============================================================
+
+
+# ============================================================
+# COMMAND : /jinroinit
+# ============================================================
+
+command /jinroinit:
+    permission: op
+    permission message: &cこのコマンドはOP専用です。
+    trigger:
+
+        # ----------------------------------------------------
+        # このワールドを人狼RPGワールドとして登録
+        # ----------------------------------------------------
+
+        set {jinro.world} to player's world
+
+        send "&6&l[Jinro RPG]" to player
+        send "&eこのワールドを人狼RPG用ワールドとして登録します。" to player
+
+
+        # ----------------------------------------------------
+        # プレイヤーをSurvivalへ
+        # ----------------------------------------------------
+
+        loop all players in player's world:
+            set loop-player's gamemode to survival
+
+
+        # ----------------------------------------------------
+        # 時間
+        # ----------------------------------------------------
+
+        set time of player's world to day
+
+        set gamerule "minecraft:advance_time" of player's world to false
+
+
+        # ----------------------------------------------------
+        # モブスポーン禁止
+        # ----------------------------------------------------
+
+        set gamerule "minecraft:spawn_mobs" of player's world to false
+
+
+        # ----------------------------------------------------
+        # 難易度
+        # ----------------------------------------------------
+
+        set difficulty of player's world to peaceful
+
+
+        # ----------------------------------------------------
+        # 死亡メッセージ非表示
+        # ----------------------------------------------------
+
+        set gamerule "minecraft:show_death_messages" of player's world to false
+
+
+        # ----------------------------------------------------
+        # モブドロップ禁止
+        # ----------------------------------------------------
+
+        set gamerule "minecraft:mob_drops" of player's world to false
+
+
+        # ----------------------------------------------------
+        # 既存モブを削除
+        #
+        # プレイヤー以外のLiving Entityを削除
+        # ----------------------------------------------------
+
+        loop all living entities in player's world:
+            if loop-entity is not a player:
+                kill loop-entity
+
+
+        # ----------------------------------------------------
+        # 完了
+        # ----------------------------------------------------
+
+        send "&a✔ 人狼RPGワールドの初期化が完了しました。" to player
+        send "&7ワールド: &f%player's world%" to player
+        send "&7ゲームモード: &fSurvival" to player
+        send "&7時間: &f昼固定" to player
+        send "&7モブスポーン: &f禁止" to player
+        send "&7難易度: &fPeaceful" to player
+
+
+# ============================================================
+# COMMAND : /jinroreset
+#
+# 登録している人狼RPGワールドを解除
+# ============================================================
+
+command /jinroreset:
+    permission: op
+    permission message: &cこのコマンドはOP専用です。
+    trigger:
+
+        if {jinro.world} is not set:
+            send "&e人狼RPG用ワールドは登録されていません。" to player
+            stop
+
+        send "&e人狼RPG用ワールドの登録を解除しました。" to player
+        delete {jinro.world}
+
+
+# ============================================================
+# BLOCK BREAK
+#
+# 人狼RPGワールドのみ
+#
+# Survival : 破壊禁止
+# Adventure: Minecraft側で破壊不可
+# Creative : 破壊可能
+# ============================================================
+
+on break:
+
+    if {jinro.world} is set:
+
+        if player's world is {jinro.world}:
+
+            if player's gamemode is survival:
+                cancel event
+
+
+# ============================================================
+# DEATH DROPS
+#
+# 人狼RPGワールド内で死亡した場合、
+# プレイヤー・モブともにドロップを出さない。
+#
+# ※ Qキーなどによる通常のアイテム受け渡しには干渉しない
+# ============================================================
+
+on death:
+
+    if {jinro.world} is set:
+
+        if player's world is {jinro.world}:
+            clear drops
+
+
+# ============================================================
+# INFO
+#
+# /jinroinfo
+#
+# 現在登録されている人狼RPGワールドを確認
+# ============================================================
+
+command /jinroinfo:
+    permission: op
+    permission message: &cこのコマンドはOP専用です。
+    trigger:
+
+        if {jinro.world} is not set:
+            send "&e人狼RPG用ワールドは登録されていません。" to player
+            stop
+
+        send "&6&l[Jinro RPG World]" to player
+        send "&7登録ワールド: &f%{jinro.world}%"
+
+        if player's world is {jinro.world}:
+            send "&a現在このワールドが人狼RPGワールドです。"
+        else:
+            send "&c現在のワールドは人狼RPGワールドではありません。"
+
+            
+# # ============================================================
+# # Jinro RPG - Init
+# # Version : v0.1.01
+# #
+# # ・アドベンチャーモード
+# # ・昼固定
+# # ・ブロック破壊禁止
+# # ・ドロップ禁止
+# # ・モブ自然湧き禁止
+# # ・Peaceful
+# # ・既存モブ全kill
+# # ・死亡メッセージ非表示
+# # ============================================================
+
+
+# # ============================================================
+# # INIT
+# # ============================================================
+
+# command /jinroinit:
+
+#     permission: op
+
+#     trigger:
+
+#         # ----------------------------------------------------
+#         # プレイヤー全員をアドベンチャー
+#         # ----------------------------------------------------
+
+#         loop all players in player's world:
+#             set loop-player's gamemode to adventure
+
+
+#         # ----------------------------------------------------
+#         # ワールド設定
+#         # ----------------------------------------------------
+
+#         # execute console command "time set day"
+#         # execute console command "gamerule doDaylightCycle false"
+#         # execute console command "gamerule doMobSpawning false"
+#         # execute console command "difficulty peaceful"
+#         # execute console command "gamerule showDeathMessages false"
+
+#         execute console command "time set day"
+#         execute console command "gamerule minecraft:advance_time false"
+#         execute console command "gamerule minecraft:spawn_mobs false"
+#         execute console command "difficulty peaceful"
+#         execute console command "gamerule minecraft:show_death_messages false"
+#         execute console command "gamerule minecraft:mob_drops false"
+#         execute console command "gamerule minecraft:block_drops false"
+
+#         # ----------------------------------------------------
+#         # 既存モブ全kill
+#         # ----------------------------------------------------
+
+#         loop all entities in player's world:
+
+#             if loop-entity is not a player:
+
+#                 kill loop-entity
+
+
+#         # ----------------------------------------------------
+#         # 完了
+#         # ----------------------------------------------------
+
+#         send ""
+#         send "&6&l========== 人狼RPG =========="
+#         send "&a初期化完了"
+#         send ""
+#         send "&7Gamemode       : &fAdventure"
+#         send "&7Time           : &fDay"
+#         send "&7Daylight Cycle : &fOFF"
+#         send "&7Mob Spawning   : &fOFF"
+#         send "&7Difficulty      : &fPeaceful"
+#         send "&7Block Break    : &f禁止"
+#         send "&7Item Drop      : &f禁止"
+#         send "&7Death Message  : &fOFF"
+#         send "&6&l============================="
+#         send ""
+
+
+# # ============================================================
+# # BLOCK BREAK
+# # ============================================================
+
+# # on break:
+
+# #     cancel event
+
+# on break:
+#     if player's gamemode is survival:
+#         cancel event
+
+# # # ============================================================
+# # # PLAYER DROP
+# # # ============================================================
+
+# # on drop:
+
+# #     cancel event
+
+
+# # ============================================================
+# # ENTITY DEATH DROP
+# # ============================================================
+
+# on death:
+
+#     clear drops
+
+
+# # # ============================================================
+# # # ITEM ENTITY
+# # # ============================================================
+
+# # on item spawn:
+
+# #     cancel event

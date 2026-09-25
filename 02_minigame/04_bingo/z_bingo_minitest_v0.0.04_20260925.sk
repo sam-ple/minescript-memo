@@ -1,0 +1,504 @@
+# ============================================================
+# BINGO MINI TEST
+# Version : v0.2.00
+#
+# 3 x 3 / 9 ITEMS TEST
+#
+# ※まだビンゴシステムは入れない
+# ============================================================
+
+
+# ============================================================
+# /BINGOTEST
+# ============================================================
+
+command /bingotest [<text>]:
+
+    permission: op
+
+    trigger:
+
+
+        # ====================================================
+        # SETUP
+        # ====================================================
+
+        if arg-1 is "setup":
+
+            # ------------------------------------------------
+            # 古い額縁を削除
+            # ------------------------------------------------
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_input]"
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_apple]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_bread]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_carrot]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_potato]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_diamond]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_gold]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_iron]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_emerald]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_stick]"
+
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_apple]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_bread]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_carrot]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_potato]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_diamond]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_gold]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_iron]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_emerald]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_stick]"
+
+
+            # ------------------------------------------------
+            # 状態
+            # ------------------------------------------------
+
+            set {bingotest.running} to true
+
+            set {bingotest.apple.completed} to false
+            set {bingotest.bread.completed} to false
+            set {bingotest.carrot.completed} to false
+            set {bingotest.potato.completed} to false
+            set {bingotest.diamond.completed} to false
+            set {bingotest.gold.completed} to false
+            set {bingotest.iron.completed} to false
+            set {bingotest.emerald.completed} to false
+            set {bingotest.stick.completed} to false
+
+
+            # =================================================
+            # INPUT SIDE
+            # =================================================
+
+            # プレイヤーが南を向いて実行
+            #
+            # Emerald
+            # Stone
+            # Input Frame
+            #
+
+            execute console command "execute at %player% run setblock ~ ~ ~3 minecraft:emerald_block"
+
+            execute console command "execute at %player% run setblock ~ ~1 ~3 minecraft:stone"
+
+            execute console command "execute at %player% run summon minecraft:item_frame ~ ~1 ~4 {Facing:3b,Tags:[""bingotest_input""]}"
+
+
+            # =================================================
+            # 3 x 3 BOARD
+            # =================================================
+            #
+            #          APPLE      BREAD      CARROT
+            #
+            #          POTATO     DIAMOND    GOLD
+            #
+            #          IRON       EMERALD    STICK
+            #
+            # =================================================
+
+
+            # =================================================
+            # ROW 1
+            # =================================================
+
+
+            # ------------------------------------------------
+            # APPLE
+            # x +2 / y +1
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~2 ~ ~3 minecraft:quartz_block"
+
+            execute console command "execute at %player% run setblock ~2 ~1 ~3 minecraft:white_stained_glass"
+
+            execute console command "execute at %player% run summon minecraft:item_frame ~2 ~1 ~4 {Facing:3b,Invulnerable:1b,Tags:[""bingotest_apple""]}"
+
+            wait 1 tick
+
+            execute console command "data merge entity @e[type=minecraft:item_frame,tag=bingotest_apple,limit=1,sort=nearest] {Item:{id:""minecraft:apple"",count:1}}"
+
+
+            # ------------------------------------------------
+            # BREAD
+            # x +3 / y +1
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~3 ~ ~3 minecraft:quartz_block"
+
+            execute console command "execute at %player% run setblock ~3 ~1 ~3 minecraft:white_stained_glass"
+
+            execute console command "execute at %player% run summon minecraft:item_frame ~3 ~1 ~4 {Facing:3b,Invulnerable:1b,Tags:[""bingotest_bread""]}"
+
+            wait 1 tick
+
+            execute console command "data merge entity @e[type=minecraft:item_frame,tag=bingotest_bread,limit=1,sort=nearest] {Item:{id:""minecraft:bread"",count:1}}"
+
+
+            # ------------------------------------------------
+            # CARROT
+            # x +4 / y +1
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~4 ~ ~3 minecraft:quartz_block"
+
+            execute console command "execute at %player% run setblock ~4 ~1 ~3 minecraft:white_stained_glass"
+
+            execute console command "execute at %player% run summon minecraft:item_frame ~4 ~1 ~4 {Facing:3b,Invulnerable:1b,Tags:[""bingotest_carrot""]}"
+
+            wait 1 tick
+
+            execute console command "data merge entity @e[type=minecraft:item_frame,tag=bingotest_carrot,limit=1,sort=nearest] {Item:{id:""minecraft:carrot"",count:1}}"
+
+
+            # =================================================
+            # ROW 2
+            # =================================================
+
+
+            # ------------------------------------------------
+            # POTATO
+            # x +2 / y +2
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~2 ~1 ~3 minecraft:quartz_block"
+
+            execute console command "execute at %player% run setblock ~2 ~2 ~3 minecraft:white_stained_glass"
+
+            execute console command "execute at %player% run summon minecraft:item_frame ~2 ~2 ~4 {Facing:3b,Invulnerable:1b,Tags:[""bingotest_potato""]}"
+
+            wait 1 tick
+
+            execute console command "data merge entity @e[type=minecraft:item_frame,tag=bingotest_potato,limit=1,sort=nearest] {Item:{id:""minecraft:potato"",count:1}}"
+
+
+            # ------------------------------------------------
+            # DIAMOND
+            # x +3 / y +2
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~3 ~1 ~3 minecraft:quartz_block"
+
+            execute console command "execute at %player% run setblock ~3 ~2 ~3 minecraft:white_stained_glass"
+
+            execute console command "execute at %player% run summon minecraft:item_frame ~3 ~2 ~4 {Facing:3b,Invulnerable:1b,Tags:[""bingotest_diamond""]}"
+
+            wait 1 tick
+
+            execute console command "data merge entity @e[type=minecraft:item_frame,tag=bingotest_diamond,limit=1,sort=nearest] {Item:{id:""minecraft:diamond"",count:1}}"
+
+
+            # ------------------------------------------------
+            # GOLD
+            # x +4 / y +2
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~4 ~1 ~3 minecraft:quartz_block"
+
+            execute console command "execute at %player% run setblock ~4 ~2 ~3 minecraft:white_stained_glass"
+
+            execute console command "execute at %player% run summon minecraft:item_frame ~4 ~2 ~4 {Facing:3b,Invulnerable:1b,Tags:[""bingotest_gold""]}"
+
+            wait 1 tick
+
+            execute console command "data merge entity @e[type=minecraft:item_frame,tag=bingotest_gold,limit=1,sort=nearest] {Item:{id:""minecraft:gold_ingot"",count:1}}"
+
+
+            # =================================================
+            # ROW 3
+            # =================================================
+
+
+            # ------------------------------------------------
+            # IRON
+            # x +2 / y +3
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~2 ~2 ~3 minecraft:quartz_block"
+
+            execute console command "execute at %player% run setblock ~2 ~3 ~3 minecraft:white_stained_glass"
+
+            execute console command "execute at %player% run summon minecraft:item_frame ~2 ~3 ~4 {Facing:3b,Invulnerable:1b,Tags:[""bingotest_iron""]}"
+
+            wait 1 tick
+
+            execute console command "data merge entity @e[type=minecraft:item_frame,tag=bingotest_iron,limit=1,sort=nearest] {Item:{id:""minecraft:iron_ingot"",count:1}}"
+
+
+            # ------------------------------------------------
+            # EMERALD
+            # x +3 / y +3
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~3 ~2 ~3 minecraft:quartz_block"
+
+            execute console command "execute at %player% run setblock ~3 ~3 ~3 minecraft:white_stained_glass"
+
+            execute console command "execute at %player% run summon minecraft:item_frame ~3 ~3 ~4 {Facing:3b,Invulnerable:1b,Tags:[""bingotest_emerald""]}"
+
+            wait 1 tick
+
+            execute console command "data merge entity @e[type=minecraft:item_frame,tag=bingotest_emerald,limit=1,sort=nearest] {Item:{id:""minecraft:emerald"",count:1}}"
+
+
+            # ------------------------------------------------
+            # STICK
+            # x +4 / y +3
+            # ------------------------------------------------
+
+            execute console command "execute at %player% run setblock ~4 ~2 ~3 minecraft:quartz_block"
+
+            execute console command "execute at %player% run setblock ~4 ~3 ~3 minecraft:white_stained_glass"
+
+            execute console command "execute at %player% run summon minecraft:item_frame ~4 ~3 ~4 {Facing:3b,Invulnerable:1b,Tags:[""bingotest_stick""]}"
+
+            wait 1 tick
+
+            execute console command "data merge entity @e[type=minecraft:item_frame,tag=bingotest_stick,limit=1,sort=nearest] {Item:{id:""minecraft:stick"",count:1}}"
+
+
+            # =================================================
+            # MESSAGE
+            # =================================================
+
+            send "" to player
+
+            send "&6&l====================================" to player
+            send "&e&l          BINGO MINI TEST" to player
+            send "&6&l====================================" to player
+
+            send "" to player
+
+            send "&f9個のアイテムをテストできます。" to player
+
+            send "&aAPPLE &f/ &6BREAD &f/ &eCARROT" to player
+            send "&fPOTATO / &bDIAMOND / &6GOLD" to player
+            send "&7IRON / &aEMERALD / &fSTICK" to player
+
+            send "" to player
+
+            send "&7入力額縁にアイテムを入れてください。" to player
+
+            send "&7正解すると対応するマスが変化します。" to player
+
+            send "" to player
+
+            stop
+
+
+        # ====================================================
+        # RESET
+        # ====================================================
+
+        if arg-1 is "reset":
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_input]"
+
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_apple]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_bread]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_carrot]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_potato]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_diamond]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_gold]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_iron]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_emerald]"
+            execute console command "kill @e[type=minecraft:item_frame,tag=bingotest_stick]"
+
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_apple]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_bread]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_carrot]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_potato]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_diamond]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_gold]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_iron]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_emerald]"
+            execute console command "kill @e[type=minecraft:glow_item_frame,tag=bingotest_stick]"
+
+            set {bingotest.running} to false
+
+            set {bingotest.apple.completed} to false
+            set {bingotest.bread.completed} to false
+            set {bingotest.carrot.completed} to false
+            set {bingotest.potato.completed} to false
+            set {bingotest.diamond.completed} to false
+            set {bingotest.gold.completed} to false
+            set {bingotest.iron.completed} to false
+            set {bingotest.emerald.completed} to false
+            set {bingotest.stick.completed} to false
+
+            send "&aBINGO MINI TESTをリセットしました。" to player
+
+            stop
+
+
+        # ====================================================
+        # STATUS
+        # ====================================================
+
+        if arg-1 is "status":
+
+            send "" to player
+            send "&6&lBINGO MINI TEST STATUS" to player
+            send "" to player
+
+            if {bingotest.running} is true:
+                send "&fRunning : &aYES"
+            else:
+                send "&fRunning : &cNO"
+
+            if {bingotest.apple.completed} is true:
+                send "&fApple   : &aCOMPLETED"
+            else:
+                send "&fApple   : &eWAITING"
+
+            if {bingotest.bread.completed} is true:
+                send "&fBread   : &aCOMPLETED"
+            else:
+                send "&fBread   : &eWAITING"
+
+            if {bingotest.carrot.completed} is true:
+                send "&fCarrot  : &aCOMPLETED"
+            else:
+                send "&fCarrot  : &eWAITING"
+
+            if {bingotest.potato.completed} is true:
+                send "&fPotato  : &aCOMPLETED"
+            else:
+                send "&fPotato  : &eWAITING"
+
+            if {bingotest.diamond.completed} is true:
+                send "&fDiamond : &aCOMPLETED"
+            else:
+                send "&fDiamond : &eWAITING"
+
+            if {bingotest.gold.completed} is true:
+                send "&fGold    : &aCOMPLETED"
+            else:
+                send "&fGold    : &eWAITING"
+
+            if {bingotest.iron.completed} is true:
+                send "&fIron    : &aCOMPLETED"
+            else:
+                send "&fIron    : &eWAITING"
+
+            if {bingotest.emerald.completed} is true:
+                send "&fEmerald : &aCOMPLETED"
+            else:
+                send "&fEmerald : &eWAITING"
+
+            if {bingotest.stick.completed} is true:
+                send "&fStick   : &aCOMPLETED"
+            else:
+                send "&fStick   : &eWAITING"
+
+            send ""
+
+            stop
+
+
+        # ====================================================
+        # HELP
+        # ====================================================
+
+        send "" to player
+
+        send "&6&lBINGO MINI TEST" to player
+
+        send "&7/bingotest setup &f- 3x3テスト開始"
+        send "&7/bingotest reset &f- リセット"
+        send "&7/bingotest status &f- 状態確認"
+
+        send "" to player
+
+
+# ============================================================
+# ITEM DETECTION
+# ============================================================
+
+every 2 ticks:
+
+    if {bingotest.running} is not true:
+        stop
+
+
+    # ========================================================
+    # APPLE
+    # ========================================================
+
+    if {bingotest.apple.completed} is not true:
+
+        execute console command "execute if entity @e[type=minecraft:item_frame,tag=bingotest_input,nbt={Item:{id:""minecraft:apple""}}] run bingotest apple"
+
+
+    # ========================================================
+    # BREAD
+    # ========================================================
+
+    if {bingotest.bread.completed} is not true:
+
+        execute console command "execute if entity @e[type=minecraft:item_frame,tag=bingotest_input,nbt={Item:{id:""minecraft:bread""}}] run bingotest bread"
+
+
+    # ========================================================
+    # CARROT
+    # ========================================================
+
+    if {bingotest.carrot.completed} is not true:
+
+        execute console command "execute if entity @e[type=minecraft:item_frame,tag=bingotest_input,nbt={Item:{id:""minecraft:carrot""}}] run bingotest carrot"
+
+
+    # ========================================================
+    # POTATO
+    # ========================================================
+
+    if {bingotest.potato.completed} is not true:
+
+        execute console command "execute if entity @e[type=minecraft:item_frame,tag=bingotest_input,nbt={Item:{id:""minecraft:potato""}}] run bingotest potato"
+
+
+    # ========================================================
+    # DIAMOND
+    # ========================================================
+
+    if {bingotest.diamond.completed} is not true:
+
+        execute console command "execute if entity @e[type=minecraft:item_frame,tag=bingotest_input,nbt={Item:{id:""minecraft:diamond""}}] run bingotest diamond"
+
+
+    # ========================================================
+    # GOLD
+    # ========================================================
+
+    if {bingotest.gold.completed} is not true:
+
+        execute console command "execute if entity @e[type=minecraft:item_frame,tag=bingotest_input,nbt={Item:{id:""minecraft:gold_ingot""}}] run bingotest gold"
+
+
+    # ========================================================
+    # IRON
+    # ========================================================
+
+    if {bingotest.iron.completed} is not true:
+
+        execute console command "execute if entity @e[type=minecraft:item_frame,tag=bingotest_input,nbt={Item:{id:""minecraft:iron_ingot""}}] run bingotest iron"
+
+
+    # ========================================================
+    # EMERALD
+    # ========================================================
+
+    if {bingotest.emerald.completed} is not true:
+
+        execute console command "execute if entity @e[type=minecraft:item_frame,tag=bingotest_input,nbt={Item:{id:""minecraft:emerald""}}] run bingotest emerald"
+
+
+    # ========================================================
+    # STICK
+    # ========================================================
+
+    if {bingotest.stick.completed} is not true:
+
+        execute console command "execute if entity @e[type=minecraft:item_frame,tag=bingotest_input,nbt={Item:{id:""minecraft:stick""}}] run bingotest stick"

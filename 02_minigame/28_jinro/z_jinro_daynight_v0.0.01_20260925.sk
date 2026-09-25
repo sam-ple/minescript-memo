@@ -1,0 +1,317 @@
+# ============================================================
+# Jinro Day / Night - Mini Test
+#
+# 実際のMinecraft時間も昼・夜になる版
+#
+# /jdn start
+# /jdn stop
+# /jdn info
+# /jdn reset
+#
+# ============================================================
+
+options:
+
+    first-day: 30
+    phase-time: 120
+
+    bossbar-id: jinro_test:timer
+
+
+# ============================================================
+# COMMAND
+# ============================================================
+
+command /jdn [<text>]:
+
+    permission: jdn.admin
+    permission message: "&c権限がありません。"
+
+    trigger:
+
+        # ====================================================
+        # HELP
+        # ====================================================
+
+        if arg-1 is not set:
+
+            send ""
+            send "&6&l===== Jinro Day / Night Test ====="
+            send "&e/jdn start &7- サイクル開始"
+            send "&e/jdn stop &7- サイクル停止"
+            send "&e/jdn info &7- 状態確認"
+            send "&e/jdn reset &7- 完全リセット"
+            send ""
+
+            stop
+
+
+        # ====================================================
+        # START
+        # ====================================================
+
+        if arg-1 is "start":
+
+            if {jdn.running} is true:
+
+                send "&c[JDN] すでに実行中です。"
+                stop
+
+
+            # --------------------------------------------
+            # 初期化
+            # --------------------------------------------
+
+            set {jdn.running} to true
+            set {jdn.phase} to "first_day"
+            set {jdn.remaining} to {@first-day}
+
+
+            # --------------------------------------------
+            # Minecraft時間を昼にする
+            # --------------------------------------------
+
+            execute console command "time set day"
+
+
+            # --------------------------------------------
+            # BossBar
+            # --------------------------------------------
+
+            execute console command "bossbar add {@bossbar-id} ""&e昼"""
+            execute console command "bossbar set {@bossbar-id} players @a"
+            execute console command "bossbar set {@bossbar-id} color yellow"
+            execute console command "bossbar set {@bossbar-id} style progress"
+            execute console command "bossbar set {@bossbar-id} max {@first-day}"
+            execute console command "bossbar set {@bossbar-id} value {@first-day}"
+            execute console command "bossbar set {@bossbar-id} visible true"
+
+
+            # --------------------------------------------
+            # タイトル
+            # --------------------------------------------
+
+            title all players with "&e&l昼になりました。" for 10 ticks, 40 ticks, 10 ticks
+
+
+            send ""
+            send "&a[JDN] サイクルを開始しました。"
+            send "&e[JDN] 昼: &f{@first-day}秒"
+            send "&9[JDN] 夜: &f{@phase-time}秒"
+            send ""
+
+            stop
+
+
+        # ====================================================
+        # STOP
+        # ====================================================
+
+        if arg-1 is "stop":
+
+            if {jdn.running} is not true:
+
+                send "&e[JDN] 実行中ではありません。"
+                stop
+
+
+            set {jdn.running} to false
+
+            delete {jdn.phase}
+            delete {jdn.remaining}
+
+            execute console command "bossbar remove {@bossbar-id}"
+
+            # Minecraftを昼に戻す
+            execute console command "time set day"
+
+
+            send "&c[JDN] サイクルを停止しました。"
+
+            stop
+
+
+        # ====================================================
+        # INFO
+        # ====================================================
+
+        if arg-1 is "info":
+
+            send ""
+            send "&6&l===== JDN INFO ====="
+            send "&7Running: &f%{jdn.running}%"
+            send "&7Phase: &f%{jdn.phase}%"
+            send "&7Remaining: &f%{jdn.remaining}%秒"
+            send ""
+
+            stop
+
+
+        # ====================================================
+        # RESET
+        # ====================================================
+
+        if arg-1 is "reset":
+
+            set {jdn.running} to false
+
+            delete {jdn.phase}
+            delete {jdn.remaining}
+
+            execute console command "bossbar remove {@bossbar-id}"
+
+            # Minecraftを昼に戻す
+            execute console command "time set day"
+
+
+            send "&a[JDN] リセットしました。"
+
+            stop
+
+
+        # ====================================================
+        # UNKNOWN
+        # ====================================================
+
+        send "&c[JDN] 不明なコマンドです。"
+        send "&e/jdn でヘルプを表示してください。"
+
+
+# ============================================================
+# TIMER
+# ============================================================
+
+every 1 second:
+
+    if {jdn.running} is not true:
+
+        stop
+
+
+    # ========================================================
+    # FIRST DAY
+    # ========================================================
+
+    if {jdn.phase} is "first_day":
+
+        remove 1 from {jdn.remaining}
+
+
+        execute console command "bossbar set {@bossbar-id} name ""&e昼"""
+        execute console command "bossbar set {@bossbar-id} color yellow"
+        execute console command "bossbar set {@bossbar-id} max {@first-day}"
+        execute console command "bossbar set {@bossbar-id} value %{jdn.remaining}%"
+
+
+        if {jdn.remaining} <= 0:
+
+            # --------------------------------------------
+            # 昼 → 夜
+            # --------------------------------------------
+
+            set {jdn.phase} to "night"
+            set {jdn.remaining} to {@phase-time}
+
+
+            # Minecraftを夜にする
+            execute console command "time set night"
+
+
+            # BossBar
+            execute console command "bossbar set {@bossbar-id} name ""&9夜"""
+            execute console command "bossbar set {@bossbar-id} color blue"
+            execute console command "bossbar set {@bossbar-id} max {@phase-time}"
+            execute console command "bossbar set {@bossbar-id} value {@phase-time}"
+
+
+            title all players with "&9&l夜になりました。" for 10 ticks, 40 ticks, 10 ticks
+
+            send "&9[JDN] 夜になりました。"
+
+        stop
+
+
+    # ========================================================
+    # NIGHT
+    # ========================================================
+
+    if {jdn.phase} is "night":
+
+        remove 1 from {jdn.remaining}
+
+
+        execute console command "bossbar set {@bossbar-id} name ""&9夜"""
+        execute console command "bossbar set {@bossbar-id} color blue"
+        execute console command "bossbar set {@bossbar-id} max {@phase-time}"
+        execute console command "bossbar set {@bossbar-id} value %{jdn.remaining}%"
+
+
+        if {jdn.remaining} <= 0:
+
+            # --------------------------------------------
+            # 夜 → 昼
+            # --------------------------------------------
+
+            set {jdn.phase} to "day"
+            set {jdn.remaining} to {@phase-time}
+
+
+            # Minecraftを昼にする
+            execute console command "time set day"
+
+
+            # BossBar
+            execute console command "bossbar set {@bossbar-id} name ""&e昼"""
+            execute console command "bossbar set {@bossbar-id} color yellow"
+            execute console command "bossbar set {@bossbar-id} max {@phase-time}"
+            execute console command "bossbar set {@bossbar-id} value {@phase-time}"
+
+
+            title all players with "&e&l昼になりました。" for 10 ticks, 40 ticks, 10 ticks
+
+            send "&e[JDN] 昼になりました。"
+
+        stop
+
+
+    # ========================================================
+    # DAY
+    # ========================================================
+
+    if {jdn.phase} is "day":
+
+        remove 1 from {jdn.remaining}
+
+
+        execute console command "bossbar set {@bossbar-id} name ""&e昼"""
+        execute console command "bossbar set {@bossbar-id} color yellow"
+        execute console command "bossbar set {@bossbar-id} max {@phase-time}"
+        execute console command "bossbar set {@bossbar-id} value %{jdn.remaining}%"
+
+
+        if {jdn.remaining} <= 0:
+
+            # --------------------------------------------
+            # 昼 → 夜
+            # --------------------------------------------
+
+            set {jdn.phase} to "night"
+            set {jdn.remaining} to {@phase-time}
+
+
+            # Minecraftを夜にする
+            execute console command "time set night"
+
+
+            # BossBar
+            execute console command "bossbar set {@bossbar-id} name ""&9夜"""
+            execute console command "bossbar set {@bossbar-id} color blue"
+            execute console command "bossbar set {@bossbar-id} max {@phase-time}"
+            execute console command "bossbar set {@bossbar-id} value {@phase-time}"
+
+
+            title all players with "&9&l夜になりました。" for 10 ticks, 40 ticks, 10 ticks
+
+            send "&9[JDN] 夜になりました。"
+
+        stop

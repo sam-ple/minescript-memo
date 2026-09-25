@@ -1,0 +1,282 @@
+# ============================================================
+# Jinro RPG - Role System
+# Version : v0.1.00
+#
+# 配役決定システム
+#
+# 参加人数
+#     ↓
+# 固定役職
+#     ↓
+# 確率抽選役職
+#     ↓
+# 残り人数を村人にする
+#     ↓
+# ランダム配布
+#
+# ============================================================
+
+
+# ============================================================
+# ROLE SETTINGS
+#
+# chance = 出現確率
+# max    = 最大人数
+#
+# 100 = 必ず候補に入る
+# 50  = 50%の確率で候補に入る
+# 0   = 出現しない
+#
+# ============================================================
+
+options:
+
+    # --------------------------------------------------------
+    # 人狼
+    # --------------------------------------------------------
+
+    wolf-chance: 100
+    wolf-max: 2
+
+
+    # --------------------------------------------------------
+    # 共犯者
+    # --------------------------------------------------------
+
+    accomplice-chance: 100
+    accomplice-max: 1
+
+
+    # --------------------------------------------------------
+    # 吸血鬼
+    # --------------------------------------------------------
+
+    vampire-chance: 50
+    vampire-max: 1
+
+
+    # --------------------------------------------------------
+    # 狂人
+    # --------------------------------------------------------
+
+    madman-chance: 50
+    madman-max: 1
+
+
+    # --------------------------------------------------------
+    # パン屋
+    # --------------------------------------------------------
+
+    baker-chance: 50
+    baker-max: 1
+
+
+# ============================================================
+# COMMAND
+#
+# /jinrorole test
+#
+# 配役抽選だけをテストする
+#
+# ============================================================
+
+command /jinrorole [<text>]:
+    permission: op
+    permission message: &cこのコマンドはOP専用です。
+
+    trigger:
+
+        if arg-1 is "test":
+
+            # ------------------------------------------------
+            # 参加人数
+            # ------------------------------------------------
+
+            set {_players} to number of all players
+
+            if {_players} < 2:
+                send "&c最低2人必要です。" to player
+                stop
+
+
+            # ------------------------------------------------
+            # 初期化
+            # ------------------------------------------------
+
+            set {_wolf} to 0
+            set {_accomplice} to 0
+            set {_vampire} to 0
+            set {_madman} to 0
+            set {_baker} to 0
+            set {_villager} to 0
+
+
+            # ------------------------------------------------
+            # 残り人数
+            # ------------------------------------------------
+
+            set {_remaining} to {_players}
+
+
+            # =================================================
+            # ① 人狼
+            # =================================================
+
+            set {_roll} to random integer between 1 and 100
+
+            if {_roll} <= {@wolf-chance}:
+
+                set {_wolf} to {@wolf-max}
+
+                if {_wolf} > {_remaining}:
+                    set {_wolf} to {_remaining}
+
+                remove {_wolf} from {_remaining}
+
+
+            # =================================================
+            # ② 共犯者
+            # =================================================
+
+            if {_remaining} > 0:
+
+                set {_roll} to random integer between 1 and 100
+
+                if {_roll} <= {@accomplice-chance}:
+
+                    set {_accomplice} to {@accomplice-max}
+
+                    if {_accomplice} > {_remaining}:
+                        set {_accomplice} to {_remaining}
+
+                    remove {_accomplice} from {_remaining}
+
+
+            # =================================================
+            # ③ 吸血鬼
+            # =================================================
+
+            if {_remaining} > 0:
+
+                set {_roll} to random integer between 1 and 100
+
+                if {_roll} <= {@vampire-chance}:
+
+                    set {_vampire} to {@vampire-max}
+
+                    if {_vampire} > {_remaining}:
+                        set {_vampire} to {_remaining}
+
+                    remove {_vampire} from {_remaining}
+
+
+            # =================================================
+            # ④ 狂人
+            # =================================================
+
+            if {_remaining} > 0:
+
+                set {_roll} to random integer between 1 and 100
+
+                if {_roll} <= {@madman-chance}:
+
+                    set {_madman} to {@madman-max}
+
+                    if {_madman} > {_remaining}:
+                        set {_madman} to {_remaining}
+
+                    remove {_madman} from {_remaining}
+
+
+            # =================================================
+            # ⑤ パン屋
+            # =================================================
+
+            if {_remaining} > 0:
+
+                set {_roll} to random integer between 1 and 100
+
+                if {_roll} <= {@baker-chance}:
+
+                    set {_baker} to {@baker-max}
+
+                    if {_baker} > {_remaining}:
+                        set {_baker} to {_remaining}
+
+                    remove {_baker} from {_remaining}
+
+
+            # =================================================
+            # ⑥ 残りは村人
+            # =================================================
+
+            set {_villager} to {_remaining}
+
+
+            # =================================================
+            # RESULT
+            # =================================================
+
+            send "" to player
+            send "&6&l===== Jinro Role Test =====" to player
+
+            send "&f参加人数 : &e%{_players}%" to player
+
+            send "" to player
+
+            send "&c人狼     : %{_wolf}%" to player
+            send "&8共犯者   : %{_accomplice}%" to player
+            send "&5吸血鬼   : %{_vampire}%" to player
+            send "&4狂人     : %{_madman}%" to player
+            send "&6パン屋   : %{_baker}%" to player
+
+            send "&a村人     : %{_villager}%" to player
+
+            send "" to player
+            send "&7合計     : %{_wolf} + {_accomplice} + {_vampire} + {_madman} + {_baker} + {_villager}%" to player
+
+            send "" to player
+
+            send "&6設定値" to player
+            send "&7人狼     : {@wolf-chance}%% / 最大 {@wolf-max}人" to player
+            send "&7共犯者   : {@accomplice-chance}%% / 最大 {@accomplice-max}人" to player
+            send "&7吸血鬼   : {@vampire-chance}%% / 最大 {@vampire-max}人" to player
+            send "&7狂人     : {@madman-chance}%% / 最大 {@madman-max}人" to player
+            send "&7パン屋   : {@baker-chance}%% / 最大 {@baker-max}人" to player
+
+            send "&6&l============================" to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # INFO
+        # ----------------------------------------------------
+
+        if arg-1 is "info":
+
+            send "" to player
+            send "&6&l===== Jinro Role Settings =====" to player
+
+            send "&c人狼     : {@wolf-chance}%% / 最大 {@wolf-max}人" to player
+            send "&8共犯者   : {@accomplice-chance}%% / 最大 {@accomplice-max}人" to player
+            send "&5吸血鬼   : {@vampire-chance}%% / 最大 {@vampire-max}人" to player
+            send "&4狂人     : {@madman-chance}%% / 最大 {@madman-max}人" to player
+            send "&6パン屋   : {@baker-chance}%% / 最大 {@baker-max}人" to player
+
+            send "&a村人     : 残り人数" to player
+
+            send "&6&l============================" to player
+
+            stop
+
+
+        # ----------------------------------------------------
+        # HELP
+        # ----------------------------------------------------
+
+        send "" to player
+        send "&6&l===== Jinro Role =====" to player
+        send "&e/jinrorole test &7- 配役抽選テスト"
+        send "&e/jinrorole info &7- 設定確認"
+        send "&6&l======================" to player
