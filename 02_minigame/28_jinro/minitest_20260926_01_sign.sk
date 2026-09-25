@@ -1,0 +1,63 @@
+# ============================================================
+# Sign Click Mini Test
+# ============================================================
+
+on right click:
+
+    if clicked block is not set:
+        stop
+
+    if type of clicked block is oak sign:
+        send "&a[TEST] Oak Sign!"
+        cancel event
+        stop
+
+    if type of clicked block is spruce sign:
+        send "&a[TEST] Spruce Sign!"
+        cancel event
+        stop
+
+    if type of clicked block is birch sign:
+        send "&a[TEST] Birch Sign!"
+        cancel event
+        stop
+
+    if type of clicked block is jungle sign:
+        send "&a[TEST] Jungle Sign!"
+        cancel event
+        stop
+
+    if type of clicked block is acacia sign:
+        send "&a[TEST] Acacia Sign!"
+        cancel event
+        stop
+
+    if type of clicked block is dark oak sign:
+        send "&a[TEST] Dark Oak Sign!"
+        cancel event
+        stop
+
+    if type of clicked block is mangrove sign:
+        send "&a[TEST] Mangrove Sign!"
+        cancel event
+        stop
+
+    if type of clicked block is cherry sign:
+        send "&a[TEST] Cherry Sign!"
+        cancel event
+        stop
+
+    if type of clicked block is bamboo sign:
+        send "&a[TEST] Bamboo Sign!"
+        cancel event
+        stop
+
+    if type of clicked block is crimson sign:
+        send "&a[TEST] Crimson Sign!"
+        cancel event
+        stop
+
+    if type of clicked block is warped sign:
+        send "&a[TEST] Warped Sign!"
+        cancel event
+        stop
