@@ -1,0 +1,484 @@
+options:
+    scan-radius: 30
+    min-spawn-distance: 6
+
+
+# =========================================================
+# Skeleton Hunt - Mini Test
+#
+# /skh set_sign
+# /skh scan_area
+# /skh testspawn <数>
+# /skh info
+# /skh reset
+#
+# 地上のみ
+# =========================================================
+
+
+command /skh [<text>] [<number>]:
+
+    permission: skh.admin
+    permission message: "&c権限がありません。"
+
+    trigger:
+
+
+        # =====================================================
+        # HELP
+        # =====================================================
+
+        if arg-1 is not set:
+
+            send "&6&l===== Skeleton Hunt Test ====="
+            send "&e/skh set_sign &7- 現在地をステージ起点として登録"
+            send "&e/skh scan_area &7- 安全地点をスキャン"
+            send "&e/skh testspawn <数> &7- 保存地点からテスト召喚"
+            send "&e/skh info &7- 状態確認"
+            send "&e/skh reset &7- 全データ削除"
+
+            stop
+
+
+        # =====================================================
+        # SET SIGN
+        # =====================================================
+
+        if arg-1 is "set_sign":
+
+            set {skh.origin} to location of player
+            set {skh.origin-world} to world of player
+
+            set {skh.scanned} to false
+
+            delete {skh.safe::*}
+            delete {skh.safe-count}
+            delete {skh.scan-columns}
+
+            send ""
+            send "&a&l[SKH] ステージ起点を登録しました。"
+            send "&7World: &f%world of player%"
+            send "&7X: &f%x-coordinate of player%"
+            send "&7Y: &f%y-coordinate of player%"
+            send "&7Z: &f%z-coordinate of player%"
+            send ""
+            send "&e次に /skh scan_area を実行してください。"
+            send ""
+
+            stop
+
+
+        # =====================================================
+        # SCAN AREA
+        # =====================================================
+
+        if arg-1 is "scan_area":
+
+            if {skh.origin} is not set:
+
+                send "&c先に /skh set_sign を実行してください。"
+
+                stop
+
+
+            if {skh.scanned} is true:
+
+                send "&eすでにスキャン済みです。"
+                send "&7再スキャンする場合は /skh reset を実行してください。"
+
+                stop
+
+
+            send ""
+            send "&e&l[SKH] スキャン開始"
+            send "&7半径: &f{@scan-radius}"
+            send "&7起点: &f%x-coordinate of {skh.origin}%, %y-coordinate of {skh.origin}%, %z-coordinate of {skh.origin}%"
+            send "&c※完了まで少し時間がかかります。"
+            send ""
+
+
+            delete {skh.safe::*}
+
+
+            # =================================================
+            # WORLD
+            # =================================================
+
+            set {_world} to {skh.origin-world}
+
+
+            # =================================================
+            # CENTER
+            # =================================================
+
+            set {_center-x} to floor(x-coordinate of {skh.origin})
+            set {_center-z} to floor(z-coordinate of {skh.origin})
+
+
+            # =================================================
+            # RANGE
+            # =================================================
+
+            set {_min-x} to {_center-x} - {@scan-radius}
+            set {_max-x} to {_center-x} + {@scan-radius}
+
+            set {_min-z} to {_center-z} - {@scan-radius}
+            set {_max-z} to {_center-z} + {@scan-radius}
+
+
+            set {_columns} to 0
+            set {_safe} to 0
+
+
+            # =================================================
+            # X
+            # =================================================
+
+            loop integers between {_min-x} and {_max-x}:
+
+                set {_x} to loop-value
+
+
+                # =================================================
+                # Z
+                # =================================================
+
+                loop integers between {_min-z} and {_max-z}:
+
+                    set {_z} to loop-value-2
+
+                    add 1 to {_columns}
+
+
+                    # -----------------------------------------
+                    # COLUMN
+                    # -----------------------------------------
+
+                    set {_column} to location at {_x}, 0, {_z} in {_world}
+
+                    set {_floor} to highest solid block at {_column}
+
+
+                    if {_floor} is set:
+
+
+                        # -------------------------------------
+                        # TWO AIR BLOCKS
+                        # -------------------------------------
+
+                        set {_one} to block above {_floor}
+                        set {_two} to block above {_one}
+
+
+                        if {_one} is air:
+
+                            if {_two} is air:
+
+
+                                # ---------------------------------
+                                # WATER / LAVA
+                                # ---------------------------------
+
+                                if {_floor} is not water:
+
+                                    if {_floor} is not lava block:
+
+
+                                        # ---------------------------------
+                                        # LEAVES
+                                        # ---------------------------------
+
+                                        if {_floor} is not oak leaves:
+
+                                            if {_floor} is not spruce leaves:
+
+                                                if {_floor} is not birch leaves:
+
+                                                    if {_floor} is not jungle leaves:
+
+                                                        if {_floor} is not acacia leaves:
+
+                                                            if {_floor} is not dark oak leaves:
+
+                                                                if {_floor} is not mangrove leaves:
+
+                                                                    if {_floor} is not cherry leaves:
+
+                                                                        if {_floor} is not azalea leaves:
+
+                                                                            if {_floor} is not flowering azalea leaves:
+
+
+                                                                                # ---------------------------------
+                                                                                # SPAWN LOCATION
+                                                                                # ---------------------------------
+
+                                                                                set {_spawn} to location of {_floor}
+
+                                                                                add 0.5 to x-coordinate of {_spawn}
+                                                                                add 1 to y-coordinate of {_spawn}
+                                                                                add 0.5 to z-coordinate of {_spawn}
+
+
+                                                                                # ---------------------------------
+                                                                                # SAVE
+                                                                                # ---------------------------------
+
+                                                                                add {_spawn} to {skh.safe::*}
+
+                                                                                add 1 to {_safe}
+
+
+            # =================================================
+            # SCAN COMPLETE
+            # =================================================
+
+            set {skh.scanned} to true
+            set {skh.safe-count} to {_safe}
+            set {skh.scan-columns} to {_columns}
+
+
+            send ""
+            send "&a&l[SKH] スキャン完了"
+            send "&7調査した列: &f%{_columns}%"
+            send "&7安全地点: &a%{_safe}%"
+            send ""
+
+
+            if {_safe} is 0:
+
+                send "&c安全なスポーン地点がありません。"
+
+                set {skh.scanned} to false
+
+            else:
+
+                send "&aテストできます。"
+                send "&e/skh testspawn 1"
+                send "&7※まずは1体で確認してください。"
+
+
+            send ""
+
+            stop
+
+
+        # =====================================================
+        # TEST SPAWN
+        # =====================================================
+
+        if arg-1 is "testspawn":
+
+            if {skh.scanned} is not true:
+
+                send "&c先に /skh scan_area を実行してください。"
+
+                stop
+
+
+            if arg-2 is not set:
+
+                send "&c使用方法: /skh testspawn <数>"
+
+                stop
+
+
+            set {_amount} to arg-2
+
+
+            if {_amount} < 1:
+
+                send "&c1以上を指定してください。"
+
+                stop
+
+
+            if {_amount} > size of {skh.safe::*}:
+
+                send "&c安全地点が不足しています。"
+                send "&7安全地点: &f%size of {skh.safe::*}%"
+
+                stop
+
+
+            # =================================================
+            # WORLD
+            # =================================================
+
+            set {_world} to {skh.origin-world}
+
+
+            if {_world} is not set:
+
+                send "&cステージワールドが設定されていません。"
+
+                stop
+
+
+            # =================================================
+            # SELECT
+            # =================================================
+
+            delete {_selected::*}
+
+            set {_attempts} to 0
+            set {_max-attempts} to size of {skh.safe::*} * 20
+
+
+            while size of {_selected::*} < {_amount}:
+
+                add 1 to {_attempts}
+
+
+                if {_attempts} > {_max-attempts}:
+
+                    stop loop
+
+
+                set {_candidate} to random element out of {skh.safe::*}
+
+
+                if {_candidate} is not in {_selected::*}:
+
+                    set {_okay} to true
+
+
+                    loop {_selected::*}:
+
+                        if distance between {_candidate} and loop-value < {@min-spawn-distance}:
+
+                            set {_okay} to false
+
+                            stop loop
+
+
+                    if {_okay} is true:
+
+                        add {_candidate} to {_selected::*}
+
+
+            # =================================================
+            # CHECK
+            # =================================================
+
+            if size of {_selected::*} < {_amount}:
+
+                send ""
+                send "&c&l[SKH] 指定数を確保できませんでした。"
+                send "&7要求数: &f%{_amount}%"
+                send "&7確保数: &f%size of {_selected::*}%"
+                send "&7最小距離: &f{@min-spawn-distance} blocks"
+                send ""
+
+                stop
+
+
+            # =================================================
+            # SUMMON
+            # =================================================
+
+            set {_count} to 0
+
+
+            loop {_selected::*}:
+
+                set {_loc} to loop-value
+
+
+                set {_x} to x-coordinate of {_loc}
+                set {_y} to y-coordinate of {_loc}
+                set {_z} to z-coordinate of {_loc}
+
+
+                # -------------------------------------------------
+                # IMPORTANT
+                #
+                # コンソールからの summon は
+                # ワールドを明示する
+                # -------------------------------------------------
+
+                execute console command "execute in minecraft:%{_world}% run summon minecraft:skeleton %{_x}% %{_y}% %{_z}% {Tags:[""skh_test""],Health:2.0f,HandItems:[{},{}]}"
+
+
+                add 1 to {_count}
+
+
+            # =================================================
+            # RESULT
+            # =================================================
+
+            send ""
+            send "&a&l[SKH] テスト召喚完了"
+            send "&7World: &f%{_world}%"
+            send "&7召喚数: &f%{_count}%"
+            send "&7HP: &f2"
+            send "&7武器: &fなし"
+            send ""
+
+            stop
+
+
+        # =====================================================
+        # INFO
+        # =====================================================
+
+        if arg-1 is "info":
+
+            send ""
+            send "&6&l===== Skeleton Hunt INFO ====="
+
+
+            if {skh.origin} is set:
+
+                send "&7起点: &f%{skh.origin}%"
+
+            else:
+
+                send "&7起点: &c未設定"
+
+
+            send "&7World: &f%{skh.origin-world}%"
+            send "&7スキャン済み: &f%{skh.scanned}%"
+            send "&7安全地点: &f%{skh.safe-count}%"
+            send "&7調査列: &f%{skh.scan-columns}%"
+
+            send ""
+
+            stop
+
+
+        # =====================================================
+        # RESET
+        # =====================================================
+
+        if arg-1 is "reset":
+
+            delete {skh.origin}
+            delete {skh.origin-world}
+
+            delete {skh.safe::*}
+
+            delete {skh.scanned}
+            delete {skh.safe-count}
+            delete {skh.scan-columns}
+
+
+            execute console command "kill @e[type=minecraft:skeleton,tag=skh_test]"
+
+
+            send ""
+            send "&a&l[SKH] リセット完了"
+            send "&7起点を削除しました。"
+            send "&7スキャン結果を削除しました。"
+            send "&7テスト用スケルトンを削除しました。"
+            send ""
+
+            stop
+
+
+        # =====================================================
+        # UNKNOWN COMMAND
+        # =====================================================
+
+        send "&c不明なコマンドです。"
+        send "&e/skh &7でヘルプを表示できます。"
