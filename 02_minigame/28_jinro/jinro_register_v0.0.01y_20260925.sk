@@ -76,9 +76,9 @@ on right click:
     # 看板を書き換え
     # --------------------------------------------------------
 
-    set line 1 of clicked block to "&6&lPLAYER"
-    set line 2 of clicked block to "&f%player's name%"
-    set line 3 of clicked block to ""
+    set line 1 of clicked block to ""
+    set line 2 of clicked block to "&6&lPLAYER"
+    set line 3 of clicked block to "&f%player's name%"
     set line 4 of clicked block to ""
 
     # --------------------------------------------------------
@@ -87,9 +87,9 @@ on right click:
 
     set {_headLoc} to {_sign}
 
-    add 0.5 to x-coordinate of {_headLoc}
+    add 0 to x-coordinate of {_headLoc}
     add 1 to y-coordinate of {_headLoc}
-    add 0.5 to z-coordinate of {_headLoc}
+    add 0 to z-coordinate of {_headLoc}
 
     # --------------------------------------------------------
     # プレイヤーヘッドを設置
