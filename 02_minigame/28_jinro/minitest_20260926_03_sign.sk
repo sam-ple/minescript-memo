@@ -1,0 +1,88 @@
+# ============================================================
+# Jinro Sign Register - Mini Test
+# Version : v0.1.00
+#
+# 右クリックした看板とプレイヤーを紐付ける
+#
+# /jinrosigninfo
+# /jinrosignreset
+#
+# 用途：
+#   ・占い
+#   ・騎士の守り
+# ============================================================
+
+
+# ============================================================
+# 看板を右クリック
+# ============================================================
+
+on right click:
+
+    if clicked block is set:
+
+        if clicked block is oak sign:
+
+            set {_loc} to location of clicked block
+            set {_uuid} to player's uuid
+
+            # 看板 → プレイヤー
+            set {jinro.sign.player::%{_loc}%} to {_uuid}
+
+            # プレイヤー → 看板
+            set {jinro.player.sign::%{_uuid}%} to {_loc}
+
+            # プレイヤー名も保存（確認用）
+            set {jinro.player.name::%{_uuid}%} to player's name
+
+            send "&a[JINRO] 看板を登録しました"
+            send "&7プレイヤー: &f%player's name%"
+            send "&7看板: &f%{_loc}%"
+
+
+# ============================================================
+# 登録情報確認
+# ============================================================
+
+command /jinrosigninfo:
+
+    trigger:
+
+        send "&6&m--------------------------------"
+        send "&6[JINRO SIGN INFO]"
+        send "&6&m--------------------------------"
+
+        if {jinro.sign.player::*} is not set:
+
+            send "&7登録されている看板はありません。"
+
+        else:
+
+            loop {jinro.sign.player::*}:
+
+                set {_loc} to loop-index
+                set {_uuid} to loop-value
+                set {_name} to {jinro.player.name::%{_uuid}%}
+
+                send "&e看板:"
+                send "&f  %{_loc}%"
+                send "&eプレイヤー:"
+                send "&f  %{_name}%"
+                send "&eUUID:"
+                send "&f  %{_uuid}%"
+                send "&7--------------------------------"
+
+
+# ============================================================
+# 登録情報リセット
+# ============================================================
+
+command /jinrosignreset:
+
+    trigger:
+
+        delete {jinro.sign.player::*}
+        delete {jinro.player.sign::*}
+        delete {jinro.player.name::*}
+
+        send "&a[JINRO] 看板登録情報をリセットしました。"
