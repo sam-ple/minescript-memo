@@ -25,7 +25,7 @@ options:
 
     scan-radius: 30
     min-spawn-distance: 6
-    spawn-amount: 1
+    spawn-amount: 50
 
 
 # =========================================================
@@ -471,7 +471,6 @@ every 1 second:
     set {jinro.mob.spawned} to true
 
 
-    send "&c&l[JINRO] 夜になりました。"
     send "&7スケルトンが出現しました。" to {jinro.players::*}
 
 
@@ -506,7 +505,6 @@ every 1 second:
     delete {jinro.mob.spawned}
 
 
-    send "&a&l[JINRO] 朝になりました。"
     send "&7スケルトンが消えました。" to {jinro.players::*}
 
 
