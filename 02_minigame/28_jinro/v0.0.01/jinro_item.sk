@@ -1,0 +1,5 @@
+on damage of player:
+
+    if projectile is an arrow:
+
+        set victim's health to 0
