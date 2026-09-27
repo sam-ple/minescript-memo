@@ -1,0 +1,370 @@
+# ============================================================
+# Jinro RPG Prototype
+# File : jinro_core.sk
+#
+# Phase 1
+#   2人プレイ
+#   ゲーム開始 / 停止 / リセット
+#   役職設定
+#   昼 / 夜
+#
+# ============================================================
+
+
+options:
+    max-players: 2
+
+
+# ============================================================
+# /jinro
+# ============================================================
+
+command /jinro [<text>] [<text>]:
+
+    trigger:
+
+
+        # ====================================================
+        # 引数なし
+        # ====================================================
+
+        if arg-1 is not set:
+
+            send "&6========== JINRO =========="
+            send "&f/jinro start"
+            send "&f/jinro stop"
+            send "&f/jinro reset"
+            send "&f/jinro info"
+            send "&f/jinro players"
+            send "&f/jinro clearplayers"
+            send "&f/jinro pair vv"
+            send "&f/jinro pair wv"
+            send "&f/jinro pair va"
+            send "&f/jinro pair vl"
+            send "&f/jinro myrole"
+            send "&f/jinro day"
+            send "&f/jinro night"
+            send "&f/jinro time"
+            send "&6============================"
+
+            stop
+
+
+        # ====================================================
+        # START
+        # ====================================================
+
+        if arg-1 is "start":
+
+            if size of {jinro.players::*} < 2:
+                send "&c[JINRO] 2人登録してから開始してください"
+                stop
+
+            if {jinro.running} is true:
+                send "&c[JINRO] すでにゲーム中です"
+                stop
+
+            set {jinro.running} to true
+            set {jinro.phase} to "day"
+            set {jinro.time} to 60
+            set {jinro.world} to world of player
+
+            # 難易度 Easy
+            execute console command "difficulty easy"
+
+            # モブ自然発生OFF
+            execute console command "gamerule doMobSpawning false"
+
+            # 昼
+            set time of {jinro.world} to 7:00
+
+            send "&a========================================"
+            send "&a[JINRO] ゲーム開始"
+            send "&a[JINRO] 参加者: %size of {jinro.players::*}%人"
+            send "&a[JINRO] 昼フェーズ開始"
+            send "&a========================================"
+
+            loop {jinro.players::*}:
+                send "&e[JINRO] ゲーム開始" to loop-value
+
+            stop
+
+
+        # ====================================================
+        # STOP
+        # ====================================================
+
+        if arg-1 is "stop":
+
+            if {jinro.running} is not true:
+                send "&c[JINRO] ゲームは開始されていません"
+                stop
+
+            set {jinro.running} to false
+
+            send "&c[JINRO] ゲーム停止"
+
+            stop
+
+
+        # ====================================================
+        # RESET
+        # ====================================================
+
+        if arg-1 is "reset":
+
+            set {jinro.running} to false
+
+            delete {jinro.phase}
+            delete {jinro.time}
+            delete {jinro.world}
+            delete {jinro.role::*}
+
+            send "&e[JINRO] ゲーム状態をリセットしました"
+
+            stop
+
+
+        # ====================================================
+        # INFO
+        # ====================================================
+
+        if arg-1 is "info":
+
+            send "&6========== JINRO INFO =========="
+
+            if {jinro.running} is true:
+                send "&a状態: ゲーム中"
+            else:
+                send "&c状態: 停止"
+
+            if {jinro.phase} is set:
+                send "&eフェーズ: %{jinro.phase}%"
+
+            if {jinro.time} is set:
+                send "&e残り時間: %{jinro.time}%秒"
+
+            send "&e参加者: %size of {jinro.players::*}%人"
+
+            loop {jinro.players::*}:
+                send "&f- %loop-value%"
+
+            send "&6================================"
+
+            stop
+
+
+        # ====================================================
+        # PLAYERS
+        # ====================================================
+
+        if arg-1 is "players":
+
+            send "&6========== JINRO PLAYERS =========="
+
+            if {jinro.players::*} is not set:
+                send "&c登録者なし"
+                stop
+
+            loop {jinro.players::*}:
+                send "&f%loop-index% : %loop-value%"
+
+            send "&6==================================="
+
+            stop
+
+
+        # ====================================================
+        # CLEAR PLAYERS
+        # ====================================================
+
+        if arg-1 is "clearplayers":
+
+            delete {jinro.players::*}
+
+            send "&e[JINRO] 参加者登録を全消去しました"
+
+            stop
+
+
+        # ====================================================
+        # PAIR
+        # ====================================================
+
+        if arg-1 is "pair":
+
+            if arg-2 is not set:
+                send "&e[JINRO] 使用方法:"
+                send "&f/jinro pair vv &7村人 + 村人"
+                send "&f/jinro pair wv &7人狼 + 村人"
+                send "&f/jinro pair va &7村人 + 吸血鬼"
+                send "&f/jinro pair vl &7村人 + 狼付き"
+                stop
+
+
+            # ------------------------------------------------
+            # 村人 + 村人
+            # ------------------------------------------------
+
+            if arg-2 is "vv":
+
+                if size of {jinro.players::*} < 2:
+                    send "&c[JINRO] 先に2人を登録してください"
+                    stop
+
+                jinro_set_roles("villager", "villager")
+
+                send "&a[JINRO] 役職を設定しました"
+                send "&e%{jinro.players::1}% → 村人"
+                send "&e%{jinro.players::2}% → 村人"
+
+                send "&6[JINRO] あなたの役職は &f村人" to {jinro.players::1}
+                send "&6[JINRO] あなたの役職は &f村人" to {jinro.players::2}
+
+                stop
+
+
+            # ------------------------------------------------
+            # 人狼 + 村人
+            # ------------------------------------------------
+
+            if arg-2 is "wv":
+
+                if size of {jinro.players::*} < 2:
+                    send "&c[JINRO] 先に2人を登録してください"
+                    stop
+
+                jinro_set_roles("wolf", "villager")
+
+                send "&a[JINRO] 役職を設定しました"
+                send "&e%{jinro.players::1}% → 人狼"
+                send "&e%{jinro.players::2}% → 村人"
+
+                send "&6[JINRO] あなたの役職は &f人狼" to {jinro.players::1}
+                send "&6[JINRO] あなたの役職は &f村人" to {jinro.players::2}
+
+                stop
+
+
+            # ------------------------------------------------
+            # 村人 + 吸血鬼
+            # ------------------------------------------------
+
+            if arg-2 is "va":
+
+                if size of {jinro.players::*} < 2:
+                    send "&c[JINRO] 先に2人を登録してください"
+                    stop
+
+                jinro_set_roles("villager", "vampire")
+
+                send "&a[JINRO] 役職を設定しました"
+                send "&e%{jinro.players::1}% → 村人"
+                send "&e%{jinro.players::2}% → 吸血鬼"
+
+                send "&6[JINRO] あなたの役職は &f村人" to {jinro.players::1}
+                send "&6[JINRO] あなたの役職は &f吸血鬼" to {jinro.players::2}
+
+                stop
+
+
+            # ------------------------------------------------
+            # 村人 + 狼付き
+            # ------------------------------------------------
+
+            if arg-2 is "vl":
+
+                if size of {jinro.players::*} < 2:
+                    send "&c[JINRO] 先に2人を登録してください"
+                    stop
+
+                jinro_set_roles("villager", "wolf_attendant")
+
+                send "&a[JINRO] 役職を設定しました"
+                send "&e%{jinro.players::1}% → 村人"
+                send "&e%{jinro.players::2}% → 狼付き"
+
+                send "&6[JINRO] あなたの役職は &f村人" to {jinro.players::1}
+                send "&6[JINRO] あなたの役職は &f狼付き" to {jinro.players::2}
+
+                stop
+
+
+            send "&c[JINRO] 不明な組み合わせです"
+
+            stop
+
+
+        # ====================================================
+        # MYROLE
+        # ====================================================
+
+        if arg-1 is "myrole":
+
+            if {jinro.role::%player%} is not set:
+                send "&c[JINRO] 役職が設定されていません"
+                stop
+
+            send "&6[JINRO] あなたの役職: &f%jinro_role_name({jinro.role::%player%})%"
+
+            stop
+
+
+        # ====================================================
+        # DAY
+        # ====================================================
+
+        if arg-1 is "day":
+
+            if {jinro.world} is not set:
+                set {jinro.world} to world of player
+
+            set {jinro.phase} to "day"
+            set {jinro.time} to 60
+
+            set time of {jinro.world} to 7:00
+
+            send "&6[JINRO] 昼にしました"
+
+            stop
+
+
+        # ====================================================
+        # NIGHT
+        # ====================================================
+
+        if arg-1 is "night":
+
+            if {jinro.world} is not set:
+                set {jinro.world} to world of player
+
+            set {jinro.phase} to "night"
+            set {jinro.time} to 30
+
+            set time of {jinro.world} to 19:00
+
+            send "&9[JINRO] 夜にしました"
+
+            stop
+
+
+        # ====================================================
+        # TIME
+        # ====================================================
+
+        if arg-1 is "time":
+
+            if {jinro.phase} is not set:
+                send "&c[JINRO] フェーズ未設定"
+                stop
+
+            send "&6[JINRO] %{jinro.phase}% / %{jinro.time}%秒"
+
+            stop
+
+
+        # ====================================================
+        # UNKNOWN
+        # ====================================================
+
+        send "&c[JINRO] 不明なコマンドです"
