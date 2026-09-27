@@ -1,0 +1,176 @@
+# ============================================================
+# Jinro Sign Register - Mini Test
+# Version : v0.2.00
+#
+# 空の看板を右クリック
+#
+# 1枚目 → PLAYER 1
+# 2枚目 → PLAYER 2
+#
+# 看板
+#   ↓
+# プレイヤー名表示
+#   ↓
+# 看板の1ブロック上にプレイヤーヘッド
+#
+# ============================================================
+
+
+# ============================================================
+# RESET
+# ============================================================
+
+command /jinrosignreset:
+
+    trigger:
+
+        delete {jinro.players::1}
+        delete {jinro.players::2}
+
+        delete {jinro.sign.player::*}
+        delete {jinro.player.sign::*}
+        delete {jinro.player.name::*}
+
+        send "&a[JINRO] 看板登録情報をリセットしました。"
+
+
+# ============================================================
+# INFO
+# ============================================================
+
+command /jinrosigninfo:
+
+    trigger:
+
+        send "&6&m--------------------------------"
+        send "&6[JINRO SIGN INFO]"
+        send "&6&m--------------------------------"
+
+        if {jinro.players::1} is set:
+            send "&ePLAYER 1: &f%{jinro.players::1}%"
+        else:
+            send "&7PLAYER 1: 未登録"
+
+        if {jinro.players::2} is set:
+            send "&ePLAYER 2: &f%{jinro.players::2}%"
+        else:
+            send "&7PLAYER 2: 未登録"
+
+        send "&6&m--------------------------------"
+
+
+# ============================================================
+# 看板右クリック
+# ============================================================
+
+on right click:
+
+    # --------------------------------------------------------
+    # 看板以外は無視
+    # --------------------------------------------------------
+
+    if clicked block is not set:
+        stop
+
+    if type of clicked block is not oak sign:
+        stop
+
+    # ★ 重要
+    # 看板編集画面をキャンセル
+    cancel event
+
+
+    # --------------------------------------------------------
+    # 看板位置
+    # --------------------------------------------------------
+
+    set {_sign} to location of clicked block
+
+
+    # --------------------------------------------------------
+    # この看板がすでに登録済みか
+    # --------------------------------------------------------
+
+    if {jinro.sign.player::%{_sign}%} is set:
+
+        send "&c[JINRO] この看板はすでに登録されています。"
+
+        stop
+
+
+    # --------------------------------------------------------
+    # プレイヤーがすでに登録されているか
+    # --------------------------------------------------------
+
+    if player is {jinro.players::*}:
+
+        send "&e[JINRO] あなたはすでに登録されています。"
+
+        stop
+
+
+    # --------------------------------------------------------
+    # PLAYER 1
+    # --------------------------------------------------------
+
+    if {jinro.players::1} is not set:
+
+        set {jinro.players::1} to player
+
+        set {jinro.sign.player::%{_sign}%} to player's uuid
+        set {jinro.player.sign::%player's uuid%} to {_sign}
+        set {jinro.player.name::%player's uuid%} to player's name
+
+        # 看板を書き換え
+        set line 1 of clicked block to ""
+        set line 2 of clicked block to "&6&lPLAYER 1"
+        set line 3 of clicked block to "&f%player's name%"
+        set line 4 of clicked block to ""
+
+        # プレイヤーヘッド
+        set {_headLoc} to {_sign}
+        add 1 to y-coordinate of {_headLoc}
+
+        set block at {_headLoc} to player's skull
+
+        send "&a[JINRO] PLAYER 1 に登録しました。"
+        send "&7プレイヤー: &f%player's name%"
+
+        stop
+
+
+    # --------------------------------------------------------
+    # PLAYER 2
+    # --------------------------------------------------------
+
+    if {jinro.players::2} is not set:
+
+        set {jinro.players::2} to player
+
+        set {jinro.sign.player::%{_sign}%} to player's uuid
+        set {jinro.player.sign::%player's uuid%} to {_sign}
+        set {jinro.player.name::%player's uuid%} to player's name
+
+        # 看板を書き換え
+        set line 1 of clicked block to ""
+        set line 2 of clicked block to "&6&lPLAYER 2"
+        set line 3 of clicked block to "&f%player's name%"
+        set line 4 of clicked block to ""
+
+        # プレイヤーヘッド
+        set {_headLoc} to {_sign}
+        add 1 to y-coordinate of {_headLoc}
+
+        set block at {_headLoc} to player's skull
+
+        send "&a[JINRO] PLAYER 2 に登録しました。"
+        send "&7プレイヤー: &f%player's name%"
+
+        stop
+
+
+    # --------------------------------------------------------
+    # 2人登録済み
+    # --------------------------------------------------------
+
+    send "&c[JINRO] 参加者は2人までです。"
