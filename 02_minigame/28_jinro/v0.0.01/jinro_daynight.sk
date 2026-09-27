@@ -1,0 +1,74 @@
+# ============================================================
+# Jinro RPG
+# File : jinro_daynight.sk
+#
+# 昼 / 夜
+#
+# 昼   60秒
+# 夜   30秒
+#
+# スケルトンはまだ出さない
+#
+# ============================================================
+
+
+options:
+
+    day-time: 60
+    night-time: 30
+
+
+# ============================================================
+# 1秒ごと
+# ============================================================
+
+every 1 second:
+
+    if {jinro.running} is not true:
+        stop
+
+    if {jinro.world} is not set:
+        stop
+
+
+    # --------------------------------------------------------
+    # 1秒減らす
+    # --------------------------------------------------------
+
+    subtract 1 from {jinro.time}
+
+
+    # --------------------------------------------------------
+    # 昼 → 夜
+    # --------------------------------------------------------
+
+    if {jinro.time} <= 0:
+
+        if {jinro.phase} is "day":
+
+            set {jinro.phase} to "night"
+            set {jinro.time} to {@night-time}
+
+            set time of {jinro.world} to 19:00
+
+            send "&1========================================" to {jinro.players::*}
+            send "&9[JINRO] 夜になりました" to {jinro.players::*}
+            send "&7夜時間: {@night-time}秒" to {jinro.players::*}
+            send "&1========================================" to {jinro.players::*}
+
+
+        # ----------------------------------------------------
+        # 夜 → 昼
+        # ----------------------------------------------------
+
+        else:
+
+            set {jinro.phase} to "day"
+            set {jinro.time} to {@day-time}
+
+            set time of {jinro.world} to 7:00
+
+            send "&e========================================" to {jinro.players::*}
+            send "&6[JINRO] 朝になりました" to {jinro.players::*}
+            send "&7昼時間: {@day-time}秒" to {jinro.players::*}
+            send "&e========================================" to {jinro.players::*}
