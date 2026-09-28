@@ -1,0 +1,420 @@
+# ============================================================
+# ARREST GAME
+# File : arrest_game.sk
+# Version : v0.2.01
+#
+# 草刈り無免許罪
+#
+# 草を刈る
+#   ↓
+# タイトル表示
+#   ↓
+# 牢屋生成
+#   ↓
+# 10秒ボスバー
+#   ↓
+# 牢屋解除
+#
+# 牢屋：
+#   5 x 5 x 5
+#   床     = stone
+#   内部   = air
+#   壁     = iron_bars
+#   天井   = stone
+#
+# 解除時：
+#   床のstoneだけ残す
+# ============================================================
+
+
+options:
+
+    idle-time: 30
+    jail-time: 10
+
+
+# ============================================================
+# TEST ON / OFF
+# ============================================================
+
+command /arresttest [<text>]:
+
+    permission: op
+
+    trigger:
+
+        if arg-1 is "on":
+
+            set {arresttest.enabled} to true
+
+            send "&a[ARREST TEST] 判定を開始しました。" to player
+
+            stop
+
+
+        if arg-1 is "off":
+
+            set {arresttest.enabled} to false
+
+            send "&c[ARREST TEST] 判定を停止しました。" to player
+
+            stop
+
+
+        send "&e/arresttest on &7- 判定開始" to player
+        send "&e/arresttest off &7- 判定停止" to player
+
+
+# ============================================================
+# 草を刈る
+# ============================================================
+
+on break:
+
+    if {arresttest.enabled} is not true:
+        stop
+
+
+    # ========================================================
+    # 草かどうか
+    # ========================================================
+
+    if event-block is not short grass:
+        if event-block is not tall grass:
+            stop
+
+
+    # ========================================================
+    # すでに逮捕中なら何もしない
+    # ========================================================
+
+    if {arrest.jailed.%player%} is true:
+        stop
+
+
+    # ========================================================
+    # 草刈り無免許罪
+    # ========================================================
+
+    send title "&c草刈り無免許罪" with subtitle "&f草を刈ったため逮捕されました。" to player
+
+
+    set {arrest.jailed.%player%} to true
+
+
+    # ========================================================
+    # プレイヤー座標
+    # ========================================================
+
+    set {_x} to floor(x-coordinate of player)
+    set {_y} to floor(y-coordinate of player)
+    set {_z} to floor(z-coordinate of player)
+
+
+    # ========================================================
+    # X
+    # ========================================================
+
+    set {_x1} to {_x} - 2
+    set {_x2} to {_x} + 2
+
+
+    # ========================================================
+    # Y
+    #
+    # Y     = 床
+    # Y + 1 = プレイヤー
+    # Y + 1 ～ Y + 3 = 壁
+    # Y + 4 = 天井
+    # ========================================================
+
+    set {_floor} to {_y}
+
+    set {_y1} to {_y} + 1
+    set {_y2} to {_y} + 2
+    set {_y3} to {_y} + 3
+    set {_y4} to {_y} + 4
+
+
+    # ========================================================
+    # Z
+    # ========================================================
+
+    set {_z1} to {_z} - 2
+    set {_z2} to {_z} + 2
+
+
+    # ========================================================
+    # 座標保存
+    # ========================================================
+
+    set {arrest.jail.x1.%player%} to {_x1}
+    set {arrest.jail.floor.%player%} to {_floor}
+    set {arrest.jail.z1.%player%} to {_z1}
+
+    set {arrest.jail.x2.%player%} to {_x2}
+    set {arrest.jail.y4.%player%} to {_y4}
+    set {arrest.jail.z2.%player%} to {_z2}
+
+
+    # ========================================================
+    # 牢屋内部を完全に空気にする
+    #
+    # Y+1 ～ Y+3
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_y1}% %{_z1}% %{_x2}% %{_y3}% %{_z2}% air"
+
+
+    # ========================================================
+    # 天井を空気にする
+    #
+    # 念のため既存ブロックを消してからstone
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_y4}% %{_z1}% %{_x2}% %{_y4}% %{_z2}% air"
+
+
+    # ========================================================
+    # 床
+    #
+    # 草を刈った場所も含めて5x5全部stone
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_floor}% %{_z1}% %{_x2}% %{_floor}% %{_z2}% stone"
+
+
+    # ========================================================
+    # 天井
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_y4}% %{_z1}% %{_x2}% %{_y4}% %{_z2}% stone"
+
+
+    # ========================================================
+    # 北
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_y1}% %{_z1}% %{_x2}% %{_y3}% %{_z1}% iron_bars"
+
+
+    # ========================================================
+    # 南
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_y1}% %{_z2}% %{_x2}% %{_y3}% %{_z2}% iron_bars"
+
+
+    # ========================================================
+    # 西
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_y1}% %{_z1}% %{_x1}% %{_y3}% %{_z2}% iron_bars"
+
+
+    # ========================================================
+    # 東
+    # ========================================================
+
+    execute player command "fill %{_x2}% %{_y1}% %{_z1}% %{_x2}% %{_y3}% %{_z2}% iron_bars"
+
+
+    # ========================================================
+    # ボスバー
+    #
+    # JSON形式で文字色を指定
+    # ========================================================
+
+    set {arrest.jail.time.%player%} to {@jail-time}
+
+    execute player command "bossbar add arrest:jail {""text"":""収監中"",""color"":""red""}"
+
+    execute player command "bossbar set arrest:jail players @s"
+
+    execute player command "bossbar set arrest:jail max {@jail-time}"
+
+    execute player command "bossbar set arrest:jail value {@jail-time}"
+
+    execute player command "bossbar set arrest:jail color red"
+
+    execute player command "bossbar set arrest:jail style notched_10"
+
+
+    # ========================================================
+    # 10秒カウント
+    # ========================================================
+
+    loop {@jail-time} times:
+
+        wait 1 second
+
+        subtract 1 from {arrest.jail.time.%player%}
+
+        execute player command "bossbar set arrest:jail value %{arrest.jail.time.%player%}%"
+
+
+    # ========================================================
+    # 牢屋解除
+    # ========================================================
+
+    set {_x1} to {arrest.jail.x1.%player%}
+    set {_floor} to {arrest.jail.floor.%player%}
+    set {_z1} to {arrest.jail.z1.%player%}
+
+    set {_x2} to {arrest.jail.x2.%player%}
+    set {_y4} to {arrest.jail.y4.%player%}
+    set {_z2} to {arrest.jail.z2.%player%}
+
+
+    # ========================================================
+    # 床より上を全部消す
+    #
+    # 床 Y は残る
+    # Y+1 ～ Y+4 をair
+    # ========================================================
+
+    set {_clearY} to {_floor} + 1
+
+    execute player command "fill %{_x1}% %{_clearY}% %{_z1}% %{_x2}% %{_y4}% %{_z2}% air"
+
+
+    # ========================================================
+    # ボスバー削除
+    # ========================================================
+
+    execute player command "bossbar remove arrest:jail"
+
+
+    # ========================================================
+    # データ削除
+    # ========================================================
+
+    delete {arrest.jail.x1.%player%}
+    delete {arrest.jail.floor.%player%}
+    delete {arrest.jail.z1.%player%}
+
+    delete {arrest.jail.x2.%player%}
+    delete {arrest.jail.y4.%player%}
+    delete {arrest.jail.z2.%player%}
+
+    delete {arrest.jail.time.%player%}
+
+    delete {arrest.jailed.%player%}
+
+
+    # ========================================================
+    # 釈放
+    # ========================================================
+
+    send "&a[ARREST TEST] &f10秒経過。釈放しました。" to player
+
+
+# ============================================================
+# 30秒間動かない
+# ============================================================
+
+every 1 second:
+
+    if {arresttest.enabled} is not true:
+        stop
+
+    loop all players:
+
+        set {_loc} to location of loop-player
+
+
+        # ----------------------------------------------------
+        # 初回
+        # ----------------------------------------------------
+
+        if {arresttest.last-location.%loop-player%} is not set:
+
+            set {arresttest.last-location.%loop-player%} to {_loc}
+            set {arresttest.idle.%loop-player%} to 0
+
+            stop
+
+
+        # ----------------------------------------------------
+        # X
+        # ----------------------------------------------------
+
+        if x-coordinate of {_loc} is not x-coordinate of {arresttest.last-location.%loop-player%}:
+
+            set {arresttest.idle.%loop-player%} to 0
+            set {arresttest.last-location.%loop-player%} to {_loc}
+            delete {arresttest.idle-notified.%loop-player%}
+
+            stop
+
+
+        # ----------------------------------------------------
+        # Y
+        # ----------------------------------------------------
+
+        if y-coordinate of {_loc} is not y-coordinate of {arresttest.last-location.%loop-player%}:
+
+            set {arresttest.idle.%loop-player%} to 0
+            set {arresttest.last-location.%loop-player%} to {_loc}
+            delete {arresttest.idle-notified.%loop-player%}
+
+            stop
+
+
+        # ----------------------------------------------------
+        # Z
+        # ----------------------------------------------------
+
+        if z-coordinate of {_loc} is not z-coordinate of {arresttest.last-location.%loop-player%}:
+
+            set {arresttest.idle.%loop-player%} to 0
+            set {arresttest.last-location.%loop-player%} to {_loc}
+            delete {arresttest.idle-notified.%loop-player%}
+
+            stop
+
+
+        # ----------------------------------------------------
+        # 動いていない
+        # ----------------------------------------------------
+
+        add 1 to {arresttest.idle.%loop-player%}
+
+
+        # ----------------------------------------------------
+        # 30秒
+        # ----------------------------------------------------
+
+        if {arresttest.idle.%loop-player%} >= {@idle-time}:
+
+            if {arresttest.idle-notified.%loop-player%} is not true:
+
+                send "&c[ARREST TEST] 30秒間動きませんでした。" to loop-player
+
+                send "&7さぼり罪候補" to loop-player
+
+                set {arresttest.idle-notified.%loop-player%} to true
+
+
+# ============================================================
+# プレイヤー退出時
+# ============================================================
+
+on quit:
+
+    delete {arresttest.last-location.%player%}
+    delete {arresttest.idle.%player%}
+    delete {arresttest.idle-notified.%player%}
+    delete {arresttest.flower.%player%}
+
+    delete {arrest.jailed.%player%}
+
+    delete {arrest.jail.x1.%player%}
+    delete {arrest.jail.floor.%player%}
+    delete {arrest.jail.z1.%player%}
+
+    delete {arrest.jail.x2.%player%}
+    delete {arrest.jail.y4.%player%}
+    delete {arrest.jail.z2.%player%}
+
+    delete {arrest.jail.time.%player%}
