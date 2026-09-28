@@ -1,0 +1,227 @@
+# ============================================================
+# ARREST GAME - Detection Mini Test
+# File : arrest_game.sk
+# Version : v0.1.00
+#
+# 今回は「判定・通知のみ」
+#
+# 判定：
+#   1. 花の上に乗る
+#   2. 草を刈る
+#   3. 30秒間動かない
+#
+# まだ以下は実装しない：
+#   ・逮捕
+#   ・牢屋
+#   ・無敵
+#   ・保釈
+#   ・アイテム徴収
+# ============================================================
+
+
+options:
+
+    # 30秒動かなかったら通知
+    idle-time: 30
+
+
+# ============================================================
+# テスト ON / OFF
+# ============================================================
+
+command /arresttest [<text>]:
+    permission: op
+    trigger:
+
+        if arg-1 is "on":
+            set {arresttest.enabled} to true
+            send "&a[ARREST TEST] 判定を開始しました。" to player
+            stop
+
+        if arg-1 is "off":
+            set {arresttest.enabled} to false
+            send "&c[ARREST TEST] 判定を停止しました。" to player
+            stop
+
+        send "&e/arresttest on &7- 判定開始" to player
+        send "&e/arresttest off &7- 判定停止" to player
+
+
+# ============================================================
+# 花の上に乗る
+# ============================================================
+
+every 2 ticks:
+
+    if {arresttest.enabled} is not true:
+        stop
+
+    loop all players:
+
+        # プレイヤーの足元のブロックを取得
+        set {_block} to block below loop-player
+
+        # ----------------------------------------------------
+        # 花
+        # ----------------------------------------------------
+
+        if {_block} is dandelion:
+            set {_flower} to "タンポポ"
+
+        else if {_block} is poppy:
+            set {_flower} to "ポピー"
+
+        else if {_block} is blue orchid:
+            set {_flower} to "ヒスイラン"
+
+        else if {_block} is allium:
+            set {_flower} to "アリウム"
+
+        else if {_block} is azure bluet:
+            set {_flower} to "ヒナソウ"
+
+        else if {_block} is red tulip:
+            set {_flower} to "赤色のチューリップ"
+
+        else if {_block} is orange tulip:
+            set {_flower} to "オレンジ色のチューリップ"
+
+        else if {_block} is white tulip:
+            set {_flower} to "白色のチューリップ"
+
+        else if {_block} is pink tulip:
+            set {_flower} to "桃色のチューリップ"
+
+        else if {_block} is oxeye daisy:
+            set {_flower} to "ヒナギク"
+
+        else if {_block} is cornflower:
+            set {_flower} to "ヤグルマギク"
+
+        else if {_block} is lily of the valley:
+            set {_flower} to "スズラン"
+
+        else if {_block} is wither rose:
+            set {_flower} to "ウィザーローズ"
+
+        else if {_block} is torchflower:
+            set {_flower} to "トーチフラワー"
+
+        else:
+            delete {_flower}
+
+
+        # ----------------------------------------------------
+        # 花を踏んだ
+        #
+        # 同じ花の上にいる間、毎回通知されないようにする
+        # ----------------------------------------------------
+
+        if {_flower} is set:
+
+            if {arresttest.flower.%loop-player%} is not {_flower}:
+
+                send "&c[ARREST TEST] 花を踏みました。" to loop-player
+                send "&7対象：%{_flower}%" to loop-player
+
+                set {arresttest.flower.%loop-player%} to {_flower}
+
+        else:
+
+            delete {arresttest.flower.%loop-player%}
+
+
+# ============================================================
+# 草を刈る
+# ============================================================
+
+on break:
+
+    if {arresttest.enabled} is not true:
+        stop
+
+    # プレイヤーが破壊したブロックを判定
+
+    if event-block is short grass:
+
+        send "&c[ARREST TEST] 草を刈りました。" to player
+        send "&7対象：草" to player
+
+    else if event-block is tall grass:
+
+        send "&c[ARREST TEST] 草を刈りました。" to player
+        send "&7対象：背の高い草" to player
+
+
+# ============================================================
+# 30秒間動かない
+# ============================================================
+
+every 1 second:
+
+    if {arresttest.enabled} is not true:
+        stop
+
+    loop all players:
+
+        # 現在位置
+        set {_loc} to location of loop-player
+
+        # 初回
+        if {arresttest.last-location.%loop-player%} is not set:
+
+            set {arresttest.last-location.%loop-player%} to {_loc}
+            set {arresttest.idle.%loop-player%} to 0
+            stop
+
+        # X/Y/Zが変化したか確認
+        if x-coordinate of {_loc} is not x-coordinate of {arresttest.last-location.%loop-player%}:
+            set {arresttest.idle.%loop-player%} to 0
+            set {arresttest.last-location.%loop-player%} to {_loc}
+            delete {arresttest.idle-notified.%loop-player%}
+            stop
+
+        if y-coordinate of {_loc} is not y-coordinate of {arresttest.last-location.%loop-player%}:
+            set {arresttest.idle.%loop-player%} to 0
+            set {arresttest.last-location.%loop-player%} to {_loc}
+            delete {arresttest.idle-notified.%loop-player%}
+            stop
+
+        if z-coordinate of {_loc} is not z-coordinate of {arresttest.last-location.%loop-player%}:
+            set {arresttest.idle.%loop-player%} to 0
+            set {arresttest.last-location.%loop-player%} to {_loc}
+            delete {arresttest.idle-notified.%loop-player%}
+            stop
+
+
+        # ----------------------------------------------------
+        # 動いていない
+        # ----------------------------------------------------
+
+        add 1 to {arresttest.idle.%loop-player%}
+
+
+        # ----------------------------------------------------
+        # 30秒到達
+        # ----------------------------------------------------
+
+        if {arresttest.idle.%loop-player%} >= {@idle-time}:
+
+            if {arresttest.idle-notified.%loop-player%} is not true:
+
+                send "&c[ARREST TEST] 30秒間動きませんでした。" to loop-player
+                send "&7さぼり罪候補" to loop-player
+
+                set {arresttest.idle-notified.%loop-player%} to true
+
+
+# ============================================================
+# プレイヤー退出時の一時データ削除
+# ============================================================
+
+on quit:
+
+    delete {arresttest.last-location.%player%}
+    delete {arresttest.idle.%player%}
+    delete {arresttest.idle-notified.%player%}
+    delete {arresttest.flower.%player%}

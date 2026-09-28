@@ -1,0 +1,88 @@
+# ============================================================
+# JAIL MINI TEST
+# Version : v0.1.00
+#
+# /jail     自分を中心に牢屋を生成
+# /jail off 牢屋を解除
+#
+# サイズ : 11 x 11
+# ============================================================
+
+
+command /jail [<text>]:
+
+    trigger:
+
+        # ====================================================
+        # 解除
+        # ====================================================
+
+        if arg-1 is "off":
+
+            # 牢屋が存在していない
+            if {jail.active} is not true:
+                send "&7[JAIL] &f牢屋はありません。"
+                stop
+
+            # 記録した場所を中心に消去
+            set {_center} to {jail.center}
+
+            execute console command "fill %{_center}% ~-5 ~ ~-5 ~5 ~6 ~5 air"
+
+            set {jail.active} to false
+            delete {jail.center}
+
+            send "&a[JAIL] &f牢屋を解除しました。"
+            stop
+
+
+        # ====================================================
+        # 生成
+        # ====================================================
+
+        if {jail.active} is true:
+            send "&c[JAIL] &fすでに牢屋があります。"
+            stop
+
+
+        # プレイヤーの足元を中心として記録
+        set {jail.center} to location of player
+        set {jail.active} to true
+
+        # ====================================================
+        # 床
+        # ====================================================
+
+        execute console command "fill %{jail.center}% ~-5 ~-1 ~-5 ~5 ~-1 ~5 stone"
+
+
+        # ====================================================
+        # 天井
+        # ====================================================
+
+        execute console command "fill %{jail.center}% ~-5 ~6 ~-5 ~5 ~6 ~5 iron_bars"
+
+
+        # ====================================================
+        # 壁
+        # ====================================================
+
+        # 北
+        execute console command "fill %{jail.center}% ~-5 ~0 ~-5 ~5 ~5 ~-5 iron_bars"
+
+        # 南
+        execute console command "fill %{jail.center}% ~-5 ~0 ~5 ~5 ~5 ~5 iron_bars"
+
+        # 西
+        execute console command "fill %{jail.center}% ~-5 ~0 ~-5 ~-5 ~5 ~5 iron_bars"
+
+        # 東
+        execute console command "fill %{jail.center}% ~5 ~0 ~-5 ~5 ~5 ~5 iron_bars"
+
+
+        # ====================================================
+        # 中央のプレイヤーが立つ場所
+        # ====================================================
+
+        send "&a[JAIL] &f牢屋を生成しました。"
+        send "&7サイズ: 11 x 11"
