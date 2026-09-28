@@ -6,9 +6,8 @@
 # 今回は「判定・通知のみ」
 #
 # 判定：
-#   1. 花の上に乗る
-#   2. 草を刈る
-#   3. 30秒間動かない
+#   1. 草を刈る
+#   2. 30秒間動かない
 #
 # まだ以下は実装しない：
 #   ・逮捕
@@ -45,90 +44,6 @@ command /arresttest [<text>]:
 
         send "&e/arresttest on &7- 判定開始" to player
         send "&e/arresttest off &7- 判定停止" to player
-
-
-# ============================================================
-# 花の上に乗る
-# ============================================================
-
-every 2 ticks:
-
-    if {arresttest.enabled} is not true:
-        stop
-
-    loop all players:
-
-        # プレイヤーの足元のブロックを取得
-        set {_block} to block below loop-player
-
-        # ----------------------------------------------------
-        # 花
-        # ----------------------------------------------------
-
-        if {_block} is dandelion:
-            set {_flower} to "タンポポ"
-
-        else if {_block} is poppy:
-            set {_flower} to "ポピー"
-
-        else if {_block} is blue orchid:
-            set {_flower} to "ヒスイラン"
-
-        else if {_block} is allium:
-            set {_flower} to "アリウム"
-
-        else if {_block} is azure bluet:
-            set {_flower} to "ヒナソウ"
-
-        else if {_block} is red tulip:
-            set {_flower} to "赤色のチューリップ"
-
-        else if {_block} is orange tulip:
-            set {_flower} to "オレンジ色のチューリップ"
-
-        else if {_block} is white tulip:
-            set {_flower} to "白色のチューリップ"
-
-        else if {_block} is pink tulip:
-            set {_flower} to "桃色のチューリップ"
-
-        else if {_block} is oxeye daisy:
-            set {_flower} to "ヒナギク"
-
-        else if {_block} is cornflower:
-            set {_flower} to "ヤグルマギク"
-
-        else if {_block} is lily of the valley:
-            set {_flower} to "スズラン"
-
-        else if {_block} is wither rose:
-            set {_flower} to "ウィザーローズ"
-
-        else if {_block} is torchflower:
-            set {_flower} to "トーチフラワー"
-
-        else:
-            delete {_flower}
-
-
-        # ----------------------------------------------------
-        # 花を踏んだ
-        #
-        # 同じ花の上にいる間、毎回通知されないようにする
-        # ----------------------------------------------------
-
-        if {_flower} is set:
-
-            if {arresttest.flower.%loop-player%} is not {_flower}:
-
-                send "&c[ARREST TEST] 花を踏みました。" to loop-player
-                send "&7対象：%{_flower}%" to loop-player
-
-                set {arresttest.flower.%loop-player%} to {_flower}
-
-        else:
-
-            delete {arresttest.flower.%loop-player%}
 
 
 # ============================================================
