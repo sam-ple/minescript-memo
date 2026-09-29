@@ -1,9 +1,11 @@
 # ============================================================
 # ARREST GAME
 # File : arrest_game.sk
-# Version : v0.2.07
+# Version : v0.2.08
 #
 # 草刈り → 逮捕 → 牢屋 → 収監 → 石の足場
+#
+# ============================================================
 #
 # 牢屋
 # ・土台 5 x 5
@@ -14,17 +16,18 @@
 # ・内部：air
 #
 # 座標
-# ・プレイヤーが立っているブロック = Y - 1
-# ・牢屋の土台 = Y - 1
-# ・プレイヤー = Y
-# ・鉄格子 = Y ～ Y + 2
-# ・天井 = Y + 3
+# ・プレイヤーが立っているブロック = プレイヤーの1ブロック下
+# ・牢屋の土台 = プレイヤーの1ブロック下
+# ・プレイヤー = 土台 + 1
+# ・鉄格子 = プレイヤー位置 ～ +2
+# ・天井 = プレイヤー位置 +3
 #
 # 看板
 # ・牢屋の四方向
 # ・各方向の中央
 # ・牢屋の外側
 # ・右クリック処理なし
+# ・表／裏とも同じ内容
 #
 # 看板表示
 # ・2行目：保釈金
@@ -35,9 +38,9 @@
 # ・5 x 5 の石ブロックだけ残す
 #
 # BossBar
-# ・毎回 remove → add
 # ・style：progress
 # ・30秒 → 0秒
+#
 # ============================================================
 
 
@@ -60,7 +63,7 @@ command /arresttest [<text>]:
         if arg-1 is "on":
 
             # ------------------------------------------------
-            # BossBarを毎回削除
+            # BossBar
             # ------------------------------------------------
 
             execute player command "bossbar remove arrest:jail"
@@ -104,7 +107,6 @@ command /arresttest [<text>]:
 
             send "&a[ARREST TEST] 判定を開始しました。" to player
             send "&7対象ワールド: &f%world of player%" to player
-            send "&7ARREST GAME関連の変数を初期化しました。" to player
 
             stop
 
@@ -117,7 +119,7 @@ command /arresttest [<text>]:
 
             set {arresttest.enabled} to false
 
-            # BossBarも削除
+            # BossBar削除
             execute player command "bossbar remove arrest:jail"
 
             send "&c[ARREST TEST] 判定を停止しました。" to player
@@ -129,7 +131,7 @@ command /arresttest [<text>]:
         # HELP
         # ====================================================
 
-        send "&e/arresttest on &7- 現在のワールドで判定開始＋変数初期化" to player
+        send "&e/arresttest on &7- 現在のワールドで判定開始＋初期化" to player
         send "&e/arresttest off &7- 判定停止" to player
 
 
@@ -190,22 +192,22 @@ on break:
     set {arrest.jail.reason} to "環境破壊罪"
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # タイトル
-    # --------------------------------------------------------
+    # ========================================================
 
     send title "&c環境破壊罪" with subtitle "&f%player%" to player
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # チャット
-    # --------------------------------------------------------
+    # ========================================================
 
     broadcast "&c%player%が環境破壊罪で捕まりました。"
 
 
     # ========================================================
-    # プレイヤーの現在位置
+    # プレイヤー位置
     # ========================================================
 
     set {_x} to floor(x-coordinate of player)
@@ -304,81 +306,40 @@ on break:
 
 
     # ========================================================
-    # 2tick後にもう一度生成
-    # ========================================================
-
-    wait 2 ticks
-
-
-    # --------------------------------------------------------
-    # 内部を再度空気
-    # --------------------------------------------------------
-
-#    execute player command "fill %{_x1}% %{_playerY}% %{_z1}% %{_x2}% %{_wall-top}% %{_z2}% air"
-
-
-    # --------------------------------------------------------
-    # 土台 5 x 5
-    # --------------------------------------------------------
-
-    execute player command "fill %{_x1}% %{_floor}% %{_z1}% %{_x2}% %{_floor}% %{_z2}% reinforced_deepslate"
-
-
-    # --------------------------------------------------------
-    # 天井 5 x 5
-    # --------------------------------------------------------
-
-    execute player command "fill %{_x1}% %{_ceiling}% %{_z1}% %{_x2}% %{_ceiling}% %{_z2}% reinforced_deepslate"
-
-
-    # --------------------------------------------------------
-    # 北側
-    # --------------------------------------------------------
-
-    execute player command "fill %{_x1}% %{_playerY}% %{_z1}% %{_x2}% %{_wall-top}% %{_z1}% iron_bars"
-
-
-    # --------------------------------------------------------
-    # 南側
-    # --------------------------------------------------------
-
-    execute player command "fill %{_x1}% %{_playerY}% %{_z2}% %{_x2}% %{_wall-top}% %{_z2}% iron_bars"
-
-
-    # --------------------------------------------------------
-    # 西側
-    # --------------------------------------------------------
-
-    execute player command "fill %{_x1}% %{_playerY}% %{_z1}% %{_x1}% %{_wall-top}% %{_z2}% iron_bars"
-
-
-    # --------------------------------------------------------
-    # 東側
-    # --------------------------------------------------------
-
-    execute player command "fill %{_x2}% %{_playerY}% %{_z1}% %{_x2}% %{_wall-top}% %{_z2}% iron_bars"
-
-
-    # ========================================================
     # 看板座標
     # ========================================================
 
+    # --------------------------------------------------------
     # 北
+    # --------------------------------------------------------
+
     set {_north-sign-x} to {_x}
     set {_north-sign-y} to {_floor}
     set {_north-sign-z} to {_z1} - 1
 
+
+    # --------------------------------------------------------
     # 南
+    # --------------------------------------------------------
+
     set {_south-sign-x} to {_x}
     set {_south-sign-y} to {_floor}
     set {_south-sign-z} to {_z2} + 1
 
+
+    # --------------------------------------------------------
     # 西
+    # --------------------------------------------------------
+
     set {_west-sign-x} to {_x1} - 1
     set {_west-sign-y} to {_floor}
     set {_west-sign-z} to {_z}
 
+
+    # --------------------------------------------------------
     # 東
+    # --------------------------------------------------------
+
     set {_east-sign-x} to {_x2} + 1
     set {_east-sign-y} to {_floor}
     set {_east-sign-z} to {_z}
@@ -420,43 +381,61 @@ on break:
     # 看板文字
     # ========================================================
 
+    # --------------------------------------------------------
     # 北
-    set line 2 of block at location({_north-sign-x}, {_north-sign-y}, {_north-sign-z}, world of player) to "保釈金"
+    # --------------------------------------------------------
+
+    set line 2 of block at location({_north-sign-x}, {_north-sign-y}, {_north-sign-z}, world of player) to "&e保釈金"
     set line 3 of block at location({_north-sign-x}, {_north-sign-y}, {_north-sign-z}, world of player) to "鉄インゴット × 5"
 
+
+    # --------------------------------------------------------
     # 南
-    set line 2 of block at location({_south-sign-x}, {_south-sign-y}, {_south-sign-z}, world of player) to "保釈金"
+    # --------------------------------------------------------
+
+    set line 2 of block at location({_south-sign-x}, {_south-sign-y}, {_south-sign-z}, world of player) to "&e保釈金"
     set line 3 of block at location({_south-sign-x}, {_south-sign-y}, {_south-sign-z}, world of player) to "鉄インゴット × 5"
 
+
+    # --------------------------------------------------------
     # 西
-    set line 2 of block at location({_west-sign-x}, {_west-sign-y}, {_west-sign-z}, world of player) to "保釈金"
+    # --------------------------------------------------------
+
+    set line 2 of block at location({_west-sign-x}, {_west-sign-y}, {_west-sign-z}, world of player) to "&e保釈金"
     set line 3 of block at location({_west-sign-x}, {_west-sign-y}, {_west-sign-z}, world of player) to "鉄インゴット × 5"
 
+
+    # --------------------------------------------------------
     # 東
-    set line 2 of block at location({_east-sign-x}, {_east-sign-y}, {_east-sign-z}, world of player) to "保釈金"
+    # --------------------------------------------------------
+
+    set line 2 of block at location({_east-sign-x}, {_east-sign-y}, {_east-sign-z}, world of player) to "&e保釈金"
     set line 3 of block at location({_east-sign-x}, {_east-sign-y}, {_east-sign-z}, world of player) to "鉄インゴット × 5"
+
 
     # ========================================================
     # BossBar
     # ========================================================
 
-    # 毎回まず削除
-    execute player command "bossbar remove arrest:jail"
-
     # 新規作成
     execute player command "bossbar add arrest:jail {""text"":""収監中"",""color"":""red""}"
+
 
     # 表示対象
     execute player command "bossbar set arrest:jail players @s"
 
+
     # 最大値
     execute player command "bossbar set arrest:jail max {@jail-time}"
+
 
     # 初期値
     execute player command "bossbar set arrest:jail value {@jail-time}"
 
+
     # 色
     execute player command "bossbar set arrest:jail color red"
+
 
     # シンプルな進行バー
     execute player command "bossbar set arrest:jail style progress"
@@ -525,15 +504,10 @@ on break:
     delete {arrest.jail.player}
     delete {arrest.jail.reason}
 
-    delete {arrest.jail.sign.north::*}
-    delete {arrest.jail.sign.south::*}
-    delete {arrest.jail.sign.west::*}
-    delete {arrest.jail.sign.east::*}
 
-
-    # --------------------------------------------------------
+    # ========================================================
     # 収監終了メッセージ
-    # --------------------------------------------------------
+    # ========================================================
 
     broadcast "&a[ARREST GAME] &f%player%の収監期間が終了しました。"
 
