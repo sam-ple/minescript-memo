@@ -1,37 +1,33 @@
 # ============================================================
 # ARREST GAME
 # File : arrest_game.sk
-# Version : v0.2.05
+# Version : v0.2.06
 #
-# 安全設計
-#
-# ・/arresttest on を実行したワールドだけが対象
-# ・ON時にARREST GAME関連変数を初期化
-# ・対象ワールド以外では逮捕判定しない
-# ・牢屋は逮捕されたプレイヤーの位置を基準に生成
+# 草刈り → 逮捕 → 牢屋 → 収監 → 石の足場
 #
 # 牢屋
-# ・5 x 5
-# ・高さ5
+# ・土台 5 x 5
+# ・高さ 5
 # ・土台：reinforced_deepslate
 # ・壁：iron_bars
 # ・天井：reinforced_deepslate
+# ・内部：air
 #
 # 座標
 # ・プレイヤーが立っているブロック = Y - 1
-# ・牢屋の土台 = Y
-# ・プレイヤー = 土台 + 1
-# ・鉄格子 = Y + 1 ～ Y + 3
-# ・天井 = Y + 4
+# ・牢屋の土台 = Y - 1
+# ・プレイヤー = Y
+# ・鉄格子 = Y ～ Y + 2
+# ・天井 = Y + 3
 #
-# 収監
-# ・10秒
-# ・BossBar表示
+# 釈放後
+# ・牢屋をすべて撤去
+# ・5 x 5 の石ブロックだけ残す
 # ============================================================
 
 
 options:
-    jail-time: 10
+    jail-time: 30
 
 
 # ============================================================
@@ -48,18 +44,10 @@ command /arresttest [<text>]:
 
         if arg-1 is "on":
 
-            # ------------------------------------------------
             # 前回のBossBarを削除
-            # ------------------------------------------------
-
             execute player command "bossbar remove arrest:jail"
 
-            # ------------------------------------------------
             # 前回の牢屋が残っている場合
-            #
-            # 現在のテストワールド内にある場合のみ解除
-            # ------------------------------------------------
-
             if {arrest.jail.x1} is set:
 
                 if {arrest.jail.world} is world of player:
@@ -75,21 +63,13 @@ command /arresttest [<text>]:
                     execute player command "fill %{_x1}% %{_y1}% %{_z1}% %{_x2}% %{_y2}% %{_z2}% air"
 
 
-            # ------------------------------------------------
             # ARREST GAME関連変数を初期化
-            # ------------------------------------------------
-
             delete {arrest.jailed::*}
             delete {arrest.jail::*}
 
-
-            # ------------------------------------------------
             # 今いるワールドを対象ワールドとして登録
-            # ------------------------------------------------
-
             set {arresttest.world} to world of player
             set {arresttest.enabled} to true
-
 
             send "&a[ARREST TEST] 判定を開始しました。" to player
             send "&7対象ワールド: &f%world of player%" to player
@@ -125,18 +105,12 @@ command /arresttest [<text>]:
 
 on break:
 
-    # --------------------------------------------------------
     # テストOFF
-    # --------------------------------------------------------
-
     if {arresttest.enabled} is not true:
         stop
 
 
-    # --------------------------------------------------------
     # 対象ワールド以外では何もしない
-    # --------------------------------------------------------
-
     if {arresttest.world} is not set:
         stop
 
@@ -144,18 +118,12 @@ on break:
         stop
 
 
-    # --------------------------------------------------------
     # すでに収監中なら何もしない
-    # --------------------------------------------------------
-
     if {arrest.jailed.%player%} is true:
         stop
 
 
-    # --------------------------------------------------------
     # 草以外は何もしない
-    # --------------------------------------------------------
-
     if event-block is not short grass:
         if event-block is not tall grass:
             stop
@@ -165,36 +133,35 @@ on break:
     # 逮捕
     # ========================================================
 
-    send title "&c草刈り無免許罪" with subtitle "&f草を刈ったため逮捕されました。" to player
+    send title "&c環境破壊罪" with subtitle "&f草を壊したため逮捕されました。" to player
 
     set {arrest.jailed.%player%} to true
 
 
     # ========================================================
-    # プレイヤーの現在位置を取得
+    # プレイヤーの現在位置
     # ========================================================
 
     set {_x} to floor(x-coordinate of player)
-    set {_y} to floor(y-coordinate of player)
+    set {_playerY} to floor(y-coordinate of player)
     set {_z} to floor(z-coordinate of player)
 
 
     # ========================================================
     # 牢屋座標
     #
-    # プレイヤーが立っているブロック = Y - 1
-    # 牢屋の土台 = Y
-    # プレイヤー = Y + 1
-    # 鉄格子 = Y + 1 ～ Y + 3
-    # 天井 = Y + 4
+    # プレイヤー = Y
+    # 土台 = Y - 1
+    # 鉄格子 = Y ～ Y + 2
+    # 天井 = Y + 3
     # ========================================================
 
     set {_x1} to {_x} - 2
     set {_x2} to {_x} + 2
 
-    set {_floor} to {_y}
-    set {_wall-top} to {_y} + 3
-    set {_ceiling} to {_y} + 4
+    set {_floor} to {_playerY} - 1
+    set {_wall-top} to {_playerY} + 2
+    set {_ceiling} to {_playerY} + 3
 
     set {_z1} to {_z} - 2
     set {_z2} to {_z} + 2
@@ -218,26 +185,33 @@ on break:
 
 
     # ========================================================
+    # 牢屋内部を空気にする
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_playerY}% %{_z1}% %{_x2}% %{_wall-top}% %{_z2}% air"
+
+
+    # ========================================================
     # 牢屋生成
     # ========================================================
 
-    # 土台
+    # 土台 5 x 5
     execute player command "fill %{_x1}% %{_floor}% %{_z1}% %{_x2}% %{_floor}% %{_z2}% reinforced_deepslate"
 
-    # 天井
+    # 天井 5 x 5
     execute player command "fill %{_x1}% %{_ceiling}% %{_z1}% %{_x2}% %{_ceiling}% %{_z2}% reinforced_deepslate"
 
     # 北側
-    execute player command "fill %{_x1}% %{_y}% %{_z1}% %{_x2}% %{_wall-top}% %{_z1}% iron_bars"
+    execute player command "fill %{_x1}% %{_playerY}% %{_z1}% %{_x2}% %{_wall-top}% %{_z1}% iron_bars"
 
     # 南側
-    execute player command "fill %{_x1}% %{_y}% %{_z2}% %{_x2}% %{_wall-top}% %{_z2}% iron_bars"
+    execute player command "fill %{_x1}% %{_playerY}% %{_z2}% %{_x2}% %{_wall-top}% %{_z2}% iron_bars"
 
     # 西側
-    execute player command "fill %{_x1}% %{_y}% %{_z1}% %{_x1}% %{_wall-top}% %{_z2}% iron_bars"
+    execute player command "fill %{_x1}% %{_playerY}% %{_z1}% %{_x1}% %{_wall-top}% %{_z2}% iron_bars"
 
     # 東側
-    execute player command "fill %{_x2}% %{_y}% %{_z1}% %{_x2}% %{_wall-top}% %{_z2}% iron_bars"
+    execute player command "fill %{_x2}% %{_playerY}% %{_z1}% %{_x2}% %{_wall-top}% %{_z2}% iron_bars"
 
 
     # ========================================================
@@ -246,23 +220,26 @@ on break:
 
     wait 2 ticks
 
-    # 土台
+    # 内部を空気
+    execute player command "fill %{_x1}% %{_playerY}% %{_z1}% %{_x2}% %{_wall-top}% %{_z2}% air"
+
+    # 土台 5 x 5
     execute player command "fill %{_x1}% %{_floor}% %{_z1}% %{_x2}% %{_floor}% %{_z2}% reinforced_deepslate"
 
-    # 天井
+    # 天井 5 x 5
     execute player command "fill %{_x1}% %{_ceiling}% %{_z1}% %{_x2}% %{_ceiling}% %{_z2}% reinforced_deepslate"
 
     # 北側
-    execute player command "fill %{_x1}% %{_y}% %{_z1}% %{_x2}% %{_wall-top}% %{_z1}% iron_bars"
+    execute player command "fill %{_x1}% %{_playerY}% %{_z1}% %{_x2}% %{_wall-top}% %{_z1}% iron_bars"
 
     # 南側
-    execute player command "fill %{_x1}% %{_y}% %{_z2}% %{_x2}% %{_wall-top}% %{_z2}% iron_bars"
+    execute player command "fill %{_x1}% %{_playerY}% %{_z2}% %{_x2}% %{_wall-top}% %{_z2}% iron_bars"
 
     # 西側
-    execute player command "fill %{_x1}% %{_y}% %{_z1}% %{_x1}% %{_wall-top}% %{_z2}% iron_bars"
+    execute player command "fill %{_x1}% %{_playerY}% %{_z1}% %{_x1}% %{_wall-top}% %{_z2}% iron_bars"
 
     # 東側
-    execute player command "fill %{_x2}% %{_y}% %{_z1}% %{_x2}% %{_wall-top}% %{_z2}% iron_bars"
+    execute player command "fill %{_x2}% %{_playerY}% %{_z1}% %{_x2}% %{_wall-top}% %{_z2}% iron_bars"
 
 
     # ========================================================
@@ -301,23 +278,35 @@ on break:
     # 牢屋解除
     # ========================================================
 
-    # 土台は残す
-    # 土台より上だけ空気に戻す
+    # 牢屋全体を空気にする
+    execute player command "fill %{_x1}% %{_floor}% %{_z1}% %{_x2}% %{_ceiling}% %{_z2}% air"
 
-    set {_clearY} to {_floor} + 1
+    # ========================================================
+    # 釈放後の足場
+    # 5 x 5 の石ブロック
+    # ========================================================
 
-    execute player command "fill %{_x1}% %{_clearY}% %{_z1}% %{_x2}% %{_ceiling}% %{_z2}% air"
+    execute player command "fill %{_x1}% %{_floor}% %{_z1}% %{_x2}% %{_floor}% %{_z2}% stone"
 
 
+    # ========================================================
     # BossBar削除
+    # ========================================================
+
     execute player command "bossbar remove arrest:jail"
 
 
+    # ========================================================
     # 逮捕状態解除
+    # ========================================================
+
     delete {arrest.jailed.%player%}
 
 
+    # ========================================================
     # 牢屋情報削除
+    # ========================================================
+
     delete {arrest.jail.world}
     delete {arrest.jail.x1}
     delete {arrest.jail.y1}
@@ -342,10 +331,7 @@ on break:
         stop
 
 
-    # --------------------------------------------------------
     # 対象ワールド以外では保護しない
-    # --------------------------------------------------------
-
     if {arrest.jail.world} is not set:
         stop
 
@@ -353,19 +339,13 @@ on break:
         stop
 
 
-    # --------------------------------------------------------
     # 破壊しようとしているブロックの座標
-    # --------------------------------------------------------
-
     set {_x} to floor(x-coordinate of event-block)
     set {_y} to floor(y-coordinate of event-block)
     set {_z} to floor(z-coordinate of event-block)
 
 
-    # --------------------------------------------------------
     # 牢屋範囲内だけ破壊禁止
-    # --------------------------------------------------------
-
     if {_x} is between {arrest.jail.x1} and {arrest.jail.x2}:
 
         if {_y} is between {arrest.jail.y1} and {arrest.jail.y2}:
