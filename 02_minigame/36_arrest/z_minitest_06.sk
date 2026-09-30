@@ -1,0 +1,703 @@
+# ============================================================
+# ARREST GAME
+# File : arrest_game.sk
+# Version : v0.2.09
+#
+# 草刈り → 逮捕 → 牢屋 → 収監 → 保釈 / 収監終了
+#
+# ============================================================
+#
+# 牢屋
+# ・土台 5 x 5
+# ・高さ 5
+# ・土台：reinforced_deepslate
+# ・壁：iron_bars
+# ・天井：reinforced_deepslate
+# ・内部：air
+#
+# 座標
+# ・牢屋の土台 = プレイヤーが今いる場所
+# ・プレイヤー = 土台 + 1
+# ・鉄格子 = プレイヤー位置 ～ +2
+# ・天井 = プレイヤー位置 +3
+#
+# イメージ
+#
+# Y+3  █████  天井
+# Y+2  █   █  鉄格子
+# Y+1  █ P █  プレイヤー
+# Y    █████  土台
+#
+# 看板
+# ・牢屋の四方向
+# ・各方向の中央
+# ・牢屋の外側
+# ・表／裏とも表示
+# ・右クリックで保釈
+#
+# 看板表示
+# ・2行目：保釈金
+# ・3行目：鉄インゴット × 5
+#
+# 保釈
+# ・鉄インゴット5個
+# ・誰でも右クリック可能
+# ・5個消費
+# ・即時釈放
+#
+# 釈放後
+# ・牢屋をすべて撤去
+# ・看板もすべて撤去
+# ・5 x 5 の石ブロックだけ残す
+#
+# BossBar
+# ・style：progress
+# ・30秒 → 0秒
+#
+# ============================================================
+
+
+options:
+    jail-time: 30
+    bail-amount: 5
+
+
+# ============================================================
+# TEST ON / OFF
+# ============================================================
+
+command /arresttest [<text>]:
+    permission: op
+    trigger:
+
+        # ====================================================
+        # ON
+        # ====================================================
+
+        if arg-1 is "on":
+
+            # ------------------------------------------------
+            # 現在のテストを停止
+            # ------------------------------------------------
+
+            set {arrest.jail.active} to false
+
+            # BossBar削除
+            execute player command "bossbar remove arrest:jail"
+
+
+            # ------------------------------------------------
+            # 前回の牢屋が残っている場合
+            # ------------------------------------------------
+
+            if {arrest.jail.x1} is set:
+
+                if {arrest.jail.world} is world of player:
+
+                    set {_old-x1} to {arrest.jail.x1}
+                    set {_old-y1} to {arrest.jail.y1}
+                    set {_old-z1} to {arrest.jail.z1}
+
+                    set {_old-x2} to {arrest.jail.x2}
+                    set {_old-y2} to {arrest.jail.y2}
+                    set {_old-z2} to {arrest.jail.z2}
+
+                    execute player command "fill %{_old-x1}% %{_old-y1}% %{_old-z1}% %{_old-x2}% %{_old-y2}% %{_old-z2}% air"
+
+
+            # ------------------------------------------------
+            # 前回の看板を削除
+            # ------------------------------------------------
+
+            if {arrest.jail.sign.north.x} is set:
+
+                execute player command "setblock %{arrest.jail.sign.north.x}% %{arrest.jail.sign.north.y}% %{arrest.jail.sign.north.z}% air"
+
+                execute player command "setblock %{arrest.jail.sign.south.x}% %{arrest.jail.sign.south.y}% %{arrest.jail.sign.south.z}% air"
+
+                execute player command "setblock %{arrest.jail.sign.west.x}% %{arrest.jail.sign.west.y}% %{arrest.jail.sign.west.z}% air"
+
+                execute player command "setblock %{arrest.jail.sign.east.x}% %{arrest.jail.sign.east.y}% %{arrest.jail.sign.east.z}% air"
+
+
+            # ------------------------------------------------
+            # ARREST GAME関連変数を初期化
+            # ------------------------------------------------
+
+            delete {arrest.jailed::*}
+            delete {arrest.jail::*}
+
+
+            # ------------------------------------------------
+            # 今いるワールドを対象ワールドとして登録
+            # ------------------------------------------------
+
+            set {arresttest.world} to world of player
+            set {arresttest.enabled} to true
+
+
+            send "&a[ARREST TEST] 判定を開始しました。" to player
+            send "&7対象ワールド: &f%world of player%" to player
+
+            stop
+
+
+        # ====================================================
+        # OFF
+        # ====================================================
+
+        if arg-1 is "off":
+
+            set {arresttest.enabled} to false
+            set {arrest.jail.active} to false
+
+            # BossBar削除
+            execute player command "bossbar remove arrest:jail"
+
+            send "&c[ARREST TEST] 判定を停止しました。" to player
+
+            stop
+
+
+        # ====================================================
+        # HELP
+        # ====================================================
+
+        send "&e/arresttest on &7- 現在のワールドで判定開始＋初期化" to player
+        send "&e/arresttest off &7- 判定停止" to player
+
+
+# ============================================================
+# 草刈り → 逮捕
+# ============================================================
+
+on break:
+
+    # --------------------------------------------------------
+    # テストOFF
+    # --------------------------------------------------------
+
+    if {arresttest.enabled} is not true:
+        stop
+
+
+    # --------------------------------------------------------
+    # 対象ワールド以外では何もしない
+    # --------------------------------------------------------
+
+    if {arresttest.world} is not set:
+        stop
+
+    if world of player is not {arresttest.world}:
+        stop
+
+
+    # --------------------------------------------------------
+    # すでに収監中なら何もしない
+    # --------------------------------------------------------
+
+    if {arrest.jailed.%player%} is true:
+        stop
+
+
+    # --------------------------------------------------------
+    # 草以外は何もしない
+    # --------------------------------------------------------
+
+    if event-block is not short grass:
+
+        if event-block is not tall grass:
+            stop
+
+
+    # ========================================================
+    # 逮捕
+    # ========================================================
+
+    set {arrest.jailed.%player%} to true
+    set {arrest.jail.active} to true
+
+
+    # --------------------------------------------------------
+    # 逮捕情報
+    # --------------------------------------------------------
+
+    set {arrest.jail.player} to player
+    set {arrest.jail.reason} to "環境破壊罪"
+
+
+    # ========================================================
+    # タイトル
+    # ========================================================
+
+    send title "&c環境破壊罪" with subtitle "&f%player%" to player
+
+
+    # ========================================================
+    # チャット
+    # ========================================================
+
+    broadcast "&c%player%が環境破壊罪で捕まりました。"
+
+
+    # ========================================================
+    # プレイヤー位置
+    # ========================================================
+
+    set {_x} to floor(x-coordinate of player)
+    set {_floor} to floor(y-coordinate of player)
+    set {_z} to floor(z-coordinate of player)
+
+
+    # ========================================================
+    # 牢屋座標
+    #
+    # 土台 = 現在プレイヤーがいる場所
+    # プレイヤー = 土台 + 1
+    # 鉄格子 = プレイヤー位置 ～ +2
+    # 天井 = プレイヤー位置 +3
+    # ========================================================
+
+    set {_x1} to {_x} - 2
+    set {_x2} to {_x} + 2
+
+    set {_playerY} to {_floor} + 1
+    set {_wall-top} to {_playerY} + 2
+    set {_ceiling} to {_playerY} + 3
+
+    set {_z1} to {_z} - 2
+    set {_z2} to {_z} + 2
+
+
+    # ========================================================
+    # 牢屋情報保存
+    # ========================================================
+
+    set {arrest.jail.world} to world of player
+
+    set {arrest.jail.x1} to {_x1}
+    set {arrest.jail.y1} to {_floor}
+    set {arrest.jail.z1} to {_z1}
+
+    set {arrest.jail.x2} to {_x2}
+    set {arrest.jail.y2} to {_ceiling}
+    set {arrest.jail.z2} to {_z2}
+
+    set {arrest.jail.time} to {@jail-time}
+
+
+    # ========================================================
+    # 牢屋内部を空気にする
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_playerY}% %{_z1}% %{_x2}% %{_wall-top}% %{_z2}% air"
+
+
+    # ========================================================
+    # 土台 5 x 5
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_floor}% %{_z1}% %{_x2}% %{_floor}% %{_z2}% reinforced_deepslate"
+
+
+    # ========================================================
+    # 天井 5 x 5
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_ceiling}% %{_z1}% %{_x2}% %{_ceiling}% %{_z2}% reinforced_deepslate"
+
+
+    # ========================================================
+    # 北側
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_playerY}% %{_z1}% %{_x2}% %{_wall-top}% %{_z1}% iron_bars"
+
+
+    # ========================================================
+    # 南側
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_playerY}% %{_z2}% %{_x2}% %{_wall-top}% %{_z2}% iron_bars"
+
+
+    # ========================================================
+    # 西側
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_playerY}% %{_z1}% %{_x1}% %{_wall-top}% %{_z2}% iron_bars"
+
+
+    # ========================================================
+    # 東側
+    # ========================================================
+
+    execute player command "fill %{_x2}% %{_playerY}% %{_z1}% %{_x2}% %{_wall-top}% %{_z2}% iron_bars"
+
+
+    # ========================================================
+    # プレイヤーを1ブロック上へ
+    # ========================================================
+
+    teleport player to location({_x} + 0.5, {_playerY}, {_z} + 0.5, world of player)
+
+
+    # ========================================================
+    # 看板座標
+    # ========================================================
+
+    # 北
+    set {_north-sign-x} to {_x}
+    set {_north-sign-y} to {_floor}
+    set {_north-sign-z} to {_z1} - 1
+
+
+    # 南
+    set {_south-sign-x} to {_x}
+    set {_south-sign-y} to {_floor}
+    set {_south-sign-z} to {_z2} + 1
+
+
+    # 西
+    set {_west-sign-x} to {_x1} - 1
+    set {_west-sign-y} to {_floor}
+    set {_west-sign-z} to {_z}
+
+
+    # 東
+    set {_east-sign-x} to {_x2} + 1
+    set {_east-sign-y} to {_floor}
+    set {_east-sign-z} to {_z}
+
+
+    # ========================================================
+    # 看板座標保存
+    # ========================================================
+
+    set {arrest.jail.sign.north.x} to {_north-sign-x}
+    set {arrest.jail.sign.north.y} to {_north-sign-y}
+    set {arrest.jail.sign.north.z} to {_north-sign-z}
+
+    set {arrest.jail.sign.south.x} to {_south-sign-x}
+    set {arrest.jail.sign.south.y} to {_south-sign-y}
+    set {arrest.jail.sign.south.z} to {_south-sign-z}
+
+    set {arrest.jail.sign.west.x} to {_west-sign-x}
+    set {arrest.jail.sign.west.y} to {_west-sign-y}
+    set {arrest.jail.sign.west.z} to {_west-sign-z}
+
+    set {arrest.jail.sign.east.x} to {_east-sign-x}
+    set {arrest.jail.sign.east.y} to {_east-sign-y}
+    set {arrest.jail.sign.east.z} to {_east-sign-z}
+
+
+    # ========================================================
+    # 看板設置
+    # ========================================================
+
+    execute player command "setblock %{_north-sign-x}% %{_north-sign-y}% %{_north-sign-z}% oak_wall_sign[facing=north]"
+
+    execute player command "setblock %{_south-sign-x}% %{_south-sign-y}% %{_south-sign-z}% oak_wall_sign[facing=south]"
+
+    execute player command "setblock %{_west-sign-x}% %{_west-sign-y}% %{_west-sign-z}% oak_wall_sign[facing=west]"
+
+    execute player command "setblock %{_east-sign-x}% %{_east-sign-y}% %{_east-sign-z}% oak_wall_sign[facing=east]"
+
+
+    # ========================================================
+    # 看板文字
+    #
+    # 表／裏とも
+    # 2行目：黄色・太字「保釈金」
+    # 3行目：白色・太字「鉄インゴット × 5」
+    # ========================================================
+
+    execute player command "data merge block %{_north-sign-x}% %{_north-sign-y}% %{_north-sign-z}% {is_waxed:1b,front_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']},back_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']}}"
+
+    execute player command "data merge block %{_south-sign-x}% %{_south-sign-y}% %{_south-sign-z}% {is_waxed:1b,front_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']},back_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']}}"
+
+    execute player command "data merge block %{_west-sign-x}% %{_west-sign-y}% %{_west-sign-z}% {is_waxed:1b,front_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']},back_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']}}"
+
+    execute player command "data merge block %{_east-sign-x}% %{_east-sign-y}% %{_east-sign-z}% {is_waxed:1b,front_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']},back_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']}}"
+
+
+    # ========================================================
+    # BossBar
+    # ========================================================
+
+    execute player command "bossbar add arrest:jail {""text"":""収監中"",""color"":""red""}"
+
+    execute player command "bossbar set arrest:jail players @s"
+
+    execute player command "bossbar set arrest:jail max {@jail-time}"
+
+    execute player command "bossbar set arrest:jail value {@jail-time}"
+
+    execute player command "bossbar set arrest:jail color red"
+
+    execute player command "bossbar set arrest:jail style progress"
+
+
+    # ========================================================
+    # 収監時間
+    # ========================================================
+
+    set {_remaining} to {@jail-time}
+
+    while {_remaining} > 0:
+
+        wait 1 second
+
+        # 保釈された場合
+        if {arrest.jail.active} is not true:
+            stop
+
+        subtract 1 from {_remaining}
+
+        execute player command "bossbar set arrest:jail value %{_remaining}%"
+
+
+    # ========================================================
+    # 保釈等で既に終了していた場合
+    # ========================================================
+
+    if {arrest.jail.active} is not true:
+        stop
+
+
+    # ========================================================
+    # 牢屋解除
+    # ========================================================
+
+    # --------------------------------------------------------
+    # 牢屋全体を空気にする
+    # --------------------------------------------------------
+
+    execute player command "fill %{_x1}% %{_floor}% %{_z1}% %{_x2}% %{_ceiling}% %{_z2}% air"
+
+
+    # --------------------------------------------------------
+    # 看板削除
+    # --------------------------------------------------------
+
+    execute player command "setblock %{_north-sign-x}% %{_north-sign-y}% %{_north-sign-z}% air"
+
+    execute player command "setblock %{_south-sign-x}% %{_south-sign-y}% %{_south-sign-z}% air"
+
+    execute player command "setblock %{_west-sign-x}% %{_west-sign-y}% %{_west-sign-z}% air"
+
+    execute player command "setblock %{_east-sign-x}% %{_east-sign-y}% %{_east-sign-z}% air"
+
+
+    # ========================================================
+    # 釈放後の足場
+    # 5 x 5 の石ブロック
+    # ========================================================
+
+    execute player command "fill %{_x1}% %{_floor}% %{_z1}% %{_x2}% %{_floor}% %{_z2}% stone"
+
+
+    # ========================================================
+    # BossBar削除
+    # ========================================================
+
+    execute player command "bossbar remove arrest:jail"
+
+
+    # ========================================================
+    # 逮捕状態解除
+    # ========================================================
+
+    delete {arrest.jailed.%player%}
+    set {arrest.jail.active} to false
+
+
+    # ========================================================
+    # 収監終了メッセージ
+    # ========================================================
+
+    broadcast "&a[ARREST GAME] &f%player%の収監期間が終了しました。"
+
+
+    # ========================================================
+    # 牢屋情報削除
+    # ========================================================
+
+    delete {arrest.jail.world}
+    delete {arrest.jail.x1}
+    delete {arrest.jail.y1}
+    delete {arrest.jail.z1}
+    delete {arrest.jail.x2}
+    delete {arrest.jail.y2}
+    delete {arrest.jail.z2}
+    delete {arrest.jail.time}
+    delete {arrest.jail.player}
+    delete {arrest.jail.reason}
+
+    delete {arrest.jail.sign.north::*}
+    delete {arrest.jail.sign.south::*}
+    delete {arrest.jail.sign.west::*}
+    delete {arrest.jail.sign.east::*}
+
+
+# ============================================================
+# 保釈看板 右クリック
+# ============================================================
+
+on rightclick on sign:
+
+    # --------------------------------------------------------
+    # 牢屋が存在しない
+    # --------------------------------------------------------
+
+    if {arrest.jail.active} is not true:
+        stop
+
+
+    if {arrest.jail.world} is not set:
+        stop
+
+
+    # --------------------------------------------------------
+    # 牢屋のワールド以外
+    # --------------------------------------------------------
+
+    if world of player is not {arrest.jail.world}:
+        stop
+
+
+    # --------------------------------------------------------
+    # クリックした看板の座標
+    # --------------------------------------------------------
+
+    set {_sx} to floor(x-coordinate of clicked block)
+    set {_sy} to floor(y-coordinate of clicked block)
+    set {_sz} to floor(z-coordinate of clicked block)
+
+
+    # --------------------------------------------------------
+    # ARREST GAMEの看板か確認
+    # --------------------------------------------------------
+
+    set {_is-arrest-sign} to false
+
+    if {_sx} is {arrest.jail.sign.north.x}:
+        if {_sy} is {arrest.jail.sign.north.y}:
+            if {_sz} is {arrest.jail.sign.north.z}:
+                set {_is-arrest-sign} to true
+
+    if {_sx} is {arrest.jail.sign.south.x}:
+        if {_sy} is {arrest.jail.sign.south.y}:
+            if {_sz} is {arrest.jail.sign.south.z}:
+                set {_is-arrest-sign} to true
+
+    if {_sx} is {arrest.jail.sign.west.x}:
+        if {_sy} is {arrest.jail.sign.west.y}:
+            if {_sz} is {arrest.jail.sign.west.z}:
+                set {_is-arrest-sign} to true
+
+    if {_sx} is {arrest.jail.sign.east.x}:
+        if {_sy} is {arrest.jail.sign.east.y}:
+            if {_sz} is {arrest.jail.sign.east.z}:
+                set {_is-arrest-sign} to true
+
+
+    if {_is-arrest-sign} is not true:
+        stop
+
+
+    # ========================================================
+    # 保釈金チェック
+    # ========================================================
+
+    set {_iron} to number of iron ingots in player's inventory
+
+    if {_iron} < {@bail-amount}:
+
+        send "&c保釈金が足りません。" to player
+
+        stop
+
+
+    # ========================================================
+    # 保釈
+    # ========================================================
+
+    set {_prisoner} to {arrest.jail.player}
+    set {_reason} to {arrest.jail.reason}
+
+    # 保釈金を消費
+    remove {@bail-amount} iron ingots from player's inventory
+
+
+    # 保釈状態
+    set {arrest.jail.active} to false
+
+
+    # --------------------------------------------------------
+    # 牢屋全体を空気にする
+    # --------------------------------------------------------
+
+    execute player command "fill %{arrest.jail.x1}% %{arrest.jail.y1}% %{arrest.jail.z1}% %{arrest.jail.x2}% %{arrest.jail.y2}% %{arrest.jail.z2}% air"
+
+
+    # ========================================================
+    # 看板削除
+    # ========================================================
+
+    execute player command "setblock %{arrest.jail.sign.north.x}% %{arrest.jail.sign.north.y}% %{arrest.jail.sign.north.z}% air"
+
+    execute player command "setblock %{arrest.jail.sign.south.x}% %{arrest.jail.sign.south.y}% %{arrest.jail.sign.south.z}% air"
+
+    execute player command "setblock %{arrest.jail.sign.west.x}% %{arrest.jail.sign.west.y}% %{arrest.jail.sign.west.z}% air"
+
+    execute player command "setblock %{arrest.jail.sign.east.x}% %{arrest.jail.sign.east.y}% %{arrest.jail.sign.east.z}% air"
+
+
+    # ========================================================
+    # 釈放後の石の足場
+    # ========================================================
+
+    execute player command "fill %{arrest.jail.x1}% %{arrest.jail.y1}% %{arrest.jail.z1}% %{arrest.jail.x2}% %{arrest.jail.y1}% %{arrest.jail.z2}% stone"
+
+
+    # ========================================================
+    # BossBar削除
+    # ========================================================
+
+    execute player command "bossbar remove arrest:jail"
+
+
+    # ========================================================
+    # 逮捕状態解除
+    # ========================================================
+
+    delete {arrest.jailed.%{_prisoner}%}
+
+
+    # ========================================================
+    # 保釈メッセージ
+    # ========================================================
+
+    broadcast "&a%{_prisoner}%が%{_reason}%の保釈金によって保釈されました。"
+
+
+    # ========================================================
+    # 牢屋情報削除
+    # ========================================================
+
+    delete {arrest.jail.world}
+    delete {arrest.jail.x1}
+    delete {arrest.jail.y1}
+    delete {arrest.jail.z1}
+    delete {arrest.jail.x2}
+    delete {arrest.jail.y2}
+    delete {arrest.jail.z2}
+    delete {arrest.jail.time}
+    delete {arrest.jail.player}
+    delete {arrest.jail.reason}
+
+    delete {arrest.jail.sign.north::*}
+    delete {arrest.jail.sign.south::*}
+    delete {arrest.jail.sign.west::*}
+    delete {arrest.jail.sign.east::*}
