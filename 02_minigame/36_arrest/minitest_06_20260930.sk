@@ -58,7 +58,7 @@
 
 
 options:
-    jail-time: 30
+    jail-time: 180
     bail-amount: 5
 
 
@@ -544,7 +544,14 @@ on break:
 # 保釈看板 右クリック
 # ============================================================
 
-on rightclick on sign:
+on right click:
+
+    # --------------------------------------------------------
+    # クリックしたブロックがない場合
+    # --------------------------------------------------------
+
+    if clicked block is not set:
+        stop
 
     # --------------------------------------------------------
     # 牢屋が存在しない
@@ -553,10 +560,8 @@ on rightclick on sign:
     if {arrest.jail.active} is not true:
         stop
 
-
     if {arrest.jail.world} is not set:
         stop
-
 
     # --------------------------------------------------------
     # 牢屋のワールド以外
@@ -565,15 +570,13 @@ on rightclick on sign:
     if world of player is not {arrest.jail.world}:
         stop
 
-
     # --------------------------------------------------------
-    # クリックした看板の座標
+    # クリックしたブロックの座標
     # --------------------------------------------------------
 
     set {_sx} to floor(x-coordinate of clicked block)
     set {_sy} to floor(y-coordinate of clicked block)
     set {_sz} to floor(z-coordinate of clicked block)
-
 
     # --------------------------------------------------------
     # ARREST GAMEの看板か確認
@@ -601,10 +604,8 @@ on rightclick on sign:
             if {_sz} is {arrest.jail.sign.east.z}:
                 set {_is-arrest-sign} to true
 
-
     if {_is-arrest-sign} is not true:
         stop
-
 
     # ========================================================
     # 保釈金チェック
@@ -773,4 +774,3 @@ on break:
             if {_bz} is {arrest.jail.sign.east.z}:
                 cancel event
                 stop
-
