@@ -676,15 +676,13 @@ on right click:
     set {arrest.jail.active} to false
 
 
-    # --------------------------------------------------------
-    # 牢屋全体を空気にする
-    # --------------------------------------------------------
-
-    execute player command "fill %{arrest.jail.x1}% %{arrest.jail.y1}% %{arrest.jail.z1}% %{arrest.jail.x2}% %{arrest.jail.y2}% %{arrest.jail.z2}% air"
-
-
     # ========================================================
-    # 看板削除
+    # 看板を先に削除
+    # ========================================================
+    #
+    # 牢屋を壊す前に看板を直接 air にする。
+    # これにより、鉄格子の消滅による
+    # 「看板が剥がれてアイテム化する」問題を防ぐ。
     # ========================================================
 
     execute player command "setblock %{arrest.jail.sign.north.x}% %{arrest.jail.sign.north.y}% %{arrest.jail.sign.north.z}% air"
@@ -695,6 +693,12 @@ on right click:
 
     execute player command "setblock %{arrest.jail.sign.east.x}% %{arrest.jail.sign.east.y}% %{arrest.jail.sign.east.z}% air"
 
+
+    # ========================================================
+    # 牢屋全体を空気にする
+    # ========================================================
+
+    execute player command "fill %{arrest.jail.x1}% %{arrest.jail.y1}% %{arrest.jail.z1}% %{arrest.jail.x2}% %{arrest.jail.y2}% %{arrest.jail.z2}% air"
 
     # ========================================================
     # 釈放後の石の足場
