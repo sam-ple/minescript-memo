@@ -701,3 +701,76 @@ on rightclick on sign:
     delete {arrest.jail.sign.south::*}
     delete {arrest.jail.sign.west::*}
     delete {arrest.jail.sign.east::*}
+
+# ============================================================
+# ARREST GAME
+# 看板破壊防止 ＋α
+# ============================================================
+
+on break:
+
+    # --------------------------------------------------------
+    # 牢屋が存在しない場合は何もしない
+    # --------------------------------------------------------
+
+    if {arrest.jail.active} is not true:
+        stop
+
+    if {arrest.jail.world} is not set:
+        stop
+
+    # --------------------------------------------------------
+    # ARREST GAMEの牢屋ワールド以外は何もしない
+    # --------------------------------------------------------
+
+    if world of player is not {arrest.jail.world}:
+        stop
+
+    # --------------------------------------------------------
+    # 壊そうとしているブロックの座標
+    # --------------------------------------------------------
+
+    set {_bx} to floor(x-coordinate of event-block)
+    set {_by} to floor(y-coordinate of event-block)
+    set {_bz} to floor(z-coordinate of event-block)
+
+    # --------------------------------------------------------
+    # 北側看板
+    # --------------------------------------------------------
+
+    if {_bx} is {arrest.jail.sign.north.x}:
+        if {_by} is {arrest.jail.sign.north.y}:
+            if {_bz} is {arrest.jail.sign.north.z}:
+                cancel event
+                stop
+
+    # --------------------------------------------------------
+    # 南側看板
+    # --------------------------------------------------------
+
+    if {_bx} is {arrest.jail.sign.south.x}:
+        if {_by} is {arrest.jail.sign.south.y}:
+            if {_bz} is {arrest.jail.sign.south.z}:
+                cancel event
+                stop
+
+    # --------------------------------------------------------
+    # 西側看板
+    # --------------------------------------------------------
+
+    if {_bx} is {arrest.jail.sign.west.x}:
+        if {_by} is {arrest.jail.sign.west.y}:
+            if {_bz} is {arrest.jail.sign.west.z}:
+                cancel event
+                stop
+
+    # --------------------------------------------------------
+    # 東側看板
+    # --------------------------------------------------------
+
+    if {_bx} is {arrest.jail.sign.east.x}:
+        if {_by} is {arrest.jail.sign.east.y}:
+            if {_bz} is {arrest.jail.sign.east.z}:
+                cancel event
+                stop
+
