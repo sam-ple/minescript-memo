@@ -395,6 +395,23 @@ on break:
     # 看板設置
     # ========================================================
 
+    # --------------------------------------------------------
+    # 看板設置位置を空気にする
+    # --------------------------------------------------------
+
+    execute player command "setblock %{_north-sign-x}% %{_north-sign-y}% %{_north-sign-z}% air"
+
+    execute player command "setblock %{_south-sign-x}% %{_south-sign-y}% %{_south-sign-z}% air"
+
+    execute player command "setblock %{_west-sign-x}% %{_west-sign-y}% %{_west-sign-z}% air"
+
+    execute player command "setblock %{_east-sign-x}% %{_east-sign-y}% %{_east-sign-z}% air"
+
+
+    # --------------------------------------------------------
+    # 看板を設置
+    # --------------------------------------------------------
+
     execute player command "setblock %{_north-sign-x}% %{_north-sign-y}% %{_north-sign-z}% oak_wall_sign[facing=north]"
 
     execute player command "setblock %{_south-sign-x}% %{_south-sign-y}% %{_south-sign-z}% oak_wall_sign[facing=south]"
@@ -402,7 +419,6 @@ on break:
     execute player command "setblock %{_west-sign-x}% %{_west-sign-y}% %{_west-sign-z}% oak_wall_sign[facing=west]"
 
     execute player command "setblock %{_east-sign-x}% %{_east-sign-y}% %{_east-sign-z}% oak_wall_sign[facing=east]"
-
 
     # ========================================================
     # 看板文字
@@ -625,6 +641,12 @@ on right click:
 
     if {_is-arrest-sign} is not true:
         stop
+
+    # ========================================================
+    # 看板編集を禁止
+    # ========================================================
+
+    cancel event
 
     # ========================================================
     # 保釈金チェック
