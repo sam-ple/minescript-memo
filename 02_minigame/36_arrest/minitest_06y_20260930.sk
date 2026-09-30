@@ -406,19 +406,38 @@ on break:
 
     # ========================================================
     # 看板文字
-    #
-    # 表／裏とも
-    # 2行目：黄色・太字「保釈金」
-    # 3行目：白色・太字「鉄インゴット × 5」
     # ========================================================
 
-    execute player command "data merge block %{_north-sign-x}% %{_north-sign-y}% %{_north-sign-z}% {is_waxed:1b,front_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']},back_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']}}"
+    # --------------------------------------------------------
+    # 北
+    # --------------------------------------------------------
 
-    execute player command "data merge block %{_south-sign-x}% %{_south-sign-y}% %{_south-sign-z}% {is_waxed:1b,front_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']},back_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']}}"
+    set line 2 of block at location({_north-sign-x}, {_north-sign-y}, {_north-sign-z}, world of player) to "&e&l保釈金"
+    set line 3 of block at location({_north-sign-x}, {_north-sign-y}, {_north-sign-z}, world of player) to "&f&l鉄インゴット × 5"
 
-    execute player command "data merge block %{_west-sign-x}% %{_west-sign-y}% %{_west-sign-z}% {is_waxed:1b,front_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']},back_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']}}"
 
-    execute player command "data merge block %{_east-sign-x}% %{_east-sign-y}% %{_east-sign-z}% {is_waxed:1b,front_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']},back_text:{color:""yellow"",messages:['{""text"":""""}','{""text"":""保釈金"",""color"":""yellow"",""bold"":true}','{""text"":""鉄インゴット × 5"",""color"":""white"",""bold"":true}','{""text"":""""}']}}"
+    # --------------------------------------------------------
+    # 南
+    # --------------------------------------------------------
+
+    set line 2 of block at location({_south-sign-x}, {_south-sign-y}, {_south-sign-z}, world of player) to "&e&l保釈金"
+    set line 3 of block at location({_south-sign-x}, {_south-sign-y}, {_south-sign-z}, world of player) to "&f&l鉄インゴット × 5"
+
+
+    # --------------------------------------------------------
+    # 西
+    # --------------------------------------------------------
+
+    set line 2 of block at location({_west-sign-x}, {_west-sign-y}, {_west-sign-z}, world of player) to "&e&l保釈金"
+    set line 3 of block at location({_west-sign-x}, {_west-sign-y}, {_west-sign-z}, world of player) to "&f&l鉄インゴット × 5"
+
+
+    # --------------------------------------------------------
+    # 東
+    # --------------------------------------------------------
+
+    set line 2 of block at location({_east-sign-x}, {_east-sign-y}, {_east-sign-z}, world of player) to "&e&l保釈金"
+    set line 3 of block at location({_east-sign-x}, {_east-sign-y}, {_east-sign-z}, world of player) to "&f&l鉄インゴット × 5"
 
 
     # ========================================================
