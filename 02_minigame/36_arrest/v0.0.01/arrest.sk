@@ -2,144 +2,88 @@
 # ARREST GAME
 # File : arrest.sk
 # Version : v0.0.01
-#
-# ARREST GAME 全体管理
-#
-# 現在実装：
-# ・対象ワールド設定
-# ・ON / OFF
-# ・起動時の変数初期化
-#
-# 現在の罪状：
-# ・環境破壊罪
-#
 # ============================================================
-
 
 options:
 
-    version: v0.0.01
-
-    # --------------------------------------------------------
-    # 現在の基本設定
-    # --------------------------------------------------------
-
     jail-time: 30
     bail-amount: 5
-
-    # BossBar表示範囲
     bossbar-radius: 30
 
 
 # ============================================================
-# /arrest
+# ARREST ON
 # ============================================================
 
 command /arrest [<text>]:
-    permission: op
+
     trigger:
 
-        # ====================================================
+        # ----------------------------------------------------
         # ON
-        # ====================================================
+        # ----------------------------------------------------
 
         if arg-1 is "on":
 
-            # ------------------------------------------------
-            # 前回のARREST状態を完全初期化
-            #
-            # 今回は「ONした時点」で変数をリセットする。
-            # ------------------------------------------------
-
+            # 既存データを初期化
             delete {arrest::enabled}
             delete {arrest::world}
             delete {arrest::jail::*}
             delete {arrest::player::*}
 
+            # 設定値を共有変数へ保存
+            set {arrest::config::jail-time} to {@jail-time}
+            set {arrest::config::bail-amount} to {@bail-amount}
+            set {arrest::config::bossbar-radius} to {@bossbar-radius}
 
-            # ------------------------------------------------
-            # BossBarを削除
-            # ------------------------------------------------
-
-            execute player command "bossbar remove arrest:jail_1"
-            execute player command "bossbar remove arrest:jail_2"
-            execute player command "bossbar remove arrest:jail_3"
-            execute player command "bossbar remove arrest:jail_4"
-            execute player command "bossbar remove arrest:jail_5"
-            execute player command "bossbar remove arrest:jail_6"
-            execute player command "bossbar remove arrest:jail_7"
-            execute player command "bossbar remove arrest:jail_8"
-            execute player command "bossbar remove arrest:jail_9"
-            execute player command "bossbar remove arrest:jail_10"
-
-
-            # ------------------------------------------------
-            # 現在のワールドを対象ワールドとして登録
-            # ------------------------------------------------
-
+            # 実行したワールドを対象ワールドにする
             set {arrest::world} to world of player
+
+            # ARREST開始
             set {arrest::enabled} to true
 
-
-            send "&a[ARREST GAME] 判定を開始しました。" to player
-            send "&7対象ワールド：&f%world of player%" to player
-            send "&7Version：&f{@version}" to player
+            send "&a[ARREST GAME] 判定を開始しました。"
+            send "&7対象ワールド：%{arrest::world}%"
+            send "&7Version：v0.0.01"
 
             stop
 
 
-        # ====================================================
+        # ----------------------------------------------------
         # OFF
-        # ====================================================
+        # ----------------------------------------------------
 
         if arg-1 is "off":
 
             set {arrest::enabled} to false
 
-            send "&c[ARREST GAME] 判定を停止しました。" to player
+            send "&c[ARREST GAME] 判定を停止しました。"
 
             stop
 
 
-        # ====================================================
+        # ----------------------------------------------------
         # STATUS
-        # ====================================================
+        # ----------------------------------------------------
 
         if arg-1 is "status":
 
             if {arrest::enabled} is true:
 
-                send "&a[ARREST GAME] 稼働中" to player
-
-                if {arrest::world} is set:
-                    send "&7対象ワールド：&f%{arrest::world}%" to player
-
-                if {arrest::jail::ids::*} is set:
-                    send "&7収監人数：&f%size of {arrest::jail::ids::*}%" to player
-                else:
-                    send "&7収監人数：&f0" to player
+                send "&a[ARREST GAME] ON"
+                send "&7対象ワールド：%{arrest::world}%"
 
             else:
 
-                send "&c[ARREST GAME] 停止中" to player
+                send "&c[ARREST GAME] OFF"
 
             stop
 
 
-        # ====================================================
-        # HELP
-        # ====================================================
+        # ----------------------------------------------------
+        # 引数なし
+        # ----------------------------------------------------
 
-        send "&e/arrest on &7- 現在のワールドで開始＋変数初期化" to player
-        send "&e/arrest off &7- 判定停止" to player
-        send "&e/arrest status &7- 現在の状態"
-
-
-# ============================================================
-# 共通：
-# ARRESTが動作している対象ワールドか
-#
-# 各crimeファイル側でも必ず
-# enabled + world
-# を確認する。
-# ============================================================
+        send "&e/arrest on"
+        send "&e/arrest off"
+        send "&e/arrest status"
