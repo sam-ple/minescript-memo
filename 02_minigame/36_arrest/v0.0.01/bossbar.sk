@@ -1,0 +1,88 @@
+# ============================================================
+# ARREST GAME
+# File : bossbar.sk
+# Version : v0.0.01
+# ============================================================
+
+every 1 second:
+
+    if {arrest::jail::ids::*} is not set:
+        stop
+
+    loop {arrest::jail::ids::*}:
+
+        set {_id} to loop-value
+
+        if {arrest::jail::%{_id}%::active} is not true:
+            next loop
+
+
+        set {_name} to {arrest::jail::%{_id}%::player-name}
+        set {_reason} to {arrest::jail::%{_id}%::reason}
+        set {_remaining} to {arrest::jail::%{_id}%::remaining}
+        set {_world} to {arrest::jail::%{_id}%::world}
+
+
+        # ====================================================
+        # BossBar初回作成
+        # ====================================================
+
+        if {arrest::jail::%{_id}%::bossbar} is not true:
+
+            execute console command "bossbar add arrest:jail_%{_id}% {""text"":""収監中　%{_name}%：%{_reason}%"",""color"":""red""}"
+
+            execute console command "bossbar set arrest:jail_%{_id}% max {@jail-time}"
+            execute console command "bossbar set arrest:jail_%{_id}% color red"
+            execute console command "bossbar set arrest:jail_%{_id}% style progress"
+
+            set {arrest::jail::%{_id}%::bossbar} to true
+
+
+        # ====================================================
+        # 残り時間
+        # ====================================================
+
+        execute console command "bossbar set arrest:jail_%{_id}% value %{_remaining}%"
+
+
+        # ====================================================
+        # 牢屋中心
+        # ====================================================
+
+        set {_x} to {arrest::jail::%{_id}%::x1} + 2.5
+        set {_y} to {arrest::jail::%{_id}%::y1} + 1
+        set {_z} to {arrest::jail::%{_id}%::z1} + 2.5
+
+        set {_center} to location({_x}, {_y}, {_z}, {_world})
+
+
+        # ====================================================
+        # 近くのプレイヤー
+        # ====================================================
+
+        set {_targets} to ""
+
+        loop all players:
+
+            if world of loop-player is {_world}:
+
+                if distance between loop-player and {_center} <= {@bossbar-radius}:
+
+                    if {_targets} is "":
+                        set {_targets} to "%name of loop-player%"
+                    else:
+                        set {_targets} to "%{_targets}% %name of loop-player%"
+
+
+        # ====================================================
+        # 表示
+        # ====================================================
+
+        if {_targets} is not "":
+
+            execute console command "bossbar set arrest:jail_%{_id}% players %{_targets}%"
+            execute console command "bossbar set arrest:jail_%{_id}% visible true"
+
+        else:
+
+            execute console command "bossbar set arrest:jail_%{_id}% visible false"
