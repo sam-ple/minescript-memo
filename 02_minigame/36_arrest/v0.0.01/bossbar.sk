@@ -1,88 +1,163 @@
 # ============================================================
 # ARREST GAME
 # File : bossbar.sk
-# Version : v0.0.01
+# Version : v0.0.02
+#
+# BossBar管理
+#
+# 表示：
+#   crocadooo：環境破壊罪
+#
+# ・赤色
+# ・progress
+# ・牢屋から30ブロック以内
+# ・残り時間に応じて減少
+#
 # ============================================================
 
-every 1 second:
 
-    if {arrest::jail::ids::*} is not set:
-        stop
+every 1 second:
 
     loop {arrest::jail::ids::*}:
 
         set {_id} to loop-value
 
-        if {arrest::jail::%{_id}%::active} is not true:
-            next loop
+
+        # ----------------------------------------------------
+        # 稼働中の牢屋だけ
+        # ----------------------------------------------------
+
+        if {arrest::jail::%{_id}%::active} is true:
+
+            set {_p} to {arrest::jail::%{_id}%::player}
+
+            if {_p} is set:
+
+                set {_reason} to {arrest::jail::%{_id}%::reason}
+
+                set {_time} to {arrest::jail::%{_id}%::time}
+
+                set {_max} to {arrest::jail::%{_id}%::max-time}
 
 
-        set {_name} to {arrest::jail::%{_id}%::player-name}
-        set {_reason} to {arrest::jail::%{_id}%::reason}
-        set {_remaining} to {arrest::jail::%{_id}%::remaining}
-        set {_world} to {arrest::jail::%{_id}%::world}
+                # ====================================================
+                # BossBar作成
+                # ====================================================
+
+                if {arrest::jail::%{_id}%::bossbar} is not set:
+
+                    set {_bar} to a new red boss bar titled "%{_p}%：%{_reason}%"
+
+                    set the style of {_bar} to progress
+
+                    set the progress of {_bar} to 1
+
+                    set {arrest::jail::%{_id}%::bossbar} to {_bar}
 
 
-        # ====================================================
-        # BossBar初回作成
-        # ====================================================
+                # ====================================================
+                # BossBar取得
+                # ====================================================
 
-        if {arrest::jail::%{_id}%::bossbar} is not true:
-
-            execute console command "bossbar add arrest:jail_%{_id}% {""text"":""収監中　%{_name}%：%{_reason}%"",""color"":""red""}"
-
-            execute console command "bossbar set arrest:jail_%{_id}% max {@jail-time}"
-            execute console command "bossbar set arrest:jail_%{_id}% color red"
-            execute console command "bossbar set arrest:jail_%{_id}% style progress"
-
-            set {arrest::jail::%{_id}%::bossbar} to true
+                set {_bar} to {arrest::jail::%{_id}%::bossbar}
 
 
-        # ====================================================
-        # 残り時間
-        # ====================================================
+                # ====================================================
+                # タイトル
+                # ====================================================
 
-        execute console command "bossbar set arrest:jail_%{_id}% value %{_remaining}%"
-
-
-        # ====================================================
-        # 牢屋中心
-        # ====================================================
-
-        set {_x} to {arrest::jail::%{_id}%::x1} + 2.5
-        set {_y} to {arrest::jail::%{_id}%::y1} + 1
-        set {_z} to {arrest::jail::%{_id}%::z1} + 2.5
-
-        set {_center} to location({_x}, {_y}, {_z}, {_world})
+                set the title of {_bar} to "%{_p}%：%{_reason}%"
 
 
-        # ====================================================
-        # 近くのプレイヤー
-        # ====================================================
+                # ====================================================
+                # 残り時間
+                # ====================================================
 
-        set {_targets} to ""
+                if {_max} is greater than 0:
 
-        loop all players:
+                    set {_progress} to {_time} / {_max}
 
-            if world of loop-player is {_world}:
+                else:
 
-                if distance between loop-player and {_center} <= {@bossbar-radius}:
-
-                    if {_targets} is "":
-                        set {_targets} to "%name of loop-player%"
-                    else:
-                        set {_targets} to "%{_targets}% %name of loop-player%"
+                    set {_progress} to 0
 
 
-        # ====================================================
-        # 表示
-        # ====================================================
+                if {_progress} is greater than 1:
 
-        if {_targets} is not "":
+                    set {_progress} to 1
 
-            execute console command "bossbar set arrest:jail_%{_id}% players %{_targets}%"
-            execute console command "bossbar set arrest:jail_%{_id}% visible true"
+                if {_progress} is less than 0:
 
-        else:
+                    set {_progress} to 0
 
-            execute console command "bossbar set arrest:jail_%{_id}% visible false"
+
+                set the progress of {_bar} to {_progress}
+
+
+                # ====================================================
+                # 表示対象を一度リセット
+                # ====================================================
+
+                remove all players from viewers of {_bar}
+
+
+                # ====================================================
+                # 牢屋中心
+                # ====================================================
+
+                set {_x1} to {arrest::jail::%{_id}%::x1}
+                set {_x2} to {arrest::jail::%{_id}%::x2}
+
+                set {_z1} to {arrest::jail::%{_id}%::z1}
+                set {_z2} to {arrest::jail::%{_id}%::z2}
+
+                set {_floor} to {arrest::jail::%{_id}%::floor}
+
+                set {_world} to {arrest::jail::%{_id}%::world}
+
+
+                set {_cx} to ({_x1} + {_x2}) / 2
+                set {_cz} to ({_z1} + {_z2}) / 2
+
+
+                set {_center} to location at {_cx}, {_floor} + 1, {_cz} in {_world}
+
+
+                # ====================================================
+                # 表示距離
+                # ====================================================
+
+                set {_radius} to {arrest::config::bossbar-radius}
+
+                if {_radius} is not set:
+
+                    set {_radius} to 30
+
+
+                # ====================================================
+                # 近くのプレイヤーに表示
+                # ====================================================
+
+                loop all players:
+
+                    if world of loop-player is {_world}:
+
+                        if distance between loop-player and {_center} <= {_radius}:
+
+                            add loop-player to viewers of {_bar}
+
+
+                # ====================================================
+                # 時間を1秒減らす
+                # ====================================================
+
+                subtract 1 from {arrest::jail::%{_id}%::time}
+
+
+                # ====================================================
+                # 0秒
+                # ====================================================
+
+                if {arrest::jail::%{_id}%::time} <= 0:
+
+                    arrest_release_jail({_id})
