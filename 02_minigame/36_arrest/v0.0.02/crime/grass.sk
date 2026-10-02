@@ -26,8 +26,6 @@ on break of short grass or tall grass:
     # 犯罪判定OFF
     # --------------------------------------------------------
 
-    if {@crime-grass} is not true:
-        stop
 
     # --------------------------------------------------------
     # ARREST GAME OFF
