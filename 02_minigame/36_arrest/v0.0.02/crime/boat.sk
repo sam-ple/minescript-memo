@@ -79,11 +79,4 @@ on vehicle enter:
     # 金インゴット × 2
     # --------------------------------------------------------
 
-    arrest_create_jail(
-        {_p},
-        {_reason},
-        60,
-        gold ingot,
-        2,
-        "金インゴット"
-    )
+    arrest_create_jail(player, {_reason}, 60, gold ingot, 2, "金インゴット")

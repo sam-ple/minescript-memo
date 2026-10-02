@@ -63,11 +63,4 @@ on break of short grass or tall grass:
     # 銅インゴット × 5
     # --------------------------------------------------------
 
-    arrest_create_jail(
-        player,
-        {_reason},
-        30,
-        copper ingot,
-        5,
-        "銅インゴット"
-    )
+    arrest_create_jail(player, {_reason}, 30, copper ingot, 5, "銅インゴッド")
