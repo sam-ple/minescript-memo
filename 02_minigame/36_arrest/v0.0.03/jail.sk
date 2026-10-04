@@ -1,0 +1,614 @@
+# ============================================================
+# ARREST GAME
+# File : jail.sk
+# Version : v0.0.04
+#
+# 牢屋生成・収監・保釈・牢屋解除
+#
+# 犯罪ごとに以下を指定可能
+# ・収監時間
+# ・保釈アイテム
+# ・保釈個数
+# ・保釈金表示名
+#
+# 釈放時：
+# ・プレイヤーはその場に残す
+# ・四方の壁を撤去
+# ・天井を撤去
+# ・保釈看板を撤去
+# ・足元を cobblestone にする
+# ・牢屋内部を一括で air にしない
+#
+# ============================================================
+
+
+# ============================================================
+# 牢屋生成
+# ============================================================
+
+function arrest_create_jail(p: player, reason: text, jailtime: number, bailitem: item type, bailamount: number, bailname: text):
+
+    # --------------------------------------------------------
+    # 牢屋IDを発行
+    # --------------------------------------------------------
+
+    add 1 to {arrest::jail::next-id}
+
+    set {_id} to {arrest::jail::next-id}
+
+
+    # --------------------------------------------------------
+    # プレイヤー位置を取得
+    # --------------------------------------------------------
+
+    set {_x} to floor(x-coordinate of {_p})
+    set {_y} to floor(y-coordinate of {_p})
+    set {_z} to floor(z-coordinate of {_p})
+
+    set {_world} to world of {_p}
+
+
+    # --------------------------------------------------------
+    # 牢屋サイズ
+    #
+    # 5 x 5
+    # 高さ5
+    #
+    # 床       = y
+    # プレイヤー = y + 1
+    # 壁上部   = y + 3
+    # 天井     = y + 4
+    # --------------------------------------------------------
+
+    set {_x1} to {_x} - 2
+    set {_x2} to {_x} + 2
+
+    set {_z1} to {_z} - 2
+    set {_z2} to {_z} + 2
+
+    set {_floor} to {_y}
+    set {_player-y} to {_floor} + 1
+    set {_wall-top} to {_floor} + 3
+    set {_ceiling} to {_floor} + 4
+
+
+    # --------------------------------------------------------
+    # 牢屋情報保存
+    # --------------------------------------------------------
+
+    set {arrest::jail::%{_id}%::active} to true
+    set {arrest::jail::%{_id}%::player} to {_p}
+    set {arrest::jail::%{_id}%::uuid} to uuid of {_p}
+    set {arrest::jail::%{_id}%::reason} to {_reason}
+    set {arrest::jail::%{_id}%::world} to {_world}
+
+    set {arrest::jail::%{_id}%::x1} to {_x1}
+    set {arrest::jail::%{_id}%::x2} to {_x2}
+    set {arrest::jail::%{_id}%::z1} to {_z1}
+    set {arrest::jail::%{_id}%::z2} to {_z2}
+
+    set {arrest::jail::%{_id}%::floor} to {_floor}
+    set {arrest::jail::%{_id}%::ceiling} to {_ceiling}
+
+
+    # --------------------------------------------------------
+    # 犯罪ごとの収監・保釈情報
+    # --------------------------------------------------------
+
+    set {arrest::jail::%{_id}%::time} to {_jailtime}
+    set {arrest::jail::%{_id}%::max-time} to {_jailtime}
+
+    set {arrest::jail::%{_id}%::bail::item} to {_bailitem}
+    set {arrest::jail::%{_id}%::bail::amount} to {_bailamount}
+    set {arrest::jail::%{_id}%::bail::name} to {_bailname}
+
+
+    # --------------------------------------------------------
+    # 牢屋ID一覧に追加
+    # --------------------------------------------------------
+
+    add {_id} to {arrest::jail::ids::*}
+
+
+    # --------------------------------------------------------
+    # プレイヤーと牢屋を紐付け
+    # --------------------------------------------------------
+
+    set {arrest::player::%uuid of {_p}%::jail} to {_id}
+
+
+    # ============================================================
+    # 牢屋生成
+    # ============================================================
+
+    # 内部を空気にする
+    execute {_p} command "/fill %{_x1}% %{_player-y}% %{_z1}% %{_x2}% %{_wall-top}% %{_z2}% air"
+
+    # 床
+    execute {_p} command "/fill %{_x1}% %{_floor}% %{_z1}% %{_x2}% %{_floor}% %{_z2}% reinforced_deepslate"
+
+    # 天井
+    execute {_p} command "/fill %{_x1}% %{_ceiling}% %{_z1}% %{_x2}% %{_ceiling}% %{_z2}% reinforced_deepslate"
+
+    # 北・南の壁
+    execute {_p} command "/fill %{_x1}% %{_player-y}% %{_z1}% %{_x2}% %{_wall-top}% %{_z1}% iron_bars"
+    execute {_p} command "/fill %{_x1}% %{_player-y}% %{_z2}% %{_x2}% %{_wall-top}% %{_z2}% iron_bars"
+
+    # 西・東の壁
+    execute {_p} command "/fill %{_x1}% %{_player-y}% %{_z1}% %{_x1}% %{_wall-top}% %{_z2}% iron_bars"
+    execute {_p} command "/fill %{_x2}% %{_player-y}% %{_z1}% %{_x2}% %{_wall-top}% %{_z2}% iron_bars"
+
+
+    # ============================================================
+    # 保釈看板
+    # ============================================================
+
+    # 北
+    set {arrest::jail::%{_id}%::sign::north::x} to {_x}
+    set {arrest::jail::%{_id}%::sign::north::y} to {_floor}
+    set {arrest::jail::%{_id}%::sign::north::z} to {_z1} - 1
+
+    # 南
+    set {arrest::jail::%{_id}%::sign::south::x} to {_x}
+    set {arrest::jail::%{_id}%::sign::south::y} to {_floor}
+    set {arrest::jail::%{_id}%::sign::south::z} to {_z2} + 1
+
+    # 西
+    set {arrest::jail::%{_id}%::sign::west::x} to {_x1} - 1
+    set {arrest::jail::%{_id}%::sign::west::y} to {_floor}
+    set {arrest::jail::%{_id}%::sign::west::z} to {_z}
+
+    # 東
+    set {arrest::jail::%{_id}%::sign::east::x} to {_x2} + 1
+    set {arrest::jail::%{_id}%::sign::east::y} to {_floor}
+    set {arrest::jail::%{_id}%::sign::east::z} to {_z}
+
+
+    # --------------------------------------------------------
+    # 保釈看板を設置
+    # --------------------------------------------------------
+
+    set block at location({_x}, {_floor}, {_z1} - 1, {_world}) to oak wall sign[facing=north]
+
+    set block at location({_x}, {_floor}, {_z2} + 1, {_world}) to oak wall sign[facing=south]
+
+    set block at location({_x1} - 1, {_floor}, {_z}, {_world}) to oak wall sign[facing=west]
+
+    set block at location({_x2} + 1, {_floor}, {_z}, {_world}) to oak wall sign[facing=east]
+
+
+    # --------------------------------------------------------
+    # 看板表示
+    # --------------------------------------------------------
+
+    set line 2 of block at location({_x}, {_floor}, {_z1} - 1, {_world}) to "&e&l保釈金"
+    set line 3 of block at location({_x}, {_floor}, {_z1} - 1, {_world}) to "&f&l%{_bailname}% × %{_bailamount}%"
+
+    set line 2 of block at location({_x}, {_floor}, {_z2} + 1, {_world}) to "&e&l保釈金"
+    set line 3 of block at location({_x}, {_floor}, {_z2} + 1, {_world}) to "&f&l%{_bailname}% × %{_bailamount}%"
+
+    set line 2 of block at location({_x1} - 1, {_floor}, {_z}, {_world}) to "&e&l保釈金"
+    set line 3 of block at location({_x1} - 1, {_floor}, {_z}, {_world}) to "&f&l%{_bailname}% × %{_bailamount}%"
+
+    set line 2 of block at location({_x2} + 1, {_floor}, {_z}, {_world}) to "&e&l保釈金"
+    set line 3 of block at location({_x2} + 1, {_floor}, {_z}, {_world}) to "&f&l%{_bailname}% × %{_bailamount}%"
+
+
+    # ============================================================
+    # プレイヤーを牢屋へ
+    # ============================================================
+
+    teleport {_p} to location({_x} + 0.5, {_player-y}, {_z} + 0.5, {_world})
+
+
+    # ============================================================
+    # 逮捕タイトル
+    # ============================================================
+
+    send title "&c&l逮捕" with subtitle "&f%{_reason}%" to {_p}
+
+
+    # ============================================================
+    # メッセージ
+    # ============================================================
+
+    send "&c&l[ARREST] &fあなたは逮捕されました。" to {_p}
+    send "&7罪状：&f%{_reason}%" to {_p}
+    send "&7収監時間：&f%{_jailtime}%秒" to {_p}
+    send "&7保釈金：&f%{_bailname}% × %{_bailamount}%" to {_p}
+
+    broadcast "&c&l[ARREST] &f%name of {_p}% が逮捕されました。"
+    broadcast "&7罪状：&f%{_reason}%"
+
+
+# ============================================================
+# 牢屋解除
+# ============================================================
+
+function arrest_release_jail(id: number):
+
+    # --------------------------------------------------------
+    # 牢屋が存在しない
+    # --------------------------------------------------------
+
+    if {arrest::jail::%{_id}%::active} is not true:
+        stop
+
+
+    # --------------------------------------------------------
+    # プレイヤー取得
+    # --------------------------------------------------------
+
+    set {_p} to {arrest::jail::%{_id}%::player}
+    set {_uuid} to {arrest::jail::%{_id}%::uuid}
+
+    set {_world} to {arrest::jail::%{_id}%::world}
+
+    set {_x1} to {arrest::jail::%{_id}%::x1}
+    set {_x2} to {arrest::jail::%{_id}%::x2}
+
+    set {_z1} to {arrest::jail::%{_id}%::z1}
+    set {_z2} to {arrest::jail::%{_id}%::z2}
+
+    set {_floor} to {arrest::jail::%{_id}%::floor}
+    set {_ceiling} to {arrest::jail::%{_id}%::ceiling}
+
+
+    # ============================================================
+    # BossBar削除
+    # ============================================================
+
+    if {arrest::jail::%{_id}%::bossbar} is set:
+
+        set {_bar} to {arrest::jail::%{_id}%::bossbar}
+
+        remove all players from viewers of {_bar}
+
+        delete {arrest::jail::%{_id}%::bossbar}
+
+
+    # ============================================================
+    # 保釈看板を削除
+    # ============================================================
+
+    # 北
+    set {_sx} to {arrest::jail::%{_id}%::sign::north::x}
+    set {_sy} to {arrest::jail::%{_id}%::sign::north::y}
+    set {_sz} to {arrest::jail::%{_id}%::sign::north::z}
+
+    set block at location({_sx}, {_sy}, {_sz}, {_world}) to air
+
+
+    # 南
+    set {_sx} to {arrest::jail::%{_id}%::sign::south::x}
+    set {_sy} to {arrest::jail::%{_id}%::sign::south::y}
+    set {_sz} to {arrest::jail::%{_id}%::sign::south::z}
+
+    set block at location({_sx}, {_sy}, {_sz}, {_world}) to air
+
+
+    # 西
+    set {_sx} to {arrest::jail::%{_id}%::sign::west::x}
+    set {_sy} to {arrest::jail::%{_id}%::sign::west::y}
+    set {_sz} to {arrest::jail::%{_id}%::sign::west::z}
+
+    set block at location({_sx}, {_sy}, {_sz}, {_world}) to air
+
+
+    # 東
+    set {_sx} to {arrest::jail::%{_id}%::sign::east::x}
+    set {_sy} to {arrest::jail::%{_id}%::sign::east::y}
+    set {_sz} to {arrest::jail::%{_id}%::sign::east::z}
+
+    set block at location({_sx}, {_sy}, {_sz}, {_world}) to air
+
+
+    # ============================================================
+    # 牢屋の四方の壁を撤去
+    # ============================================================
+
+    # 北
+    set blocks within location({_x1}, {_floor} + 1, {_z1}, {_world}) and location({_x2}, {_floor} + 3, {_z1}, {_world}) to air
+
+    # 南
+    set blocks within location({_x1}, {_floor} + 1, {_z2}, {_world}) and location({_x2}, {_floor} + 3, {_z2}, {_world}) to air
+
+    # 西
+    set blocks within location({_x1}, {_floor} + 1, {_z1}, {_world}) and location({_x1}, {_floor} + 3, {_z2}, {_world}) to air
+
+    # 東
+    set blocks within location({_x2}, {_floor} + 1, {_z1}, {_world}) and location({_x2}, {_floor} + 3, {_z2}, {_world}) to air
+
+
+    # ============================================================
+    # 天井を撤去
+    # ============================================================
+
+    set blocks within location({_x1}, {_ceiling}, {_z1}, {_world}) and location({_x2}, {_ceiling}, {_z2}, {_world}) to air
+
+
+    # ============================================================
+    # 足元を石ブロックにする
+    #
+    # 牢屋の5 x 5の床を cobblestone に変更
+    # ============================================================
+
+    set blocks within location({_x1}, {_floor}, {_z1}, {_world}) and location({_x2}, {_floor}, {_z2}, {_world}) to cobblestone
+
+
+    # ============================================================
+    # 収監状態を解除
+    # ============================================================
+
+    delete {arrest::player::%{_uuid}%::jail}
+
+
+    # ============================================================
+    # 牢屋を無効化
+    # ============================================================
+
+    set {arrest::jail::%{_id}%::active} to false
+
+
+    # ============================================================
+    # プレイヤーはその場に残す
+    # ============================================================
+
+    if {_p} is set:
+
+        if {_p} is online:
+
+            send title "&a&l釈放" with subtitle "&f収監が終了しました" to {_p}
+
+            send "&a&l[ARREST] &f釈放されました。" to {_p}
+
+
+    # ============================================================
+    # メッセージ
+    # ============================================================
+
+    broadcast "&a&l[ARREST] &f%name of {_p}% の収監が終了しました。"
+
+
+# ============================================================
+# 保釈看板
+# ============================================================
+
+on right click:
+
+    if clicked block is not set:
+        stop
+
+    if type of clicked block is not oak wall sign:
+        stop
+
+
+    # ========================================================
+    # 牢屋を検索
+    # ========================================================
+
+    loop {arrest::jail::ids::*}:
+
+        set {_id} to loop-value
+
+        if {arrest::jail::%{_id}%::active} is true:
+
+            if world of player is {arrest::jail::%{_id}%::world}:
+
+                set {_x} to floor(x-coordinate of clicked block)
+                set {_y} to floor(y-coordinate of clicked block)
+                set {_z} to floor(z-coordinate of clicked block)
+
+
+                # ====================================================
+                # 北
+                # ====================================================
+
+                if {_x} is {arrest::jail::%{_id}%::sign::north::x}:
+                    if {_y} is {arrest::jail::%{_id}%::sign::north::y}:
+                        if {_z} is {arrest::jail::%{_id}%::sign::north::z}:
+
+                            cancel event
+
+                            arrest_bail_jail({_id}, player)
+
+                            stop
+
+
+                # ====================================================
+                # 南
+                # ====================================================
+
+                if {_x} is {arrest::jail::%{_id}%::sign::south::x}:
+                    if {_y} is {arrest::jail::%{_id}%::sign::south::y}:
+                        if {_z} is {arrest::jail::%{_id}%::sign::south::z}:
+
+                            cancel event
+
+                            arrest_bail_jail({_id}, player)
+
+                            stop
+
+
+                # ====================================================
+                # 西
+                # ====================================================
+
+                if {_x} is {arrest::jail::%{_id}%::sign::west::x}:
+                    if {_y} is {arrest::jail::%{_id}%::sign::west::y}:
+                        if {_z} is {arrest::jail::%{_id}%::sign::west::z}:
+
+                            cancel event
+
+                            arrest_bail_jail({_id}, player)
+
+                            stop
+
+
+                # ====================================================
+                # 東
+                # ====================================================
+
+                if {_x} is {arrest::jail::%{_id}%::sign::east::x}:
+                    if {_y} is {arrest::jail::%{_id}%::sign::east::y}:
+                        if {_z} is {arrest::jail::%{_id}%::sign::east::z}:
+
+                            cancel event
+
+                            arrest_bail_jail({_id}, player)
+
+                            stop
+
+
+# ============================================================
+# 保釈処理
+# ============================================================
+
+function arrest_bail_jail(id: number, p: player):
+
+    if {arrest::jail::%{_id}%::active} is not true:
+        stop
+
+
+    # --------------------------------------------------------
+    # 保釈情報
+    # --------------------------------------------------------
+
+    set {_bailitem} to {arrest::jail::%{_id}%::bail::item}
+    set {_bailamount} to {arrest::jail::%{_id}%::bail::amount}
+    set {_bailname} to {arrest::jail::%{_id}%::bail::name}
+
+
+    # --------------------------------------------------------
+    # 保釈金確認
+    # --------------------------------------------------------
+
+    if {_p} has {_bailamount} of {_bailitem}:
+
+        remove {_bailamount} of {_bailitem} from {_p}'s inventory
+
+        send "&e&l[ARREST] &f保釈金を支払いました。" to {_p}
+        send "&7%{_bailname}% × %{_bailamount}%" to {_p}
+
+        arrest_release_jail({_id})
+
+    else:
+
+        send "&c&l[ARREST] &f保釈金が足りません。" to {_p}
+        send "&7必要：&f%{_bailname}% × %{_bailamount}%" to {_p}
+
+
+# ============================================================
+# 牢屋・看板の破壊防止
+# ============================================================
+
+on break:
+
+    loop {arrest::jail::ids::*}:
+
+        set {_id} to loop-value
+
+        # 牢屋が無効なら次へ
+        if {arrest::jail::%{_id}%::active} is not true:
+            continue
+
+        # 別ワールドなら次へ
+        if world of player is not {arrest::jail::%{_id}%::world}:
+            continue
+
+
+        # ====================================================
+        # 壊そうとしているブロックの座標
+        # ====================================================
+
+        set {_bx} to floor(x-coordinate of event-block)
+        set {_by} to floor(y-coordinate of event-block)
+        set {_bz} to floor(z-coordinate of event-block)
+
+
+        # ====================================================
+        # 牢屋の範囲
+        # ====================================================
+
+        set {_x1} to {arrest::jail::%{_id}%::x1}
+        set {_x2} to {arrest::jail::%{_id}%::x2}
+
+        set {_z1} to {arrest::jail::%{_id}%::z1}
+        set {_z2} to {arrest::jail::%{_id}%::z2}
+
+        set {_floor} to {arrest::jail::%{_id}%::floor}
+        set {_ceiling} to {arrest::jail::%{_id}%::ceiling}
+
+
+        # ====================================================
+        # 牢屋本体
+        #
+        # X
+        # X
+        # Y
+        # Y
+        # Z
+        # Z
+        #
+        # すべて個別に判定する
+        # ====================================================
+
+        if {_bx} >= {_x1}:
+            if {_bx} <= {_x2}:
+
+                if {_by} >= {_floor}:
+                    if {_by} <= {_ceiling}:
+
+                        if {_bz} >= {_z1}:
+                            if {_bz} <= {_z2}:
+
+                                cancel event
+                                stop
+
+
+        # ====================================================
+        # 北の看板
+        # ====================================================
+
+        if {_bx} is {arrest::jail::%{_id}%::sign::north::x}:
+            if {_by} is {arrest::jail::%{_id}%::sign::north::y}:
+                if {_bz} is {arrest::jail::%{_id}%::sign::north::z}:
+
+                    cancel event
+                    stop
+
+
+        # ====================================================
+        # 南の看板
+        # ====================================================
+
+        if {_bx} is {arrest::jail::%{_id}%::sign::south::x}:
+            if {_by} is {arrest::jail::%{_id}%::sign::south::y}:
+                if {_bz} is {arrest::jail::%{_id}%::sign::south::z}:
+
+                    cancel event
+                    stop
+
+
+        # ====================================================
+        # 西の看板
+        # ====================================================
+
+        if {_bx} is {arrest::jail::%{_id}%::sign::west::x}:
+            if {_by} is {arrest::jail::%{_id}%::sign::west::y}:
+                if {_bz} is {arrest::jail::%{_id}%::sign::west::z}:
+
+                    cancel event
+                    stop
+
+
+        # ====================================================
+        # 東の看板
+        # ====================================================
+
+        if {_bx} is {arrest::jail::%{_id}%::sign::east::x}:
+            if {_by} is {arrest::jail::%{_id}%::sign::east::y}:
+                if {_bz} is {arrest::jail::%{_id}%::sign::east::z}:
+
+                    cancel event
+                    stop
