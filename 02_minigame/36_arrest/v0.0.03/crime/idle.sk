@@ -1,0 +1,109 @@
+# ============================================================
+# ARREST GAME
+# File : crime/idle.sk
+#
+# 犯罪：サボり罪
+#
+# 30秒間、プレイヤーが移動しなかった場合に逮捕
+#
+# 収監：30秒
+# 保釈：銅インゴット × 3
+# ============================================================
+
+
+# ============================================================
+# 1秒ごとに移動チェック
+# ============================================================
+
+every 1 second:
+
+    loop all players:
+
+        set {_p} to loop-player
+
+        # ----------------------------------------------------
+        # ARREST GAME OFF
+        # ----------------------------------------------------
+
+        if {arrest::enabled} is not true:
+            stop loop
+
+        # ----------------------------------------------------
+        # 対象ワールド以外
+        # ----------------------------------------------------
+
+        if world of {_p} is not {arrest::world}:
+            delete {arrest::idle::%uuid of {_p}%::*}
+            stop loop
+
+        # ----------------------------------------------------
+        # すでに収監中
+        # ----------------------------------------------------
+
+        if {arrest::player::%uuid of {_p}%::jail} is set:
+            delete {arrest::idle::%uuid of {_p}%::*}
+            stop loop
+
+        # ----------------------------------------------------
+        # 現在位置
+        # ----------------------------------------------------
+
+        set {_x} to x-coordinate of {_p}
+        set {_y} to y-coordinate of {_p}
+        set {_z} to z-coordinate of {_p}
+
+        # ----------------------------------------------------
+        # 初回
+        # ----------------------------------------------------
+
+        if {arrest::idle::%uuid of {_p}%::x} is not set:
+
+            set {arrest::idle::%uuid of {_p}%::x} to {_x}
+            set {arrest::idle::%uuid of {_p}%::y} to {_y}
+            set {arrest::idle::%uuid of {_p}%::z} to {_z}
+            set {arrest::idle::%uuid of {_p}%::time} to 0
+
+            stop loop
+
+        # ----------------------------------------------------
+        # 移動した
+        # ----------------------------------------------------
+
+        if {_x} is not {arrest::idle::%uuid of {_p}%::x}:
+            set {arrest::idle::%uuid of {_p}%::x} to {_x}
+            set {arrest::idle::%uuid of {_p}%::y} to {_y}
+            set {arrest::idle::%uuid of {_p}%::z} to {_z}
+            set {arrest::idle::%uuid of {_p}%::time} to 0
+            stop loop
+
+        if {_y} is not {arrest::idle::%uuid of {_p}%::y}:
+            set {arrest::idle::%uuid of {_p}%::x} to {_x}
+            set {arrest::idle::%uuid of {_p}%::y} to {_y}
+            set {arrest::idle::%uuid of {_p}%::z} to {_z}
+            set {arrest::idle::%uuid of {_p}%::time} to 0
+            stop loop
+
+        if {_z} is not {arrest::idle::%uuid of {_p}%::z}:
+            set {arrest::idle::%uuid of {_p}%::x} to {_x}
+            set {arrest::idle::%uuid of {_p}%::y} to {_y}
+            set {arrest::idle::%uuid of {_p}%::z} to {_z}
+            set {arrest::idle::%uuid of {_p}%::time} to 0
+            stop loop
+
+        # ----------------------------------------------------
+        # 動いていない
+        # ----------------------------------------------------
+
+        add 1 to {arrest::idle::%uuid of {_p}%::time}
+
+        # ----------------------------------------------------
+        # 30秒経過
+        # ----------------------------------------------------
+
+        if {arrest::idle::%uuid of {_p}%::time} >= 30:
+
+            delete {arrest::idle::%uuid of {_p}%::*}
+
+            set {_reason} to "サボり罪"
+
+            arrest_create_jail({_p}, {_reason}, 30, copper ingot, 3, "銅インゴット")
