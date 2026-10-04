@@ -1,10 +1,16 @@
 # ============================================================
 # ARREST GAME
 # File : crime/flower.sk
+# Version : v0.0.03
 #
 # 犯罪：花踏み罪
 #
-# プレイヤーが花を足で踏んだ場合に逮捕
+# プレイヤーが花の上に「足を乗せた」場合に逮捕
+#
+# 方式：
+# ・tick監視は使用しない
+# ・プレイヤーが移動した瞬間に足元のブロックを確認
+# ・足元が対象の花なら逮捕
 #
 # 収監：30秒
 # 保釈：銅インゴット × 3
@@ -12,59 +18,100 @@
 
 
 # ============================================================
-# 花を踏んでいるかチェック
+# 花踏み判定
 # ============================================================
 
-every 1 tick:
+on player move:
 
-    loop all players:
+    # ========================================================
+    # ARREST GAMEが無効
+    # ========================================================
 
-        set {_p} to loop-player
+    if {arrest::enabled} is not true:
+        stop
 
-        # ----------------------------------------------------
-        # ARREST GAME OFF
-        # ----------------------------------------------------
 
-        if {arrest::enabled} is not true:
-            stop loop
+    # ========================================================
+    # 対象ワールド以外
+    # ========================================================
 
-        # ----------------------------------------------------
-        # 対象ワールド以外
-        # ----------------------------------------------------
+    if world of player is not {arrest::world}:
+        stop
 
-        if world of {_p} is not {arrest::world}:
-            stop loop
 
-        # ----------------------------------------------------
-        # すでに収監中
-        # ----------------------------------------------------
+    # ========================================================
+    # すでに収監中
+    # ========================================================
 
-        if {arrest::player::%uuid of {_p}%::jail} is set:
-            stop loop
+    if {arrest::player::%uuid of player%::jail} is set:
+        stop
 
-        # ----------------------------------------------------
-        # 足元のブロック
-        # ----------------------------------------------------
 
-        set {_block} to block below {_p}
+    # ========================================================
+    # 移動前と移動後でブロックが変わっていない場合は無視
+    #
+    # 同じブロック内で視点だけ動かした場合などを除外
+    # ========================================================
 
-        # ----------------------------------------------------
-        # 花判定
-        # ----------------------------------------------------
+    set {_from-x} to floor(x-coordinate of event-location)
+    set {_from-y} to floor(y-coordinate of event-location)
+    set {_from-z} to floor(z-coordinate of event-location)
 
-        if {_block} is dandelion or poppy or blue orchid or allium or azure bluet or red tulip or orange tulip or white tulip or pink tulip or oxeye daisy or cornflower or lily of the valley or wither rose or sunflower or lilac or rose bush or peony or torchflower or wildflowers:
+    set {_to-x} to floor(x-coordinate of player)
+    set {_to-y} to floor(y-coordinate of player)
+    set {_to-z} to floor(z-coordinate of player)
 
-            # ------------------------------------------------
-            # 犯罪発生
-            # ------------------------------------------------
+    if {_from-x} is {_to-x}:
+        if {_from-y} is {_to-y}:
+            if {_from-z} is {_to-z}:
+                stop
 
-            set {_reason} to "花踏み罪"
 
-            # ------------------------------------------------
-            # 逮捕
-            #
-            # 30秒
-            # 銅インゴット × 3
-            # ------------------------------------------------
+    # ========================================================
+    # プレイヤーの足元のブロックを取得
+    #
+    # 「block below player」を使用
+    # 頭や体の位置ではなく、足元を判定
+    # ========================================================
 
-            arrest_create_jail({_p}, {_reason}, 30, copper ingot, 3, "銅インゴット")
+    set {_block} to block below player
+
+
+    # ========================================================
+    # 花判定
+    # ========================================================
+
+    if {_block} is not dandelion:
+        if {_block} is not poppy:
+            if {_block} is not blue orchid:
+                if {_block} is not allium:
+                    if {_block} is not azure bluet:
+                        if {_block} is not red tulip:
+                            if {_block} is not orange tulip:
+                                if {_block} is not white tulip:
+                                    if {_block} is not pink tulip:
+                                        if {_block} is not oxeye daisy:
+                                            if {_block} is not cornflower:
+                                                if {_block} is not lily of the valley:
+                                                    if {_block} is not wither rose:
+                                                        if {_block} is not sunflower:
+                                                            if {_block} is not lilac:
+                                                                if {_block} is not rose bush:
+                                                                    if {_block} is not peony:
+                                                                        if {_block} is not torchflower:
+                                                                            if {_block} is not wildflowers:
+                                                                                stop
+
+
+    # ========================================================
+    # 罪状
+    # ========================================================
+
+    set {_reason} to "花踏み罪"
+
+
+    # ========================================================
+    # 逮捕
+    # ========================================================
+
+    arrest_create_jail(player, {_reason}, 30, copper ingot, 3, "銅インゴット")
