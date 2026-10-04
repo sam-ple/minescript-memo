@@ -1,18 +1,18 @@
 # ============================================================
 # ARREST GAME
 # File : protection.sk
-# Version : v0.0.02
+# Version : v0.0.05
 #
 # 収監中プレイヤー保護
 #
 # 収監中のみ：
 # ・完全無敵
+# ・満腹度の増減なし
 # ・耐性 V
 # ・水中呼吸
 # ・火炎耐性
-# ・満腹度の増減なし
-# ・犯罪判定は各crime側で収監中を除外
-#
+# ・ポーションアイコン非表示
+# ・ポーションパーティクル非表示
 # ============================================================
 
 
@@ -22,11 +22,9 @@
 
 on damage of player:
 
-    # 収監中ではない
     if {arrest::player::%uuid of victim%::jail} is not set:
         stop
 
-    # ダメージを完全キャンセル
     cancel event
 
 
@@ -36,11 +34,9 @@ on damage of player:
 
 on food level change:
 
-    # 収監中ではない
     if {arrest::player::%uuid of player%::jail} is not set:
         stop
 
-    # 満腹度変更をキャンセル
     cancel event
 
 
@@ -54,14 +50,33 @@ every 1 second:
 
         set {_p} to loop-player
 
-        # 収監中だけ処理
-        if {arrest::player::%uuid of {_p}%::jail} is set:
+        # 収監中ではない
+        if {arrest::player::%uuid of {_p}%::jail} is not set:
+            continue
 
-            # 耐性 V
-            apply resistance 5 to {_p} for 2 seconds
 
-            # 水中呼吸
-            apply water breathing to {_p} for 2 seconds
+        # ====================================================
+        # 耐性 V
+        # ====================================================
 
-            # 火炎耐性
-            apply fire resistance to {_p} for 2 seconds
+        apply resistance 5 to {_p} for 2 seconds:
+            hide the particles
+            hide the icon
+
+
+        # ====================================================
+        # 水中呼吸
+        # ====================================================
+
+        apply water breathing 1 to {_p} for 2 seconds:
+            hide the particles
+            hide the icon
+
+
+        # ====================================================
+        # 火炎耐性
+        # ====================================================
+
+        apply fire resistance 1 to {_p} for 2 seconds:
+            hide the particles
+            hide the icon
