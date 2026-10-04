@@ -1,0 +1,21 @@
+every 5 seconds:
+
+    loop all players:
+
+        set {_p} to loop-player
+
+        if gamemode of {_p} is not survival:
+            continue
+
+        if world of {_p} is not {arrest::world}:
+            continue
+
+        set {_x} to floor(x-coordinate of {_p})
+        set {_y} to floor(y-coordinate of {_p})
+        set {_z} to floor(z-coordinate of {_p})
+
+        set {_b1} to block at location({_x}, {_y}, {_z}, world of {_p})
+        set {_b2} to block at location({_x}, {_y} - 1, {_z}, world of {_p})
+        set {_b3} to block at location({_x}, {_y} + 1, {_z}, world of {_p})
+
+        send "&e[FLOWER TEST] &fY=%{_y}% / Y=%{_b1}% / Y-1=%{_b2}% / Y+1=%{_b3}%" to {_p}
