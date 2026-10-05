@@ -1,0 +1,54 @@
+# ============================================================
+# ARREST GAME
+# File : arrest.sk
+# Version : v0.0.04
+#
+# ゲーム開始・停止・状態確認
+#
+# v0.0.04
+# ・v0.0.03の動作を維持
+# ・設定をconfigへ分離
+# ・逮捕処理をcoreへ集約
+# ============================================================
+
+command /arrest [<text>]:
+
+    trigger:
+
+        if arg-1 is "on":
+
+            delete {arrest::enabled}
+            delete {arrest::world}
+            delete {arrest::jail::*}
+            delete {arrest::player::*}
+
+            arrest_load_general_config()
+            arrest_load_crime_config()
+
+            set {arrest::world} to world of player
+            set {arrest::enabled} to true
+
+            send "&a[ARREST GAME] 判定を開始しました。"
+            send "&7対象ワールド：%{arrest::world}%"
+            send "&7Version：v0.0.04"
+            stop
+
+        if arg-1 is "off":
+
+            set {arrest::enabled} to false
+
+            send "&c[ARREST GAME] 判定を停止しました。"
+            stop
+
+        if arg-1 is "status":
+
+            if {arrest::enabled} is true:
+                send "&a[ARREST GAME] ON"
+                send "&7対象ワールド：%{arrest::world}%"
+            else:
+                send "&c[ARREST GAME] OFF"
+            stop
+
+        send "&e/arrest on"
+        send "&e/arrest off"
+        send "&e/arrest status"

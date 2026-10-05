@@ -1,0 +1,93 @@
+# ============================================================
+# ARREST GAME
+# File : config/crimes.sk
+# Version : v0.0.04
+#
+# 罪状設定
+# ============================================================
+
+function arrest_load_crime_config():
+
+    set {arrest::crime::attack::enabled} to true
+    set {arrest::crime::attack::name} to "暴行罪"
+    set {arrest::crime::attack::jail-time} to 60
+    set {arrest::crime::attack::bail-item} to gold ingot
+    set {arrest::crime::attack::bail-amount} to 2
+    set {arrest::crime::attack::bail-name} to "金インゴット"
+
+    set {arrest::crime::boat::enabled} to true
+    set {arrest::crime::boat::name} to "ボート無免許罪"
+    set {arrest::crime::boat::jail-time} to 60
+    set {arrest::crime::boat::bail-item} to gold ingot
+    set {arrest::crime::boat::bail-amount} to 2
+    set {arrest::crime::boat::bail-name} to "金インゴット"
+
+    set {arrest::crime::chest::enabled} to true
+    set {arrest::crime::chest::name} to "窃盗罪"
+    set {arrest::crime::chest::jail-time} to 60
+    set {arrest::crime::chest::bail-item} to gold ingot
+    set {arrest::crime::chest::bail-amount} to 2
+    set {arrest::crime::chest::bail-name} to "金インゴット"
+
+    set {arrest::crime::drop::enabled} to true
+    set {arrest::crime::drop::name} to "不法投棄罪"
+    set {arrest::crime::drop::jail-time} to 30
+    set {arrest::crime::drop::bail-item} to copper ingot
+    set {arrest::crime::drop::bail-amount} to 3
+    set {arrest::crime::drop::bail-name} to "銅インゴット"
+
+    set {arrest::crime::egg::enabled} to true
+    set {arrest::crime::egg::name} to "たまご泥棒罪"
+    set {arrest::crime::egg::jail-time} to 30
+    set {arrest::crime::egg::bail-item} to copper ingot
+    set {arrest::crime::egg::bail-amount} to 3
+    set {arrest::crime::egg::bail-name} to "銅インゴット"
+
+    set {arrest::crime::flower::enabled} to true
+    set {arrest::crime::flower::name} to "花踏み罪"
+    set {arrest::crime::flower::jail-time} to 30
+    set {arrest::crime::flower::bail-item} to copper ingot
+    set {arrest::crime::flower::bail-amount} to 3
+    set {arrest::crime::flower::bail-name} to "銅インゴット"
+
+    set {arrest::crime::grass::enabled} to true
+    set {arrest::crime::grass::name} to "環境破壊罪"
+    set {arrest::crime::grass::jail-time} to 30
+    set {arrest::crime::grass::bail-item} to copper ingot
+    set {arrest::crime::grass::bail-amount} to 5
+    set {arrest::crime::grass::bail-name} to "銅インゴット"
+
+    set {arrest::crime::gunpowder::enabled} to true
+    set {arrest::crime::gunpowder::name} to "火遊び危険罪"
+    set {arrest::crime::gunpowder::jail-time} to 30
+    set {arrest::crime::gunpowder::bail-item} to copper ingot
+    set {arrest::crime::gunpowder::bail-amount} to 3
+    set {arrest::crime::gunpowder::bail-name} to "銅インゴット"
+
+    set {arrest::crime::idle::enabled} to true
+    set {arrest::crime::idle::name} to "サボり罪"
+    set {arrest::crime::idle::jail-time} to 30
+    set {arrest::crime::idle::bail-item} to copper ingot
+    set {arrest::crime::idle::bail-amount} to 3
+    set {arrest::crime::idle::bail-name} to "銅インゴット"
+
+    set {arrest::crime::mob::enabled} to true
+    set {arrest::crime::mob::name} to "なんかかわいそう罪"
+    set {arrest::crime::mob::jail-time} to 30
+    set {arrest::crime::mob::bail-item} to copper ingot
+    set {arrest::crime::mob::bail-amount} to 3
+    set {arrest::crime::mob::bail-name} to "銅インゴット"
+
+    set {arrest::crime::stare::enabled} to true
+    set {arrest::crime::stare::name} to "凝視罪"
+    set {arrest::crime::stare::jail-time} to 30
+    set {arrest::crime::stare::bail-item} to copper ingot
+    set {arrest::crime::stare::bail-amount} to 3
+    set {arrest::crime::stare::bail-name} to "銅インゴット"
+
+    set {arrest::crime::sword::enabled} to true
+    set {arrest::crime::sword::name} to "銃刀法違反"
+    set {arrest::crime::sword::jail-time} to 60
+    set {arrest::crime::sword::bail-item} to gold ingot
+    set {arrest::crime::sword::bail-amount} to 2
+    set {arrest::crime::sword::bail-name} to "金インゴット"

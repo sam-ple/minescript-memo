@@ -1,0 +1,29 @@
+# ============================================================
+# ARREST GAME
+# File : config/messages.sk
+# Version : v0.0.04
+#
+# メッセージ・タイトル
+# ============================================================
+
+function arrest_message_jail(p: player, reason: text, jailtime: number, bailname: text, bailamount: number):
+    send title "&c&l逮捕" with subtitle "&f%{_reason}%" to {_p}
+    send "&c&l[ARREST] &fあなたは逮捕されました。" to {_p}
+    send "&7罪状：&f%{_reason}%" to {_p}
+    send "&7収監時間：&f%{_jailtime}%秒" to {_p}
+    send "&7保釈金：&f%{_bailname}% × %{_bailamount}%" to {_p}
+    broadcast "&c&l[ARREST] &f%name of {_p}% が逮捕されました。"
+    broadcast "&7罪状：&f%{_reason}%"
+
+function arrest_message_bail(p: player, bailname: text, bailamount: number):
+    send "&e&l[ARREST] &f保釈金を支払いました。" to {_p}
+    send "&7%{_bailname}% × %{_bailamount}%" to {_p}
+
+function arrest_message_bail_shortage(p: player, bailname: text, bailamount: number):
+    send "&c&l[ARREST] &f保釈金が足りません。" to {_p}
+    send "&7必要：&f%{_bailname}% × %{_bailamount}%" to {_p}
+
+function arrest_message_release(p: player):
+    send title "&a&l釈放" with subtitle "&f収監が終了しました" to {_p}
+    send "&a&l[ARREST] &f釈放されました。" to {_p}
+    broadcast "&a&l[ARREST] &f%name of {_p}% の収監が終了しました。"

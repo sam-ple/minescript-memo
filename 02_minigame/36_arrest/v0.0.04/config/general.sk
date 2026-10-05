@@ -1,0 +1,10 @@
+# ============================================================
+# ARREST GAME
+# File : config/general.sk
+# Version : v0.0.04
+#
+# 全体設定
+# ============================================================
+
+function arrest_load_general_config():
+    set {arrest::config::bossbar-radius} to 30

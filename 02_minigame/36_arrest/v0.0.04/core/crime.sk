@@ -1,0 +1,36 @@
+# ============================================================
+# ARREST GAME
+# File : core/crime.sk
+# Version : v0.0.04
+#
+# 逮捕共通処理
+#
+# 罪状ファイルは「何をしたか」の判定だけを担当し、
+# 実際の逮捕条件・設定取得・牢屋生成はここで共通化する。
+# ============================================================
+
+function arrest_crime(p: player, crime: text):
+
+    if {arrest::enabled} is not true:
+        stop
+
+    if world of {_p} is not {arrest::world}:
+        stop
+
+    # サバイバルのみ逮捕対象
+    if gamemode of {_p} is not survival:
+        stop        
+
+    if {arrest::player::%uuid of {_p}%::jail} is set:
+        stop
+
+    if {arrest::crime::%{_crime}%::enabled} is not true:
+        stop
+
+    set {_reason} to {arrest::crime::%{_crime}%::name}
+    set {_jailtime} to {arrest::crime::%{_crime}%::jail-time}
+    set {_bailitem} to {arrest::crime::%{_crime}%::bail-item}
+    set {_bailamount} to {arrest::crime::%{_crime}%::bail-amount}
+    set {_bailname} to {arrest::crime::%{_crime}%::bail-name}
+
+    arrest_create_jail({_p}, {_reason}, {_jailtime}, {_bailitem}, {_bailamount}, {_bailname})

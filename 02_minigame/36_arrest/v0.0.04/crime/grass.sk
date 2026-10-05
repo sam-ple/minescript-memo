@@ -1,0 +1,16 @@
+# ============================================================
+# ARREST GAME
+# File : crime/grass.sk
+# Version : v0.0.04
+#
+# 犯罪：環境破壊罪
+#
+# 短い草・背の高い草を壊した場合に逮捕
+#
+# 罪状判定は core/crime.sk に集約。
+# ============================================================
+
+
+on break of short grass or tall grass:
+
+    arrest_crime(player, "grass")

@@ -1,0 +1,157 @@
+# ============================================================
+# ARREST GAME
+# File : crime/flower.sk
+# Version : v0.0.04
+#
+# 犯罪：花踏み罪
+#
+# ・サバイバルのみ
+# ・ARRESTワールドのみ
+# ・プレイヤーの足元(Y)が花なら即逮捕
+# ・1秒間に20回チェック
+# ============================================================
+
+
+every 1 tick:
+
+    loop all players:
+
+        set {_p} to loop-player
+
+
+        # ====================================================
+        # ARREST GAME が無効
+        # ====================================================
+
+        if {arrest::enabled} is not true:
+            continue
+
+
+        # ====================================================
+        # 対象ワールド
+        # ====================================================
+
+        if world of {_p} is not {arrest::world}:
+            continue
+
+
+        # ====================================================
+        # サバイバルのみ
+        # ====================================================
+
+        if gamemode of {_p} is not survival:
+            continue
+
+
+        # ====================================================
+        # すでに収監中
+        # ====================================================
+
+        if {arrest::player::%uuid of {_p}%::jail} is set:
+            continue
+
+
+        # ====================================================
+        # プレイヤーの現在位置
+        # ====================================================
+
+        set {_x} to floor(x-coordinate of {_p})
+        set {_y} to floor(y-coordinate of {_p})
+        set {_z} to floor(z-coordinate of {_p})
+
+
+        # ====================================================
+        # プレイヤーの足元のブロック
+        #
+        # 今回のテスト結果では
+        # 花は Y のブロックとして認識される
+        # ====================================================
+
+        set {_block} to block at location({_x}, {_y}, {_z}, world of {_p})
+
+
+        # ====================================================
+        # 花か判定
+        # ====================================================
+
+        if {_block} is short grass:
+            continue
+
+        if {_block} is tall grass:
+            continue
+
+        if {_block} is dandelion:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is poppy:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is blue orchid:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is allium:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is azure bluet:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is red tulip:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is orange tulip:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is white tulip:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is pink tulip:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is oxeye daisy:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is cornflower:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is lily of the valley:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is wither rose:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is sunflower:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is lilac:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is rose bush:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is peony:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is torchflower:
+            arrest_crime({_p}, "flower")
+            continue
+
+        if {_block} is pink petals:
+            arrest_crime({_p}, "flower")
+            continue
