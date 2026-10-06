@@ -1,13 +1,13 @@
 # ============================================================
 # ARREST GAME
 # File : crime/stare.sk
+# Version : v0.0.04a
 #
 # 犯罪：凝視罪
 #
-# 他プレイヤーを30秒間見続けた場合に逮捕
+# 他プレイヤーを15秒間見続けた場合に逮捕
 #
-# 収監：30秒
-# 保釈：銅インゴット × 3
+# 収監時間・保釈金は config/crimes.sk で管理
 # ============================================================
 
 
@@ -26,7 +26,7 @@ every 1 second:
         # ----------------------------------------------------
 
         if {arrest::enabled} is not true:
-            stop loop
+            continue
 
         # ----------------------------------------------------
         # 対象ワールド以外
@@ -34,7 +34,7 @@ every 1 second:
 
         if world of {_p} is not {arrest::world}:
             delete {arrest::stare::%uuid of {_p}%::*}
-            stop loop
+            continue
 
         # ----------------------------------------------------
         # すでに収監中
@@ -42,7 +42,7 @@ every 1 second:
 
         if {arrest::player::%uuid of {_p}%::jail} is set:
             delete {arrest::stare::%uuid of {_p}%::*}
-            stop loop
+            continue
 
         # ----------------------------------------------------
         # 見ている対象を取得
@@ -56,7 +56,7 @@ every 1 second:
 
         if {_target} is not a player:
             delete {arrest::stare::%uuid of {_p}%::*}
-            stop loop
+            continue
 
         # ----------------------------------------------------
         # 自分自身
@@ -64,7 +64,7 @@ every 1 second:
 
         if {_target} is {_p}:
             delete {arrest::stare::%uuid of {_p}%::*}
-            stop loop
+            continue
 
         # ----------------------------------------------------
         # 見ている相手を記録
@@ -81,7 +81,7 @@ every 1 second:
             set {arrest::stare::%uuid of {_p}%::target} to {_target-uuid}
             set {arrest::stare::%uuid of {_p}%::time} to 0
 
-            stop loop
+            continue
 
         # ----------------------------------------------------
         # 同じ相手を見続けている
@@ -90,13 +90,11 @@ every 1 second:
         add 1 to {arrest::stare::%uuid of {_p}%::time}
 
         # ----------------------------------------------------
-        # 30秒凝視
+        # 15秒凝視
         # ----------------------------------------------------
 
-        if {arrest::stare::%uuid of {_p}%::time} >= 30:
+        if {arrest::stare::%uuid of {_p}%::time} >= 15:
 
             delete {arrest::stare::%uuid of {_p}%::*}
-
-            set {_reason} to "凝視罪"
 
             arrest_crime({_p}, "stare")
