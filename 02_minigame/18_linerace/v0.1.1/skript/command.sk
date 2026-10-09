@@ -1,0 +1,227 @@
+# LineRace v0.1.1 | Paper + Skript 2.16.1 | command.sk
+command /line:
+
+    permission: op
+
+    trigger:
+
+        # ====================================================
+        # WORLD CHECK
+        # ====================================================
+
+        set {_currentWorld} to "%uuid of world of player%"
+
+        if {linerace.world.id} is not set:
+
+            set {linerace.world.id} to {_currentWorld}
+
+        else:
+
+            if {linerace.world.id} is not {_currentWorld}:
+
+                # =================================================
+                # NEW WORLD DETECTED
+                # =================================================
+
+                add 1 to {linerace.game.id}
+
+                set {linerace.running} to false
+                set {linerace.setup} to false
+                set {linerace.countdown} to false
+                set {linerace.finish} to false
+
+                set {linerace.time} to 0
+                set {linerace.night} to false
+
+                # -------------------------------------------------
+                # BossBar
+                # -------------------------------------------------
+
+                set {_bar} to boss bar with key "linerace:timer"
+
+                if {_bar} is set:
+                    remove all players from {_bar}
+                    delete {_bar}
+
+                # -------------------------------------------------
+                # Scoreboard
+                # -------------------------------------------------
+
+                execute console command "scoreboard objectives setdisplay sidebar"
+                execute console command "scoreboard objectives remove linerace.distance"
+
+                # -------------------------------------------------
+                # TAB
+                # -------------------------------------------------
+
+                loop all players:
+                    set tab list name of loop-player to "%loop-player%"
+
+                # -------------------------------------------------
+                # Delete registration data
+                # -------------------------------------------------
+
+                delete {linerace.player::*}
+                delete {linerace.lane.player::*}
+
+                delete {linerace.start.x::*}
+                delete {linerace.start.y::*}
+                delete {linerace.start.z::*}
+                delete {linerace.start.world::*}
+                delete {linerace.start.world.id::*}
+
+                delete {linerace.head.x::*}
+                delete {linerace.head.y::*}
+                delete {linerace.head.z::*}
+                delete {linerace.head.world::*}
+
+                delete {linerace.protection::*}
+                delete {linerace.distance::*}
+
+                delete {linerace.final.distance::*}
+                delete {linerace.final.x::*}
+                delete {linerace.final.y::*}
+                delete {linerace.final.z::*}
+                delete {linerace.final.world::*}
+
+                # -------------------------------------------------
+                # Register new world
+                # -------------------------------------------------
+
+                set {linerace.world.id} to {_currentWorld}
+                set {linerace.duration} to 900
+
+                send "&eLineRace detected a new world." to player
+                send "&7Old LineRace registration data was cleared." to player
+                send "&7New world UUID has been registered." to player
+
+                execute console command "scoreboard objectives add linerace.distance dummy Distance"
+
+
+        # ====================================================
+        # COUNT REGISTERED ONLINE PLAYERS
+        # ====================================================
+
+        set {_count} to 0
+
+        loop all players:
+
+            if {linerace.player::%loop-player%} is set:
+
+                if {linerace.start.world.id::%loop-player%} is {_currentWorld}:
+
+                    add 1 to {_count}
+
+
+        # ====================================================
+        # STATUS
+        # ====================================================
+
+        if {linerace.running} is true:
+
+            if {linerace.countdown} is true:
+                set {_status} to "&6COUNTDOWN"
+            else:
+                set {_status} to "&aRUNNING"
+
+        else if {linerace.finish} is true:
+
+            set {_status} to "&cFINISHING"
+
+        else if {linerace.setup} is true:
+
+            set {_status} to "&eSET MODE"
+
+        else:
+
+            set {_status} to "&7READY"
+
+
+        # ====================================================
+        # TIME
+        # ====================================================
+
+        set {_minutes} to floor({linerace.duration} / 60)
+        set {_timeText} to "%{_minutes}% MIN"
+
+
+        # ====================================================
+        # MAIN GUI
+        # ====================================================
+
+        set {_gui} to chest inventory with 3 rows named "&6&lLINERACE"
+
+
+        # ----------------------------------------------------
+        # SET
+        # ----------------------------------------------------
+
+        set slot 1 of {_gui} to emerald named "&a&lSET"
+        set lore of slot 1 of {_gui} to "&7Register your lane." and "&7Click to enter SET mode."
+
+
+        # ----------------------------------------------------
+        # START
+        # ----------------------------------------------------
+
+        set slot 3 of {_gui} to diamond named "&e&lSTART"
+        set lore of slot 3 of {_gui} to "&7Start LineRace." and "&7Registered players: &f%{_count}%&7 / &f10" and "&7All registered players return to start."
+
+
+        # ----------------------------------------------------
+        # TIME
+        # ----------------------------------------------------
+
+        set slot 5 of {_gui} to clock named "&b&lTIME"
+        set lore of slot 5 of {_gui} to "&7Current: &f%{_timeText}%" and "&7Click to select game time."
+
+
+        # ----------------------------------------------------
+        # STOP
+        # ----------------------------------------------------
+
+        set slot 7 of {_gui} to redstone torch named "&c&lSTOP"
+        set lore of slot 7 of {_gui} to "&7Stop the current game." and "&7Registration data will remain."
+
+
+        # ----------------------------------------------------
+        # RESET
+        # ----------------------------------------------------
+
+        set slot 19 of {_gui} to barrier named "&4&lCLEAR"
+        set lore of slot 19 of {_gui} to "&7Clear game and registration data." and "&cThis cannot be undone."
+
+
+        # ----------------------------------------------------
+        # STATUS
+        # ----------------------------------------------------
+
+        if {linerace.gather.location} is set:
+            set {_gatherText} to "%{linerace.gather.location}%"
+        else:
+            set {_gatherText} to "Not set"
+        set slot 21 of {_gui} to paper named "&f&lSTATUS"
+        set lore of slot 21 of {_gui} to "&7Players: &f%{_count}%&7 / &f10" and "&7Status: %{_status}%" and "&7Time: &f%{_timeText}%" and "&7Gather: &f%{_gatherText}%" and "" and "&eClick to view registered players."
+
+
+        set slot 23 of {_gui} to compass named "&b&lSET SPAWN"
+        set lore of slot 23 of {_gui} to "&7Save your location as the gathering point."
+        set slot 25 of {_gui} to ender pearl named "&a&lTP ALL"
+        set lore of slot 25 of {_gui} to "&7Teleport everyone to the gathering point."
+        set slot 17 of {_gui} to lever named "&d&lDEBUG"
+        set lore of slot 17 of {_gui} to "&7Toggle your action bar debug display."
+        open {_gui} to player
+
+
+# ============================================================
+# EMERGENCY CLEAR
+#
+# /lineclear
+# ============================================================
+
+
+command /lineclear:
+    permission: op
+    trigger:
+        linerace_clear()
+        send "&cLineRace cleared." to player

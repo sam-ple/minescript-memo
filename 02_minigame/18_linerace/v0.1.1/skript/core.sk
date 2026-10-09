@@ -1,0 +1,134 @@
+# LineRace v0.1.1 | Paper + Skript 2.16.1 | core.sk
+on load:
+
+    set {linerace.running} to false
+    set {linerace.setup} to false
+    set {linerace.countdown} to false
+    set {linerace.finish} to false
+
+    set {linerace.time} to 0
+    set {linerace.duration} to 900
+    set {linerace.night} to false
+
+    if {linerace.game.id} is not set:
+        set {linerace.game.id} to 0
+
+    delete {linerace.protection::*}
+    delete {linerace.distance::*}
+    delete {linerace.final.distance::*}
+
+    execute console command "scoreboard objectives add linerace.distance dummy Distance"
+
+    set {_bar} to boss bar with key "linerace:timer"
+
+    if {_bar} is set:
+        remove all players from {_bar}
+        delete {_bar}
+
+    execute console command "scoreboard objectives setdisplay sidebar"
+
+    loop all players:
+        set tab list name of loop-player to "%loop-player%"
+
+    send "&aLineRace System v0.1.1 loaded." to console
+
+# ============================================================
+# SHARED FULL CLEAR (SET / CLEAR / /lineclear)
+# ============================================================
+function linerace_clear():
+        add 1 to {linerace.game.id}
+
+        set {linerace.running} to false
+        set {linerace.setup} to false
+        set {linerace.countdown} to false
+        set {linerace.finish} to false
+
+        set {linerace.time} to 0
+        set {linerace.duration} to 900
+        set {linerace.night} to false
+
+
+        # ----------------------------------------------------
+        # BossBar
+        # ----------------------------------------------------
+
+        set {_bar} to boss bar with key "linerace:timer"
+
+        if {_bar} is set:
+            remove all players from {_bar}
+            delete {_bar}
+
+
+        # ----------------------------------------------------
+        # Scoreboard
+        # ----------------------------------------------------
+
+        execute console command "scoreboard objectives setdisplay sidebar"
+        execute console command "scoreboard objectives remove linerace.distance"
+
+
+        # ----------------------------------------------------
+        # TAB
+        # ----------------------------------------------------
+
+        loop all players:
+            set tab list name of loop-player to "%loop-player%"
+
+
+        # Remove registered player heads BEFORE deleting stored positions.
+        loop {linerace.head.x::*}:
+            set {_key} to loop-index
+            if {linerace.head.world::%{_key}%} is set:
+                set {_hx} to {linerace.head.x::%{_key}%}
+                set {_hy} to {linerace.head.y::%{_key}%}
+                set {_hz} to {linerace.head.z::%{_key}%}
+                set {_hw} to {linerace.head.world::%{_key}%}
+                set {_headBlock} to block at location({_hx}, {_hy}, {_hz}, {_hw})
+                if {_headBlock} is player head or player wall head:
+                    set {_headBlock} to air
+
+        # Restore personal respawn points to the saved world spawn after a race.
+        # SET SPAWN controls the world spawn; registered lane spawn points are temporary.
+        loop all players:
+            if {linerace.player::%loop-player%} is set:
+                if {linerace.gather.location} is set:
+                    set spawn point of loop-player to {linerace.gather.location}
+
+        # ----------------------------------------------------
+        # Delete registration
+        # ----------------------------------------------------
+
+        delete {linerace.player::*}
+        delete {linerace.lane.player::*}
+
+        delete {linerace.start.x::*}
+        delete {linerace.start.y::*}
+        delete {linerace.start.z::*}
+        delete {linerace.start.world::*}
+        delete {linerace.start.world.id::*}
+
+        delete {linerace.head.x::*}
+        delete {linerace.head.y::*}
+        delete {linerace.head.z::*}
+        delete {linerace.head.world::*}
+
+        delete {linerace.protection::*}
+        delete {linerace.distance::*}
+
+        delete {linerace.final.distance::*}
+        delete {linerace.final.x::*}
+        delete {linerace.final.y::*}
+        delete {linerace.final.z::*}
+        delete {linerace.final.world::*}
+
+        delete {linerace.world.id}
+
+
+        # ----------------------------------------------------
+        # Recreate objective
+        # ----------------------------------------------------
+
+        execute console command "scoreboard objectives add linerace.distance dummy Distance"
+
+
+

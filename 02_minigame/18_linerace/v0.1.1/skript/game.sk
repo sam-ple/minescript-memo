@@ -1,0 +1,179 @@
+# LineRace v0.1.1 | Paper + Skript 2.16.1 | game.sk
+every 2 ticks:
+
+    if {linerace.running} is not true:
+        stop
+
+    if {linerace.countdown} is true:
+        stop
+
+
+    loop all players:
+
+        if {linerace.player::%loop-player%} is not set:
+            continue
+
+        if loop-player's gamemode is not survival:
+            continue
+
+        set {_p} to loop-player
+
+
+        # ====================================================
+        # WORLD VALIDATION
+        # ====================================================
+
+        set {_currentWorld} to "%uuid of world of {_p}%"
+
+        if {linerace.start.world.id::%{_p}%} is not {_currentWorld}:
+            continue
+
+
+        # ====================================================
+        # POSITION
+        # ====================================================
+
+        set {_px} to x-coordinate of {_p}
+        set {_py} to y-coordinate of {_p}
+        set {_pz} to z-coordinate of {_p}
+
+
+        # ====================================================
+        # LANE
+        # ====================================================
+
+        set {_lane} to {linerace.player::%{_p}%}
+
+
+        # ====================================================
+        # START
+        # ====================================================
+
+        set {_sx} to {linerace.start.x::%{_p}%}
+        set {_sy} to {linerace.start.y::%{_p}%}
+        set {_sz} to {linerace.start.z::%{_p}%}
+
+
+        # ====================================================
+        # X DIFFERENCE
+        # ====================================================
+
+        set {_xdiff} to {_px} - {_sx}
+
+        set {_absdiff} to abs({_xdiff})
+
+
+        # ====================================================
+        # DISTANCE
+        # ====================================================
+
+        set {_distanceRaw} to {_pz} - {_sz}
+
+        set {_distance} to floor({_distanceRaw})
+
+        if {_distance} < 0:
+            set {_distance} to 0
+
+
+        # ====================================================
+        # SAVE DISTANCE
+        # ====================================================
+
+        set {linerace.distance::%{_p}%} to {_distance}
+
+
+        # ====================================================
+        # ACTION BAR
+        # ====================================================
+
+        if {linerace.debug::%{_p}%} is true:
+            send action bar "&eLane: &f%{_lane}% &8| &eDistance: &f%{_distance}%m &8| &eXDiff: &f%{_xdiff}% &8| &eLimit: &f±1.0" to {_p}
+
+
+        # ====================================================
+        # PROTECTION
+        # ====================================================
+
+        if {linerace.protection::%{_p}%} is set:
+            continue
+
+
+        # ====================================================
+        # LANE CHECK
+        # ====================================================
+
+        if {_absdiff} > 1:
+
+            set {linerace.protection::%{_p}%} to true
+
+            kill {_p}
+
+            continue
+
+
+# ============================================================
+# SCOREBOARD / TAB UPDATE
+#
+# EVERY 1 SECOND
+# ============================================================
+
+every 1 second:
+
+    if {linerace.running} is not true:
+        stop
+
+    if {linerace.countdown} is true:
+        stop
+
+
+    loop all players:
+
+        if {linerace.player::%loop-player%} is not set:
+            continue
+
+        if loop-player's gamemode is not survival:
+            continue
+
+        set {_p} to loop-player
+
+
+        # ====================================================
+        # WORLD VALIDATION
+        # ====================================================
+
+        set {_currentWorld} to "%uuid of world of {_p}%"
+
+        if {linerace.start.world.id::%{_p}%} is not {_currentWorld}:
+            continue
+
+
+        # ====================================================
+        # DISTANCE
+        # ====================================================
+
+        set {_distance} to {linerace.distance::%{_p}%}
+
+        if {_distance} is not set:
+            set {_distance} to 0
+
+
+        # ====================================================
+        # SCOREBOARD
+        # ====================================================
+
+        execute console command "scoreboard players set %{_p}% linerace.distance %{_distance}%"
+
+
+        # ====================================================
+        # TAB
+        # ====================================================
+
+        set {_lane} to {linerace.player::%{_p}%}
+
+        set tab list name of {_p} to "&7[%{_lane}%] &f%{_p}% &8- &e%{_distance}%m"
+
+
+# ============================================================
+# GAME TIMER
+# ============================================================
+

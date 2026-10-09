@@ -1,0 +1,110 @@
+# LineRace v0.1.1 | Paper + Skript 2.16.1 | event.sk
+# Wool drops: only in the active LineRace world while setting up or racing.
+on break:
+    if {linerace.setup} is not true:
+        if {linerace.running} is not true:
+            stop
+
+    if {linerace.world.id} is not "%uuid of world of event-block%":
+        stop
+
+    if event-block is white wool:
+        clear drops
+    else if event-block is orange wool:
+        clear drops
+    else if event-block is light blue wool:
+        clear drops
+    else if event-block is lime wool:
+        clear drops
+    else if event-block is yellow wool:
+        clear drops
+    else if event-block is red wool:
+        clear drops
+    else if event-block is blue wool:
+        clear drops
+    else if event-block is green wool:
+        clear drops
+    else if event-block is pink wool:
+        clear drops
+    else if event-block is purple wool:
+        clear drops
+
+
+on quit:
+
+    if {linerace.player::%player%} is not set:
+        stop
+
+    if {linerace.running} is true:
+
+        execute console command "scoreboard players reset %player% linerace.distance"
+
+        set {linerace.distance::%player%} to 0
+
+
+# ============================================================
+# JOIN
+# ============================================================
+
+on join:
+
+    if {linerace.running} is not true:
+        stop
+
+    if {linerace.player::%player%} is not set:
+        stop
+
+    if player's gamemode is not survival:
+        stop
+
+    if {linerace.start.x::%player%} is not set:
+        stop
+
+
+    set {_joinGameID} to {linerace.game.id}
+    wait 2 ticks
+
+    if {linerace.game.id} is not {_joinGameID}:
+        stop
+    if {linerace.running} is not true:
+        stop
+
+    set {_x} to {linerace.start.x::%player%}
+    set {_y} to {linerace.start.y::%player%}
+    set {_z} to {linerace.start.z::%player%}
+    set {_world} to {linerace.start.world::%player%}
+
+
+    set {linerace.protection::%player%} to true
+
+
+    teleport player to location({_x}, {_y}, {_z}, {_world})
+
+
+    execute console command "scoreboard players set %player% linerace.distance 0"
+
+    set {linerace.distance::%player%} to 0
+
+
+    set {_lane} to {linerace.player::%player%}
+
+    set tab list name of player to "&7[%{_lane}%] &f%player% &8- &e0m"
+
+
+    set {_bar} to boss bar with key "linerace:timer"
+
+    if {_bar} is set:
+
+        add player to viewers of {_bar}
+
+
+    wait 1 second
+
+    if {linerace.game.id} is not {_joinGameID}:
+        stop
+
+    if {linerace.running} is true:
+
+        if {linerace.player::%player%} is set:
+
+            delete {linerace.protection::%player%}

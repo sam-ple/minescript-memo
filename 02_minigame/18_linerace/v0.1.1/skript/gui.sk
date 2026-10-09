@@ -1,0 +1,709 @@
+# LineRace v0.1.1 | Paper + Skript 2.16.1 | gui.sk
+on inventory click:
+
+    if name of event-inventory is not "&6&lLINERACE":
+        stop
+
+    cancel event
+
+
+    # ========================================================
+    # SET
+    # ========================================================
+
+    if clicked slot is 1:
+        close player's inventory
+        linerace_clear()
+        set {linerace.world.id} to "%uuid of world of player%"
+        set {linerace.world} to world of player
+        set {linerace.setup} to true
+        send "&aLineRace SET: Previous data cleared. Select your lane button." to all players
+        stop
+
+
+    # ========================================================
+    # START
+    # ========================================================
+
+    if clicked slot is 3:
+
+        close player's inventory
+
+        if {linerace.running} is true:
+            send "&cLineRace is already running." to player
+            stop
+
+        if {linerace.finish} is true:
+            send "&cLineRace is finishing. Please wait for FINISH." to player
+            stop
+
+
+        set {_currentWorld} to "%uuid of world of player%"
+
+        if {linerace.world.id} is not set:
+
+            set {linerace.world.id} to {_currentWorld}
+
+        else if {linerace.world.id} is not {_currentWorld}:
+
+            send "&cThis is not the registered LineRace world." to player
+            send "&7Use /lineclear and then /line in this world." to player
+            stop
+
+
+        # ----------------------------------------------------
+        # Count
+        # ----------------------------------------------------
+
+        set {_count} to 0
+
+        loop all players:
+
+            if {linerace.player::%loop-player%} is set:
+
+                if {linerace.start.world.id::%loop-player%} is {_currentWorld}:
+
+                    add 1 to {_count}
+
+
+        if {_count} is 0:
+
+            send "&cNo registered players." to player
+            stop
+
+
+        if {_count} > 10:
+
+            send "&cToo many registered players." to player
+            send "&7Maximum players: 10" to player
+            stop
+
+
+        # ----------------------------------------------------
+        # Validate
+        # ----------------------------------------------------
+
+        set {_valid} to true
+
+        loop all players:
+
+            if {linerace.player::%loop-player%} is not set:
+                continue
+
+            if {linerace.start.world.id::%loop-player%} is not {_currentWorld}:
+                continue
+
+            set {_p} to loop-player
+
+            if {_p}'s gamemode is not survival:
+                set {_valid} to false
+                send "&c%{_p}% はサバイバルモードではありません。" to player
+
+            if {linerace.player::%{_p}%} is not set:
+                set {_valid} to false
+
+            if {linerace.start.x::%{_p}%} is not set:
+                set {_valid} to false
+
+            if {linerace.start.y::%{_p}%} is not set:
+                set {_valid} to false
+
+            if {linerace.start.z::%{_p}%} is not set:
+                set {_valid} to false
+
+            if {linerace.start.world::%{_p}%} is not set:
+                set {_valid} to false
+
+            if {linerace.start.world.id::%{_p}%} is not set:
+                set {_valid} to false
+
+
+        if {_valid} is not true:
+
+            send "&cSTART failed." to player
+            send "&7One or more registered players have invalid start data." to player
+            stop
+
+
+        # ----------------------------------------------------
+        # Finish SET
+        # ----------------------------------------------------
+
+        set {linerace.setup} to false
+
+
+        # ----------------------------------------------------
+        # Game ID
+        # ----------------------------------------------------
+
+        add 1 to {linerace.game.id}
+        set {_gameID} to {linerace.game.id}
+
+
+        # ----------------------------------------------------
+        # State
+        # ----------------------------------------------------
+
+        set {linerace.running} to true
+        set {linerace.countdown} to true
+        set {linerace.finish} to false
+
+        set {linerace.time} to 0
+        set {linerace.night} to false
+
+
+        # ----------------------------------------------------
+        # Day
+        # ----------------------------------------------------
+
+
+
+        # ----------------------------------------------------
+        # Scoreboard
+        # ----------------------------------------------------
+
+        execute console command "scoreboard objectives add linerace.distance dummy Distance"
+        execute console command "scoreboard objectives setdisplay sidebar linerace.distance"
+
+
+        # ----------------------------------------------------
+        # BossBar
+        # ----------------------------------------------------
+
+        set {_minutes} to floor({linerace.duration} / 60)
+
+        set {_bar} to boss bar with key "linerace:timer"
+
+        if {_bar} is set:
+
+            remove all players from {_bar}
+
+            set title of {_bar} to "LINERACE %{_minutes}%:00"
+            set progress of {_bar} to 100%
+            set style of {_bar} to solid
+
+        else:
+
+            set {_bar} to a new keyed blue bossbar with key "linerace:timer" with title "LINERACE %{_minutes}%:00"
+
+            set progress of {_bar} to 100%
+            set style of {_bar} to solid
+
+
+        # ----------------------------------------------------
+        # Registered players
+        # ----------------------------------------------------
+
+        loop all players:
+
+            if {linerace.player::%loop-player%} is not set:
+                continue
+
+            if {linerace.start.world.id::%loop-player%} is not {_currentWorld}:
+                continue
+
+            set {_p} to loop-player
+
+            add {_p} to viewers of {_bar}
+
+
+            set {_x} to {linerace.start.x::%{_p}%}
+            set {_y} to {linerace.start.y::%{_p}%}
+            set {_z} to {linerace.start.z::%{_p}%}
+            set {_world} to {linerace.start.world::%{_p}%}
+
+
+            # Spawnpoint
+
+            set {_spawnX} to floor({_x})
+            set {_spawnY} to floor({_y})
+            set {_spawnZ} to floor({_z})
+
+            execute console command "spawnpoint %{_p}% %{_spawnX}% %{_spawnY}% %{_spawnZ}%"
+
+
+            # Score
+
+            execute console command "scoreboard players set %{_p}% linerace.distance 0"
+
+
+            # Distance
+
+            set {linerace.distance::%{_p}%} to 0
+            set {linerace.final.distance::%{_p}%} to 0
+
+
+            # Protection
+
+            set {linerace.protection::%{_p}%} to true
+
+
+            # TAB
+
+            set {_lane} to {linerace.player::%{_p}%}
+
+            set tab list name of {_p} to "&7[%{_lane}%] &f%{_p}% &8- &e0m"
+
+
+            # Teleport
+
+            teleport {_p} to location({_x}, {_y}, {_z}, {_world})
+
+
+        # ====================================================
+        # COUNTDOWN
+        # ====================================================
+
+        send title "&6&l3" with subtitle "&fGET READY" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
+
+        wait 1 second
+
+        if {linerace.game.id} is not {_gameID}:
+            stop
+
+        if {linerace.running} is not true:
+            stop
+
+        send title "&e&l2" with subtitle "&fGET READY" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
+
+        wait 1 second
+
+        if {linerace.game.id} is not {_gameID}:
+            stop
+
+        if {linerace.running} is not true:
+            stop
+
+        send title "&a&l1" with subtitle "&fGET READY" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
+
+        wait 1 second
+
+        if {linerace.game.id} is not {_gameID}:
+            stop
+
+        if {linerace.running} is not true:
+            stop
+
+
+        # ====================================================
+        # TIMER START
+        # ====================================================
+
+        set {linerace.time} to 0
+        if {linerace.world} is set:
+            set time of {linerace.world} to 6:00
+
+
+        # ----------------------------------------------------
+        # Final teleport
+        # ----------------------------------------------------
+
+        loop all players:
+
+            if {linerace.player::%loop-player%} is not set:
+                continue
+
+            if {linerace.start.world.id::%loop-player%} is not {_currentWorld}:
+                continue
+
+            set {_p} to loop-player
+
+            set {_x} to {linerace.start.x::%{_p}%}
+            set {_y} to {linerace.start.y::%{_p}%}
+            set {_z} to {linerace.start.z::%{_p}%}
+            set {_world} to {linerace.start.world::%{_p}%}
+
+            teleport {_p} to location({_x}, {_y}, {_z}, {_world})
+
+
+        # ----------------------------------------------------
+        # Remove protection
+        # ----------------------------------------------------
+
+        loop all players:
+
+            if {linerace.player::%loop-player%} is set:
+
+                if {linerace.start.world.id::%loop-player%} is {_currentWorld}:
+
+                    delete {linerace.protection::%loop-player%}
+
+
+        # ----------------------------------------------------
+        # GO
+        # ----------------------------------------------------
+
+        send title "&b&lGO!" with subtitle "&fLINERACE START!" to all players
+
+        play sound "entity.player.levelup" with volume 1 and pitch 1 to all players
+
+        send "" to all players
+        send "&6&l==============================" to all players
+        send "&e&l        LINERACE START!" to all players
+        send "&6&l==============================" to all players
+        send "" to all players
+
+        set {linerace.countdown} to false
+
+        stop
+
+
+    # ========================================================
+    # STATUS
+    # ========================================================
+
+    if clicked slot is 21:
+
+        close player's inventory
+
+        set {_currentWorld} to "%uuid of world of player%"
+
+        set {_count} to 0
+
+        loop all players:
+
+            if {linerace.player::%loop-player%} is set:
+
+                if {linerace.start.world.id::%loop-player%} is {_currentWorld}:
+
+                    add 1 to {_count}
+
+
+        if {linerace.running} is true:
+
+            if {linerace.countdown} is true:
+                set {_status} to "&6COUNTDOWN"
+            else:
+                set {_status} to "&aRUNNING"
+
+        else if {linerace.finish} is true:
+
+            set {_status} to "&cFINISHING"
+
+        else if {linerace.setup} is true:
+
+            set {_status} to "&eSET MODE"
+
+        else:
+
+            set {_status} to "&7READY"
+
+
+        set {_minutes} to floor({linerace.duration} / 60)
+
+        set {_statusGui} to chest inventory with 3 rows named "&f&lLINERACE PLAYERS"
+
+        set slot 4 of {_statusGui} to paper named "&f&lGAME STATUS"
+
+        set lore of slot 4 of {_statusGui} to "&7Players: &f%{_count}%&7 / &f5" and "&7Status: %{_status}%" and "&7Time: &f%{_minutes}% MIN"
+
+
+        set {_slot} to 0
+
+        loop all players:
+
+            if {linerace.player::%loop-player%} is not set:
+                continue
+
+            if {linerace.start.world.id::%loop-player%} is not {_currentWorld}:
+                continue
+
+            set {_p} to loop-player
+            set {_lane} to {linerace.player::%{_p}%}
+
+            set slot {_slot} of {_statusGui} to skull of {_p}
+            set name of slot {_slot} of {_statusGui} to "&f&l%{_p}%"
+            set lore of slot {_slot} of {_statusGui} to "&7Registered Player" and "&7Lane: &f%{_lane}%"
+
+            add 1 to {_slot}
+
+
+        if {_count} is 0:
+
+            set slot 13 of {_statusGui} to barrier named "&cNo registered players"
+            set lore of slot 13 of {_statusGui} to "&7No players have selected a lane yet."
+
+
+        set slot 22 of {_statusGui} to arrow named "&7&lBACK"
+        set lore of slot 22 of {_statusGui} to "&7Return to the LineRace main menu."
+
+        open {_statusGui} to player
+
+        stop
+
+
+    # ========================================================
+    # TIME
+    # ========================================================
+
+    if clicked slot is 5:
+
+        close player's inventory
+
+        if {linerace.running} is true:
+
+            send "&cTime cannot be changed during a game." to player
+            stop
+
+        if {linerace.finish} is true:
+
+            send "&cTime cannot be changed while finishing." to player
+            stop
+
+
+        set {_timeGui} to chest inventory with 3 rows named "&b&lSELECT GAME TIME"
+
+
+        # 5 MIN
+
+        set slot 10 of {_timeGui} to clock named "&a&l5 MIN"
+
+        if {linerace.duration} is 300:
+
+            set lore of slot 10 of {_timeGui} to "&7Game duration: &f5 minutes" and "" and "&a&lCURRENTLY SELECTED"
+
+        else:
+
+            set lore of slot 10 of {_timeGui} to "&7Game duration: &f5 minutes" and "" and "&eClick to select."
+
+
+        # 15 MIN
+
+        set slot 13 of {_timeGui} to clock named "&e&l15 MIN"
+
+        if {linerace.duration} is 900:
+
+            set lore of slot 13 of {_timeGui} to "&7Game duration: &f15 minutes" and "" and "&a&lCURRENTLY SELECTED"
+
+        else:
+
+            set lore of slot 13 of {_timeGui} to "&7Game duration: &f15 minutes" and "" and "&eClick to select."
+
+
+        # 30 MIN
+
+        set slot 16 of {_timeGui} to clock named "&c&l30 MIN"
+
+        if {linerace.duration} is 1800:
+
+            set lore of slot 16 of {_timeGui} to "&7Game duration: &f30 minutes" and "" and "&a&lCURRENTLY SELECTED"
+
+        else:
+
+            set lore of slot 16 of {_timeGui} to "&7Game duration: &f30 minutes" and "" and "&eClick to select."
+
+
+        # BACK
+
+        set slot 22 of {_timeGui} to arrow named "&7&lBACK"
+        set lore of slot 22 of {_timeGui} to "&7Return to the LineRace main menu."
+
+        open {_timeGui} to player
+
+        stop
+
+
+    # ========================================================
+    # STOP
+    # ========================================================
+
+    if clicked slot is 7:
+
+        close player's inventory
+
+        if {linerace.running} is not true:
+
+            send "&cLineRace is not running." to player
+            stop
+
+
+        add 1 to {linerace.game.id}
+
+        set {linerace.running} to false
+        set {linerace.countdown} to false
+        set {linerace.setup} to false
+        set {linerace.finish} to false
+
+        set {linerace.time} to 0
+        set {linerace.night} to false
+
+
+        # BossBar
+
+        set {_bar} to boss bar with key "linerace:timer"
+
+        if {_bar} is set:
+
+            remove all players from {_bar}
+            delete {_bar}
+
+
+        # Scoreboard
+
+        execute console command "scoreboard objectives setdisplay sidebar"
+
+        loop all players:
+
+            execute console command "scoreboard players reset %loop-player% linerace.distance"
+
+
+        # Return players
+
+        loop all players:
+
+            if {linerace.player::%loop-player%} is not set:
+                continue
+
+            set {_p} to loop-player
+
+            set {_x} to {linerace.start.x::%{_p}%}
+            set {_y} to {linerace.start.y::%{_p}%}
+            set {_z} to {linerace.start.z::%{_p}%}
+            set {_world} to {linerace.start.world::%{_p}%}
+
+            set {linerace.distance::%{_p}%} to 0
+            set {linerace.protection::%{_p}%} to true
+
+            set {_lane} to {linerace.player::%{_p}%}
+
+            set tab list name of {_p} to "&7[%{_lane}%] &f%{_p}% &8- &e0m"
+
+            teleport {_p} to location({_x}, {_y}, {_z}, {_world})
+
+            delete {linerace.protection::%{_p}%}
+
+
+        send "" to all players
+        send "&c&l==============================" to all players
+        send "&c&l        LINERACE STOPPED" to all players
+        send "&fThe game has been stopped." to all players
+        send "&7Registration data has been kept." to all players
+        send "&c&l==============================" to all players
+        send "" to all players
+
+        stop
+
+
+    # ========================================================
+    # RESET
+    # ========================================================
+
+    if clicked slot is 19:
+        close player's inventory
+        linerace_clear()
+        send "&cLineRace CLEAR complete." to player
+        stop
+
+    if clicked slot is 23:
+        close player's inventory
+        set {linerace.gather.location} to location of player
+        set spawn location of world of player to location of player
+        send "&aWorld spawn and gathering point set: %location of player%" to player
+        stop
+
+    if clicked slot is 25:
+        close player's inventory
+        if {linerace.gather.location} is not set:
+            send "&cUse SET SPAWN first." to player
+            stop
+        loop all players:
+            teleport loop-player to {linerace.gather.location}
+        send "&aAll online players teleported to the gathering point." to player
+        stop
+
+    if clicked slot is 17:
+        close player's inventory
+        if {linerace.debug::%player%} is true:
+            set {linerace.debug::%player%} to false
+            send "&7DEBUG OFF" to player
+        else:
+            set {linerace.debug::%player%} to true
+            send "&aDEBUG ON" to player
+        stop
+
+
+# ============================================================
+# TIME GUI
+# ============================================================
+
+on inventory click:
+
+    if name of event-inventory is not "&b&lSELECT GAME TIME":
+        stop
+
+    cancel event
+
+
+    if {linerace.running} is true:
+
+        send "&cTime cannot be changed during a game." to player
+        close player's inventory
+        stop
+
+
+    if {linerace.finish} is true:
+
+        send "&cTime cannot be changed while finishing." to player
+        close player's inventory
+        stop
+
+
+    if clicked slot is 10:
+
+        set {linerace.duration} to 300
+        send "&aGame time set to 5 minutes." to player
+        close player's inventory
+        stop
+
+
+    if clicked slot is 13:
+
+        set {linerace.duration} to 900
+        send "&eGame time set to 15 minutes." to player
+        close player's inventory
+        stop
+
+
+    if clicked slot is 16:
+
+        set {linerace.duration} to 1800
+        send "&cGame time set to 30 minutes." to player
+        close player's inventory
+        stop
+
+
+    if clicked slot is 22:
+
+        close player's inventory
+        execute player command "/line"
+        stop
+
+
+# ============================================================
+# STATUS GUI
+# ============================================================
+
+on inventory click:
+
+    if name of event-inventory is not "&f&lLINERACE PLAYERS":
+        stop
+
+    cancel event
+
+
+    if clicked slot is 22:
+
+        close player's inventory
+        execute player command "/line"
+        stop
+
+
+# ============================================================
+# LANE SELECT
+#
+# Right-click stone button during SET mode.
+# ============================================================
+

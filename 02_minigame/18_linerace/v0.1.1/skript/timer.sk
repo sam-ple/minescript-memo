@@ -1,0 +1,295 @@
+# LineRace v0.1.1 | Paper + Skript 2.16.1 | timer.sk
+every 1 second:
+
+    if {linerace.running} is not true:
+        stop
+
+    if {linerace.countdown} is true:
+        stop
+
+
+    add 1 to {linerace.time}
+
+
+    # ========================================================
+    # NIGHT
+    # ========================================================
+
+    set {_halfTime} to {linerace.duration} / 2
+
+    if {linerace.time} >= {_halfTime}:
+
+        if {linerace.night} is not true:
+
+            set {linerace.night} to true
+
+            if {linerace.world} is set:
+                set time of {linerace.world} to 18:00
+
+
+    # ========================================================
+    # REMAINING
+    # ========================================================
+
+    set {_remaining} to {linerace.duration} - {linerace.time}
+
+    if {_remaining} < 0:
+        set {_remaining} to 0
+
+
+    # ========================================================
+    # TIME TEXT
+    # ========================================================
+
+    set {_minutes} to floor({_remaining} / 60)
+    set {_seconds} to {_remaining} - ({_minutes} * 60)
+
+
+    if {_seconds} < 10:
+
+        set {_secondText} to "0%{_seconds}%"
+
+    else:
+
+        set {_secondText} to "%{_seconds}%"
+
+
+    set {_timeText} to "%{_minutes}%:%{_secondText}%"
+
+
+    # ========================================================
+    # BOSSBAR
+    # ========================================================
+
+    set {_bar} to boss bar with key "linerace:timer"
+
+    if {_bar} is set:
+
+        set title of {_bar} to "LINERACE %{_timeText}%"
+        set progress of {_bar} to ({_remaining} / {linerace.duration}) * 100%
+
+
+    # ========================================================
+    # FINAL COUNTDOWN
+    # ========================================================
+
+    if {_remaining} is 3:
+        send title "&6&l3" with subtitle "&f" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
+
+    else if {_remaining} is 2:
+        send title "&e&l2" with subtitle "&f" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
+
+    else if {_remaining} is 1:
+        send title "&a&l1" with subtitle "&f" to all players
+        play sound "block.note_block.pling" with volume 1 and pitch 1 to all players
+
+    # ========================================================
+    # GAME END
+    # ========================================================
+
+    if {linerace.time} >= {linerace.duration}:
+
+        if {linerace.finish} is true:
+            stop
+
+
+        set {linerace.finish} to true
+        set {linerace.running} to false
+        set {linerace.countdown} to false
+
+
+        set {_finishGameID} to {linerace.game.id}
+
+
+        # ====================================================
+        # BOSSBAR 0:00
+        # ====================================================
+
+        set {_bar} to boss bar with key "linerace:timer"
+
+        if {_bar} is set:
+
+            set title of {_bar} to "LINERACE 0:00"
+            set progress of {_bar} to 0%
+
+
+        # ====================================================
+        # FINAL POSITION
+        # ====================================================
+
+        loop all players:
+
+            if {linerace.player::%loop-player%} is not set:
+                continue
+
+            set {_p} to loop-player
+
+
+            set {_finalX} to floor(x-coordinate of {_p})
+            set {_finalY} to floor(y-coordinate of {_p})
+            set {_finalZ} to floor(z-coordinate of {_p})
+            set {_finalWorld} to world of {_p}
+
+
+            set {linerace.final.x::%{_p}%} to {_finalX}
+            set {linerace.final.y::%{_p}%} to {_finalY}
+            set {linerace.final.z::%{_p}%} to {_finalZ}
+            set {linerace.final.world::%{_p}%} to {_finalWorld}
+
+
+            # ------------------------------------------------
+            # Final distance
+            # ------------------------------------------------
+
+            set {_sz} to {linerace.start.z::%{_p}%}
+
+            set {_finalRaw} to {_finalZ} - {_sz}
+
+            set {_finalDistance} to floor({_finalRaw})
+
+            if {_finalDistance} < 0:
+                set {_finalDistance} to 0
+
+            set {linerace.final.distance::%{_p}%} to {_finalDistance}
+
+
+            # ------------------------------------------------
+            # Marker
+            # ------------------------------------------------
+
+            loop 30 times:
+
+                set {_markerY} to {_finalY} + loop-number
+
+                set block at location({_finalX}, {_markerY}, {_finalZ}, {_finalWorld}) to red concrete
+
+
+        # ========================================================
+        # FINISH
+        # ========================================================
+
+        send title "&c&lFINISH!" with subtitle "&b&lTime Up!" to all players
+        play sound "entity.player.levelup" with volume 1 and pitch 1 to all players
+
+        send "" to all players
+        send "&6&l==============================" to all players
+        send "&e&l      Time Up! Final Results" to all players
+        send "&6&l==============================" to all players
+        send "" to all players
+
+        # ====================================================
+        # RESULT
+        # ====================================================
+
+        loop all players:
+
+            if {linerace.player::%loop-player%} is not set:
+                continue
+
+            set {_p} to loop-player
+
+            set {_distance} to {linerace.final.distance::%{_p}%}
+            set {_lane} to {linerace.player::%{_p}%}
+
+            send "&e%{_p}% &7→ &f%{_lane}% &7: &6%{_distance}%m" to all players
+
+
+        # ====================================================
+        # WAIT
+        # ====================================================
+
+        wait 1 second
+
+
+        if {linerace.game.id} is not {_finishGameID}:
+            stop
+
+        if {linerace.finish} is not true:
+            stop
+
+
+        # ====================================================
+        # RETURN TO START
+        # ====================================================
+
+        loop all players:
+
+            if {linerace.player::%loop-player%} is not set:
+                continue
+
+            set {_p} to loop-player
+
+            set {_x} to {linerace.start.x::%{_p}%}
+            set {_y} to {linerace.start.y::%{_p}%}
+            set {_z} to {linerace.start.z::%{_p}%}
+            set {_world} to {linerace.start.world::%{_p}%}
+
+            set {linerace.protection::%{_p}%} to true
+
+            teleport {_p} to location({_x}, {_y}, {_z}, {_world})
+
+
+        # ====================================================
+        # BOSSBAR REMOVE
+        # ====================================================
+
+        set {_bar} to boss bar with key "linerace:timer"
+
+        if {_bar} is set:
+
+            remove all players from {_bar}
+            delete {_bar}
+
+
+        # ====================================================
+        # SCOREBOARD
+        # ====================================================
+
+        execute console command "scoreboard objectives setdisplay sidebar"
+
+        loop all players:
+
+            execute console command "scoreboard players reset %loop-player% linerace.distance"
+
+
+        # ====================================================
+        # PROTECTION
+        # ====================================================
+
+        delete {linerace.protection::*}
+
+
+        # ====================================================
+        # TAB
+        # ====================================================
+
+        loop all players:
+
+            if {linerace.player::%loop-player%} is not set:
+                continue
+
+            set {_p} to loop-player
+
+            set {_lane} to {linerace.player::%{_p}%}
+            set {_distance} to {linerace.final.distance::%{_p}%}
+
+            set tab list name of {_p} to "&7[%{_lane}%] &f%{_p}% &8- &6%{_distance}%m"
+
+
+        # ====================================================
+        # FINISH CLEANUP
+        # ====================================================
+
+        set {linerace.finish} to false
+        set {linerace.time} to 0
+        set {linerace.night} to false
+
+        stop
+
+
+# ============================================================
+# RESPAWN
+# ============================================================
+

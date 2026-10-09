@@ -1,0 +1,56 @@
+# LineRace v0.1.1 | Paper + Skript 2.16.1 | respawn.sk
+on respawn:
+
+    if {linerace.running} is not true:
+        stop
+
+    if {linerace.player::%player%} is not set:
+        stop
+
+    if player's gamemode is not survival:
+        stop
+
+    if {linerace.start.x::%player%} is not set:
+        stop
+
+
+    set {_x} to {linerace.start.x::%player%}
+    set {_y} to {linerace.start.y::%player%}
+    set {_z} to {linerace.start.z::%player%}
+    set {_world} to {linerace.start.world::%player%}
+
+
+    set respawn location to location({_x}, {_y}, {_z}, {_world})
+
+
+    execute console command "scoreboard players set %player% linerace.distance 0"
+
+    set {linerace.distance::%player%} to 0
+
+
+    set {_lane} to {linerace.player::%player%}
+
+    set tab list name of player to "&7[%{_lane}%] &f%player% &8- &e0m"
+
+
+    set {linerace.protection::%player%} to true
+
+
+    set {_respawnGameID} to {linerace.game.id}
+    wait 1 second
+
+
+    if {linerace.game.id} is not {_respawnGameID}:
+        stop
+
+    if {linerace.running} is true:
+
+        if {linerace.player::%player%} is set:
+
+            delete {linerace.protection::%player%}
+
+
+# ============================================================
+# QUIT
+# ============================================================
+
